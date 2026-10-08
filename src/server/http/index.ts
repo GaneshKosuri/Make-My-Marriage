@@ -7,6 +7,7 @@ import "server-only";
 
 export { MAX_JSON_BODY_BYTES, readJsonBody } from "./body";
 export { getClientIp } from "./client-ip";
+export { getHealthReport, type HealthReport } from "./health";
 export { assertSameOrigin } from "./origin";
 export {
   afterCursorFilter,
@@ -43,6 +44,7 @@ export {
   route,
   searchParamsToObject,
   type HandlerArgs,
+  type InvalidParamsError,
   type RouteConfig,
   type RouteHandler,
   type RouteHandlerContext,

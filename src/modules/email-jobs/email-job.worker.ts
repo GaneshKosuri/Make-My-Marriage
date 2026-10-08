@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { InternalContext } from "@/server/auth";
+import { getEnv } from "@/server/config/env";
 
 import type { EmailWorkerRunResult } from "./email-job.types";
 
@@ -18,9 +19,10 @@ import type { EmailWorkerRunResult } from "./email-job.types";
 export const emailJobWorker = {
   async processDueJobs(
     ctx: InternalContext,
-    options: { batchSize: number },
+    options: { batchSize?: number } = {},
   ): Promise<EmailWorkerRunResult> {
-    // TODO(Phase 3: Guests): implement the flow above.
+    const batchSize = options.batchSize ?? getEnv().EMAIL_BATCH_SIZE;
+    void batchSize; // TODO(Phase 3: Guests): implement the flow above with this batch size.
     return { claimed: 0, sent: 0, failed: 0 };
   },
 };

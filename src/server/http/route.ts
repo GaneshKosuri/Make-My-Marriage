@@ -8,7 +8,7 @@ import type { z } from "zod";
 
 import { authenticate } from "@/server/auth/authenticate";
 import type { AuthLevel, ContextFor } from "@/server/auth/types";
-import { AppError, isAppError } from "@/server/errors";
+import { AppError, isAppError, type ErrorCode } from "@/server/errors";
 import { logger, sanitizePath } from "@/server/logging/logger";
 import { getRateLimiter, type RateLimitPolicy } from "@/server/security/rate-limit";
 
@@ -46,6 +46,11 @@ import { zodErrorToDetails, type ValidationSource } from "./validation";
 type AnySchema = z.ZodType;
 type Parsed<S> = S extends z.ZodType ? z.output<S> : undefined;
 
+export type InvalidParamsError = Extract<
+  ErrorCode,
+  "VALIDATION_ERROR" | "NOT_FOUND" | "INVALID_TOKEN"
+>;
+
 export interface HandlerArgs<A extends AuthLevel, P, Q, B> {
   ctx: ContextFor<A>;
   params: Parsed<P>;
@@ -67,10 +72,11 @@ export interface RouteConfig<
   /** One policy, or several consumed in order (first rejection stops the rest). */
   rateLimit?: RateLimitPolicy | readonly RateLimitPolicy[];
   /**
-   * Token and slug routes answer malformed path params with the same generic
-   * 404 as unknown ones, so invalid links are indistinguishable (API_DESIGN §50).
+   * Error for malformed path params. Default VALIDATION_ERROR (API_DESIGN §95).
+   * Public token/slug routes use NOT_FOUND so malformed and unknown links are
+   * indistinguishable (API_DESIGN §50); member-invitation accept uses INVALID_TOKEN (§26).
    */
-  invalidParams?: "validation-error" | "not-found";
+  invalidParams?: InvalidParamsError;
   handler: (args: HandlerArgs<A, P, Q, B>) => Response | Promise<Response>;
 }
 
@@ -128,7 +134,7 @@ export function route<
       const rawParams = ((await context?.params) ?? {}) as Record<string, unknown>;
 
       const params = config.params
-        ? parseParams(config.params, rawParams, config.invalidParams ?? "validation-error")
+        ? parseParams(config.params, rawParams, config.invalidParams ?? "VALIDATION_ERROR")
         : undefined;
 
       const details: Record<string, string> = {};
@@ -190,11 +196,11 @@ export function route<
 function parseParams(
   schema: AnySchema,
   raw: Record<string, unknown>,
-  onInvalid: "validation-error" | "not-found",
+  onInvalid: InvalidParamsError,
 ): unknown {
   const result = schema.safeParse(raw);
   if (result.success) return result.data;
-  if (onInvalid === "not-found") throw new AppError("NOT_FOUND");
+  if (onInvalid !== "VALIDATION_ERROR") throw new AppError(onInvalid);
   throw new AppError("VALIDATION_ERROR", undefined, {
     details: zodErrorToDetails(result.error, "params"),
   });
