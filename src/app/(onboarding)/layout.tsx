@@ -8,7 +8,7 @@ export default function OnboardingLayout({ children }: Readonly<{ children: Reac
       <Image
         src="/brand/logo-horizontal.svg"
         alt="Make My Marriage"
-        width={420}
+        width={572}
         height={96}
         className="h-auto w-56"
       />

@@ -8,7 +8,7 @@ export default function HomePage() {
       <Image
         src="/brand/logo-horizontal.svg"
         alt="Make My Marriage"
-        width={420}
+        width={572}
         height={96}
         priority
         className="h-auto w-72 sm:w-96"
