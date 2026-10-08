@@ -1,0 +1,16 @@
+# Source-of-truth documents and design assets are never reformatted.
+docs/
+brand/
+prompts/
+public/brand/
+
+# Generated / installed
+.next/
+node_modules/
+coverage/
+playwright-report/
+test-results/
+blob-report/
+package-lock.json
+next-env.d.ts
+AGENTS.md
