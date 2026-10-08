@@ -43,9 +43,10 @@ export default defineConfig([
   // Project-wide conventions.
   {
     rules: {
+      // Function parameters are part of a signature (interfaces, stubs), so they are not flagged.
       "@typescript-eslint/no-unused-vars": [
         "error",
-        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
+        { args: "none", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
       ],
       "@typescript-eslint/consistent-type-imports": [
         "error",

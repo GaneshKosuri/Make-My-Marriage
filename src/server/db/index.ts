@@ -6,6 +6,7 @@ export {
   disconnectFromDatabase,
   pingDatabase,
 } from "./connection";
+export { baseSchemaOptions, defineModel, type WithId } from "./model";
 export { isObjectIdString, objectId, OBJECT_ID_PATTERN, toObjectId } from "./object-id";
 export {
   assertTenantScopedFilter,

@@ -49,3 +49,15 @@ export interface CursorPagination {
   /** Filtered total, when the endpoint provides it (photos do; 2026-09-18 notes). */
   total?: number;
 }
+
+/** What list services return; route handlers wrap it with `paginated()`. */
+export interface PageResult<T> {
+  items: T[];
+  pagination: PagePagination;
+}
+
+/** What cursor-list services return; route handlers wrap it with `cursorPaginated()`. */
+export interface CursorResult<T> {
+  items: T[];
+  pagination: CursorPagination;
+}
