@@ -20,6 +20,10 @@ npm run format            # Prettier (never touches docs/, brand/, prompts/)
 
 Definition of done for any change: lint, typecheck, test, test:integration and build all pass.
 
+Project status: `docs/PROJECT_STATUS.md` tracks what is built and what is next. Read it when starting a
+feature; update it (tables, open items, change log) when a feature lands. It is the one file in `docs/`
+you may edit.
+
 ## Source of truth and precedence
 
 `docs/PRD.md` (product scope), `docs/SYSTEM_DESIGN.md`, `docs/DATABASE_DESIGN.md`,
