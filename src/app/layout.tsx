@@ -31,7 +31,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en-IN" className={`${manrope.variable} ${playfair.variable}`}>
+    <html
+      lang="en-IN"
+      data-scroll-behavior="smooth"
+      className={`${manrope.variable} ${playfair.variable}`}
+    >
       <body className="min-h-dvh antialiased">
         <Providers>{children}</Providers>
       </body>

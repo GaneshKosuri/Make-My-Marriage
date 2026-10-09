@@ -161,4 +161,11 @@
   body {
     @apply bg-background text-foreground font-sans;
   }
+
+  /* In-page anchor links glide to their section; people who ask for less motion still jump. */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
 }
