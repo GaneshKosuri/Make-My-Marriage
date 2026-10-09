@@ -7,8 +7,10 @@ import { expect, test } from "@playwright/test";
 
 test("home page renders", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Indian wedding");
-  await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Your whole wedding");
+  const startPlanning = page.getByRole("link", { name: "Start planning" }).first();
+  await expect(startPlanning).toBeVisible();
+  await expect(startPlanning).toHaveAttribute("href", "/signup");
 });
 
 test("signed-out /app redirects to /login", async ({ page }) => {

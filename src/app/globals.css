@@ -1,43 +1,57 @@
 @import "tailwindcss";
 
 /*
- * Theme tokens. A neutral placeholder palette until the Stitch designs in
- * prompts/ are implemented. Components use the semantic tokens
- * (bg-background, text-muted-foreground, border-border, …), never raw colours,
- * so a re-theme only touches this file.
+ * Theme tokens: the "Modern Heritage Workspace" design system from the Stitch
+ * project (burgundy, ivory, sand, graphite and muted gold; Playfair Display +
+ * Manrope). Components use the semantic tokens (bg-background,
+ * text-muted-foreground, border-border, …) or the named brand tokens below,
+ * never raw colours, so a re-theme only touches this file.
  */
 :root {
   --radius: 0.625rem;
 
-  --background: oklch(0.99 0 0);
-  --foreground: oklch(0.18 0 0);
+  /* Brand palette */
+  --ivory: #fbf7f1;
+  --sand: #efe7da;
+  --burgundy: #6d1f2f;
+  --burgundy-deep: #4a1220;
+  --graphite: #2b2326;
+  --plum: #6b5f63;
+  --gold: #b08d57;
+  --gold-light: #c9a66b;
+  /* Darker gold for small text on light backgrounds: #b08d57 is only 2.9:1 on ivory. */
+  --gold-deep: #7a5e33;
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0 0);
+  --background: var(--ivory);
+  --foreground: var(--graphite);
 
-  --primary: oklch(0.25 0 0);
-  --primary-foreground: oklch(0.98 0 0);
+  --card: #ffffff;
+  --card-foreground: var(--graphite);
 
-  --secondary: oklch(0.96 0 0);
-  --secondary-foreground: oklch(0.25 0 0);
+  --primary: var(--burgundy);
+  --primary-foreground: var(--ivory);
 
-  --muted: oklch(0.96 0 0);
-  --muted-foreground: oklch(0.52 0 0);
+  --secondary: var(--sand);
+  --secondary-foreground: var(--graphite);
 
-  --accent: oklch(0.95 0 0);
-  --accent-foreground: oklch(0.25 0 0);
+  --muted: var(--sand);
+  --muted-foreground: var(--plum);
 
-  --destructive: oklch(0.58 0.22 27);
-  --destructive-foreground: oklch(0.98 0 0);
+  --accent: var(--sand);
+  --accent-foreground: var(--burgundy);
 
-  --border: oklch(0.91 0 0);
-  --input: oklch(0.91 0 0);
-  --ring: oklch(0.7 0 0);
+  --destructive: #8b1e1e;
+  --destructive-foreground: var(--ivory);
 
+  --border: var(--sand);
+  --input: var(--sand);
+  --ring: var(--burgundy);
+
+  /* next/font sets --font-manrope / --font-playfair on <html> (src/app/layout.tsx). */
   --font-sans-stack:
-    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
-    "Noto Sans", sans-serif;
-  --font-serif-stack: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+    var(--font-manrope, ui-sans-serif), system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-serif-stack: var(--font-playfair, ui-serif), Georgia, Cambria, "Times New Roman", serif;
 }
 
 @theme inline {
@@ -59,6 +73,16 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  --color-ivory: var(--ivory);
+  --color-sand: var(--sand);
+  --color-burgundy: var(--burgundy);
+  --color-burgundy-deep: var(--burgundy-deep);
+  --color-graphite: var(--graphite);
+  --color-plum: var(--plum);
+  --color-gold: var(--gold);
+  --color-gold-light: var(--gold-light);
+  --color-gold-deep: var(--gold-deep);
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -68,6 +92,67 @@
   --font-serif: var(--font-serif-stack);
 }
 
+/* Design-system type scale: `text-display`, `text-title-md`, `text-eyebrow`, … */
+@theme {
+  --text-display: 3rem;
+  --text-display--line-height: 3.5rem;
+  --text-display--letter-spacing: -0.02em;
+  --text-display--font-weight: 600;
+
+  --text-headline-lg: 2.25rem;
+  --text-headline-lg--line-height: 2.75rem;
+  --text-headline-lg--letter-spacing: -0.015em;
+  --text-headline-lg--font-weight: 600;
+
+  --text-headline-md: 1.75rem;
+  --text-headline-md--line-height: 2.25rem;
+  --text-headline-md--letter-spacing: -0.01em;
+  --text-headline-md--font-weight: 600;
+
+  --text-headline-sm: 1.375rem;
+  --text-headline-sm--line-height: 1.875rem;
+  --text-headline-sm--font-weight: 600;
+
+  --text-title-lg: 1.125rem;
+  --text-title-lg--line-height: 1.625rem;
+  --text-title-lg--letter-spacing: -0.01em;
+  --text-title-lg--font-weight: 600;
+
+  --text-title-md: 1rem;
+  --text-title-md--line-height: 1.5rem;
+  --text-title-md--font-weight: 600;
+
+  --text-body-lg: 1rem;
+  --text-body-lg--line-height: 1.625rem;
+
+  --text-body-md: 0.875rem;
+  --text-body-md--line-height: 1.375rem;
+
+  --text-body-sm: 0.75rem;
+  --text-body-sm--line-height: 1.125rem;
+  --text-body-sm--letter-spacing: 0.01em;
+
+  --text-label-md: 0.8125rem;
+  --text-label-md--line-height: 1.125rem;
+  --text-label-md--letter-spacing: 0.01em;
+  --text-label-md--font-weight: 600;
+
+  --text-label-sm: 0.6875rem;
+  --text-label-sm--line-height: 1rem;
+  --text-label-sm--letter-spacing: 0.02em;
+  --text-label-sm--font-weight: 500;
+
+  --text-eyebrow: 0.6875rem;
+  --text-eyebrow--line-height: 1rem;
+  --text-eyebrow--letter-spacing: 0.08em;
+  --text-eyebrow--font-weight: 700;
+
+  --text-metric: 1.5rem;
+  --text-metric--line-height: 2rem;
+  --text-metric--letter-spacing: -0.02em;
+  --text-metric--font-weight: 700;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -75,5 +160,12 @@
 
   body {
     @apply bg-background text-foreground font-sans;
+  }
+
+  /* In-page anchor links glide to their section; people who ask for less motion still jump. */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
   }
 }

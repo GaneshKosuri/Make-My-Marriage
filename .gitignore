@@ -31,6 +31,10 @@ npm-debug.log*
 # vercel
 .vercel
 
+# claude code: personal MCP config (may hold the Stitch API key) and local settings
+.mcp.json
+.claude/settings.local.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
