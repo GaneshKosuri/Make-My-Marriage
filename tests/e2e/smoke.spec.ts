@@ -16,7 +16,16 @@ test("home page renders", async ({ page }) => {
 test("signed-out /app redirects to /login", async ({ page }) => {
   await page.goto("/app");
   await expect(page).toHaveURL(/\/login$/);
-  await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
+});
+
+test("auth pages render and link to each other", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByRole("link", { name: "Create an account" }).click();
+  await expect(page.getByRole("heading", { name: "Create your account" })).toBeVisible();
+  await page.goto("/login");
+  await page.getByRole("link", { name: "Forgot password?" }).click();
+  await expect(page.getByRole("heading", { name: "Reset your password" })).toBeVisible();
 });
 
 test("guest invitation pages are noindex and leak no referrer", async ({ request }) => {

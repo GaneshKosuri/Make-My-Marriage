@@ -1,15 +1,9 @@
 import type { Metadata } from "next";
 
-import { PagePlaceholder } from "@/components/layout/page-placeholder";
+import { SignupForm } from "@/features/auth/components/signup-form";
 
 export const metadata: Metadata = { title: "Create your account" };
 
 export default function SignupPage() {
-  return (
-    <PagePlaceholder
-      title="Create your account"
-      phase="Phase 1: Foundation"
-      description="Name, email and password — no email verification (PRD §9.1)."
-    />
-  );
+  return <SignupForm />;
 }

@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-10
 **Current phase:** Phase 1 — Foundation (PRD §16)
-**Next up:** Authentication screens (sign in, sign up, forgot and reset password) once the Stitch designs are updated
+**Next up:** Create wedding (onboarding form + `POST /api/wedding`); needs a Stitch design
 
 This file tracks what has been built and what comes next. Update it whenever a feature lands or new
 work starts: move items between the tables, add a row to the change log and refresh the header.
@@ -34,8 +34,8 @@ Status key: ✅ Done · 🚧 In progress · ⏳ Not started (scaffold stub only)
 | Feature | Status | Notes |
 | --- | --- | --- |
 | Public home page | ✅ | See Completed |
-| Authentication API (6 endpoints) | ✅ | Uncommitted. Signup, login, logout, me, forgot and reset password; passwords ≥ 8 characters, reset links last 60 minutes and revoke all sessions |
-| Authentication screens | ⏳ | Stitch screens need the alignment fixes from the 2026-10-10 review, plus new Reset Password and "Check your email" screens |
+| Authentication API (6 endpoints) | ✅ | Signup, login, logout, me, forgot and reset password; passwords ≥ 8 characters, reset links last 60 minutes and revoke all sessions |
+| Authentication screens | ✅ | Uncommitted. Sign in, sign up, forgot password ("Check your email"), reset password (expired / used / updated), desktop + mobile, from the Stitch auth designs |
 | Wedding creation (create wedding + ADMIN membership) | ⏳ | |
 | Wedding members (invite, accept, roles) | ⏳ | |
 | Dashboard shell | ⏳ | Guarded layout exists; content not built. Stitch dashboard design exists |
@@ -98,8 +98,12 @@ monitoring.
   `implemented: true`.
 - **Per-email limit on forgot-password.** Only a per-IP limit exists today, so one IP can send up to
   5 reset emails per 15 minutes to the same address. Revisit if abuse appears.
-- **Legal pages.** Privacy policy and terms are needed before production (not linked from the footer
-  yet).
+- **Signed-in users on /login and /signup** still see the forms (signing in again just creates a new
+  session). Redirecting them to /app needs a session read inside `<Suspense>`; do it with the dashboard work.
+- **Logout button** lives in the dashboard shell, which is built in the dashboard step.
+- **Legal pages.** Privacy policy and terms are needed before production. Until they exist, the home
+  footer, the auth footer and the sign-up form leave out the "Privacy · Terms" links and the
+  "By continuing you agree…" line shown in the designs.
 
 ## 4. Change log
 
@@ -109,3 +113,4 @@ monitoring.
 | 2026-10-08 | Toolchain, infrastructure, modules, API stubs, app shell, test harness and architecture docs (scaffold complete) |
 | 2026-10-09 | Public home page (desktop + mobile) with smooth in-page scrolling; project status file started |
 | 2026-10-10 | Auth screens reviewed against the home page and PRD (Stitch fix prompt issued); authentication API implemented with 24 integration tests |
+| 2026-10-10 | Authentication screens built (sign in, sign up, forgot and reset password), verified end to end against a local database |
