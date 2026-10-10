@@ -1,8 +1,8 @@
 # Project Status — Make My Marriage
 
-**Last updated:** 2026-10-09
+**Last updated:** 2026-10-10
 **Current phase:** Phase 1 — Foundation (PRD §16)
-**Next up:** Authentication pages and API (sign-up, sign-in, forgot/reset password)
+**Next up:** Authentication screens (sign in, sign up, forgot and reset password) once the Stitch designs are updated
 
 This file tracks what has been built and what comes next. Update it whenever a feature lands or new
 work starts: move items between the tables, add a row to the change log and refresh the header.
@@ -34,7 +34,8 @@ Status key: ✅ Done · 🚧 In progress · ⏳ Not started (scaffold stub only)
 | Feature | Status | Notes |
 | --- | --- | --- |
 | Public home page | ✅ | See Completed |
-| Authentication (sign-up, sign-in, sign-out, forgot/reset password, sessions) | ⏳ | Stitch designs exist for sign-in, sign-up and forgot password |
+| Authentication API (6 endpoints) | ✅ | Uncommitted. Signup, login, logout, me, forgot and reset password; passwords ≥ 8 characters, reset links last 60 minutes and revoke all sessions |
+| Authentication screens | ⏳ | Stitch screens need the alignment fixes from the 2026-10-10 review, plus new Reset Password and "Check your email" screens |
 | Wedding creation (create wedding + ADMIN membership) | ⏳ | |
 | Wedding members (invite, accept, roles) | ⏳ | |
 | Dashboard shell | ⏳ | Guarded layout exists; content not built. Stitch dashboard design exists |
@@ -92,6 +93,11 @@ monitoring.
   match reality before the site goes public.
 - **Privacy wording.** Confirm the home page line "Your data stays yours: used only to run your
   wedding".
+- **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** still lists the six auth endpoints as
+  "501 stub". That file is outside the editable set; `tests/architecture/api-inventory.ts` marks them
+  `implemented: true`.
+- **Per-email limit on forgot-password.** Only a per-IP limit exists today, so one IP can send up to
+  5 reset emails per 15 minutes to the same address. Revisit if abuse appears.
 - **Legal pages.** Privacy policy and terms are needed before production (not linked from the footer
   yet).
 
@@ -102,3 +108,4 @@ monitoring.
 | 2026-10-07 | Product docs added |
 | 2026-10-08 | Toolchain, infrastructure, modules, API stubs, app shell, test harness and architecture docs (scaffold complete) |
 | 2026-10-09 | Public home page (desktop + mobile) with smooth in-page scrolling; project status file started |
+| 2026-10-10 | Auth screens reviewed against the home page and PRD (Stitch fix prompt issued); authentication API implemented with 24 integration tests |

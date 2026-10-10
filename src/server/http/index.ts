@@ -53,7 +53,7 @@ export {
 export { zodErrorToDetails, type ValidationSource } from "./validation";
 
 // Re-exported so route handlers never need another @/server import.
-export { clearSessionCookie, setSessionCookie } from "@/server/auth/cookies";
+export { clearSessionCookie, readSessionToken, setSessionCookie } from "@/server/auth/cookies";
 export type {
   AuthLevel,
   InternalContext,

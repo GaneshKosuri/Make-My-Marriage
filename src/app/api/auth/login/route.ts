@@ -1,14 +1,16 @@
-import { notImplemented, route } from "@/server/http";
+import { authService } from "@/modules/auth";
+import { loginSchema } from "@/modules/auth/auth.schemas";
+import { ok, policies, route, setSessionCookie } from "@/server/http";
 
-/**
- * /api/auth/login — stub (POST API §12).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 1: Foundation.
- */
-
-/** POST — API §12. */
+/** POST /api/auth/login — email + password sign-in (API §12). */
 export const POST = route({
   auth: "public",
-  // Phase 1: Foundation: rateLimit: policies.login
-  // Phase 1: Foundation: authService.login(ctx, body) → ok(...) + setSessionCookie
-  handler: () => notImplemented("Phase 1: Foundation"),
+  body: loginSchema,
+  rateLimit: policies.login,
+  handler: async ({ ctx, body }) => {
+    const { body: data, session } = await authService.login(ctx, body);
+    const response = ok(data);
+    setSessionCookie(response, session.token, session.expiresAt);
+    return response;
+  },
 });
