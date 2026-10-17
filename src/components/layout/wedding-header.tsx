@@ -1,4 +1,9 @@
-import { coupleDisplayName } from "@/lib/couple";
+import { LogOut } from "lucide-react";
+
+import { buttonVariants } from "@/components/ui/button";
+import { SIGN_OUT } from "@/features/auth/auth-content";
+import { SignOutButton } from "@/features/auth/components/sign-out-button";
+import { coupleDisplayName, weddingCountdownLabel } from "@/lib/couple";
 import { daysUntil, formatDateOnly } from "@/lib/dates";
 import type { MemberRole } from "@/modules/members/member.constants";
 import { MEMBER_ROLE_LABELS } from "@/modules/members/member.constants";
@@ -15,13 +20,6 @@ export interface WeddingHeaderProps {
   role: MemberRole;
 }
 
-function countdownLabel(days: number): string {
-  if (days > 1) return `${days} days to go`;
-  if (days === 1) return "Tomorrow!";
-  if (days === 0) return "Today!";
-  return "Married";
-}
-
 /** Couple identity on every signed-in page (PRD §12.1) with the wedding countdown (PRD §9.3). */
 export function WeddingHeader({ wedding, userName, role }: Readonly<WeddingHeaderProps>) {
   const days = daysUntil(wedding.weddingDate, wedding.timeZone);
@@ -30,12 +28,18 @@ export function WeddingHeader({ wedding, userName, role }: Readonly<WeddingHeade
       <div>
         <p className="font-serif text-xl font-semibold">{coupleDisplayName(wedding)}</p>
         <p className="text-sm text-muted-foreground">
-          {formatDateOnly(wedding.weddingDate)} · {countdownLabel(days)}
+          {formatDateOnly(wedding.weddingDate)} · {weddingCountdownLabel(days)}
         </p>
       </div>
-      <p className="text-sm text-muted-foreground">
-        {userName} · {MEMBER_ROLE_LABELS[role]}
-      </p>
+      <div className="flex items-center gap-3">
+        <p className="text-sm text-muted-foreground">
+          {userName} · {MEMBER_ROLE_LABELS[role]}
+        </p>
+        <SignOutButton className={buttonVariants({ variant: "outline", size: "sm" })}>
+          <LogOut aria-hidden="true" />
+          {SIGN_OUT}
+        </SignOutButton>
+      </div>
     </header>
   );
 }

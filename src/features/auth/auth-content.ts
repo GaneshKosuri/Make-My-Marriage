@@ -25,6 +25,8 @@ export const AUTH_SHOWCASE = {
 
 export const AUTH_FOOTER = "© 2026 Make My Marriage";
 
+export const SIGN_OUT = "Sign out";
+
 export const PASSWORD_HINT = `At least ${PASSWORD_MIN_LENGTH} characters`;
 export const RESET_LINK_NOTE = `Reset links work once and expire after ${PASSWORD_RESET_TTL_MINUTES} minutes.`;
 

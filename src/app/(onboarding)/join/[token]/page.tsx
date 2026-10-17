@@ -11,10 +11,12 @@ export const metadata: Metadata = {
 /** /join/[token] — Wedding Member invitation acceptance (binding decision 12; API_DESIGN §25–26). */
 export default function JoinWeddingPage() {
   return (
-    <PagePlaceholder
-      title="You're invited to help plan a wedding"
-      phase="Phase 1: Foundation"
-      description="Sign up or log in with the invited email address to join (SYSTEM_DESIGN §19)."
-    />
+    <main className="mx-auto max-w-2xl px-4 py-12">
+      <PagePlaceholder
+        title="You're invited to help plan a wedding"
+        phase="Phase 1: Foundation"
+        description="Sign up or log in with the invited email address to join (SYSTEM_DESIGN §19)."
+      />
+    </main>
   );
 }

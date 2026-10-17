@@ -10,6 +10,7 @@ import {
   DEFAULT_TIME_ZONE,
   DEFAULT_WEBSITE_THEME,
   FORMATTED_ADDRESS_MAX_LENGTH,
+  GOOGLE_PLACE_ID_MAX_LENGTH,
   LOCATION_PART_MAX_LENGTH,
   WEBSITE_THEMES,
   WEDDING_DESCRIPTION_MAX_LENGTH,
@@ -97,7 +98,12 @@ const locationSchema = new Schema<WeddingLocation>(
     country: { type: String, trim: true, maxlength: LOCATION_PART_MAX_LENGTH, default: null },
     latitude: { type: Number, min: -90, max: 90, default: null },
     longitude: { type: Number, min: -180, max: 180, default: null },
-    googlePlaceId: { type: String, trim: true, maxlength: 300, default: null },
+    googlePlaceId: {
+      type: String,
+      trim: true,
+      maxlength: GOOGLE_PLACE_ID_MAX_LENGTH,
+      default: null,
+    },
   },
   { _id: false },
 );

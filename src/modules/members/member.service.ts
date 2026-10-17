@@ -49,7 +49,7 @@ export const membersService = {
     userId: string,
     session: ClientSession,
   ): Promise<void> {
-    return notImplemented("DATABASE_DESIGN §85 (Phase 1: Foundation)");
+    await membershipRepository.create(weddingId, { userId, role: "ADMIN" }, session);
   },
 
   /** Tasks/expenses: a referenced membership must belong to this wedding (DATABASE_DESIGN §38). */

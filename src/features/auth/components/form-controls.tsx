@@ -6,7 +6,7 @@ import { useId, useState, type ComponentProps, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 /**
- * Form building blocks for the auth screens: labelled inputs with an inline
+ * Form building blocks for the auth and onboarding screens: labelled inputs with an inline
  * error, a show/hide password input, banners and buttons. Styled with the
  * brand tokens (Stitch auth designs).
  */
@@ -91,6 +91,58 @@ export function TextField({
       </div>
     </FieldShell>
   );
+}
+
+export function TextAreaField({
+  label,
+  error,
+  labelAside,
+  hint,
+  className,
+  ...textarea
+}: Omit<FieldProps, "icon"> & ComponentProps<"textarea">) {
+  const id = useId();
+  return (
+    <FieldShell id={id} label={label} error={error} labelAside={labelAside} hint={hint}>
+      <textarea
+        id={id}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
+        className={cn(inputClass, "h-auto min-h-24 resize-y py-3", className)}
+        {...textarea}
+      />
+    </FieldShell>
+  );
+}
+
+export function SelectField({
+  label,
+  error,
+  labelAside,
+  hint,
+  className,
+  children,
+  ...select
+}: Omit<FieldProps, "icon"> & ComponentProps<"select">) {
+  const id = useId();
+  return (
+    <FieldShell id={id} label={label} error={error} labelAside={labelAside} hint={hint}>
+      <select
+        id={id}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
+        className={cn(inputClass, "appearance-auto pr-3", className)}
+        {...select}
+      >
+        {children}
+      </select>
+    </FieldShell>
+  );
+}
+
+/** "Optional" marker for the right side of a label row. */
+export function OptionalTag() {
+  return <span className="text-body-sm text-plum">Optional</span>;
 }
 
 export function PasswordField({

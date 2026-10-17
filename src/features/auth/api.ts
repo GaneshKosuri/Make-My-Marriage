@@ -34,6 +34,15 @@ export function useSignup() {
   });
 }
 
+/** Ends this session (API_DESIGN §13); the caller navigates to sign-in. */
+export function useLogout() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiAction("/api/auth/logout"),
+    onSuccess: () => queryClient.clear(),
+  });
+}
+
 export function useForgotPassword() {
   return useMutation({
     mutationFn: (input: ForgotPasswordInput) =>

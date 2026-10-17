@@ -7,34 +7,58 @@ import { BrandLogo } from "@/features/marketing/components/brand-logo";
 import { AUTH_FOOTER, AUTH_SHOWCASE } from "../auth-content";
 
 /**
- * Frame for every sign-in / sign-up / password screen (Stitch auth designs).
- * Desktop: sand brand panel (40%) + ivory form column. Phones: centred logo,
- * then the form. One footer, under the form column only.
+ * Frame for the sign-in / sign-up / password and onboarding screens (Stitch
+ * auth and "Create Wedding" designs). Desktop: sand brand panel (40%) + ivory
+ * form column. Phones: centred logo, then the form. One footer, under the form
+ * column only.
  */
-export function AuthShell({ children }: Readonly<{ children: ReactNode }>) {
+export function AuthShell({
+  panel = <Showcase />,
+  topBar,
+  wide = false,
+  children,
+}: Readonly<{
+  /** Middle of the desktop brand panel; the sample couple by default. */
+  panel?: ReactNode;
+  /** Above the form, e.g. "Signed in as … · Sign out". */
+  topBar?: ReactNode;
+  /** A wider form column for longer forms. */
+  wide?: boolean;
+  children: ReactNode;
+}>) {
+  const column = wide ? "max-w-[560px]" : "max-w-[440px]";
   return (
     <div className="min-h-dvh bg-ivory text-graphite lg:grid lg:grid-cols-[2fr_3fr]">
       <aside className="hidden flex-col border-r border-sand bg-sand px-12 py-12 lg:flex xl:px-16">
         <BrandLogo />
-        <div className="my-auto max-w-md">
-          <p className="text-eyebrow text-gold-deep uppercase">{AUTH_SHOWCASE.eyebrow}</p>
-          <p className="mt-3 font-serif text-headline-lg">{AUTH_SHOWCASE.couple}</p>
-          <p className="mt-2 text-body-md text-plum">{AUTH_SHOWCASE.details}</p>
-          <hr className="my-6 border-graphite/10" />
-          <p className="text-body-lg text-plum">{AUTH_SHOWCASE.tagline}</p>
-        </div>
+        <div className="my-auto w-full max-w-md">{panel}</div>
       </aside>
 
       <div className="flex min-h-dvh flex-col px-4 py-8 sm:px-6 lg:px-12 lg:py-12">
         <MobileBrand />
-        <main className="mx-auto flex w-full max-w-[440px] flex-1 flex-col justify-center">
+        {topBar && <div className={`mx-auto mb-6 w-full ${column}`}>{topBar}</div>}
+        <main className={`mx-auto flex w-full ${column} flex-1 flex-col justify-center`}>
           {children}
         </main>
-        <footer className="mx-auto mt-10 w-full max-w-[440px] text-center text-body-sm text-plum lg:text-left">
+        <footer
+          className={`mx-auto mt-10 w-full ${column} text-center text-body-sm text-plum lg:text-left`}
+        >
           {AUTH_FOOTER}
         </footer>
       </div>
     </div>
+  );
+}
+
+function Showcase() {
+  return (
+    <>
+      <p className="text-eyebrow text-gold-deep uppercase">{AUTH_SHOWCASE.eyebrow}</p>
+      <p className="mt-3 font-serif text-headline-lg">{AUTH_SHOWCASE.couple}</p>
+      <p className="mt-2 text-body-md text-plum">{AUTH_SHOWCASE.details}</p>
+      <hr className="my-6 border-graphite/10" />
+      <p className="text-body-lg text-plum">{AUTH_SHOWCASE.tagline}</p>
+    </>
   );
 }
 

@@ -97,7 +97,14 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
   },
 
   // ── Wedding + dashboard (API §17–20) ───────────────────────────────────────
-  { method: "POST", path: "/api/wedding", auth: "user", phase: P1, doc: "API §17" },
+  {
+    method: "POST",
+    path: "/api/wedding",
+    auth: "user",
+    phase: P1,
+    doc: "API §17",
+    implemented: true,
+  },
   { method: "GET", path: "/api/wedding", auth: "member", phase: P1, doc: "API §18" },
   { method: "PATCH", path: "/api/wedding", auth: "member", phase: P1, doc: "API §19" },
   { method: "GET", path: "/api/dashboard", auth: "member", phase: P1, doc: "API §20" },

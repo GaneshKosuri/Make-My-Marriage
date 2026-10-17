@@ -1,8 +1,10 @@
-import { notImplemented, route } from "@/server/http";
+import { notImplemented, created, route } from "@/server/http";
+import { weddingsService } from "@/modules/weddings";
+import { createWeddingSchema } from "@/modules/weddings/wedding.schemas";
 
 /**
- * /api/wedding — stub (GET API §18, POST API §17, PATCH API §19).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 1: Foundation.
+ * /api/wedding (GET API §18, POST API §17, PATCH API §19).
+ * GET and PATCH arrive with the dashboard and wedding settings (Phase 1: Foundation).
  */
 
 /** GET — API §18. */
@@ -12,11 +14,11 @@ export const GET = route({
   handler: () => notImplemented("Phase 1: Foundation"),
 });
 
-/** POST — API §17. */
+/** POST — create the wedding; the caller becomes its first Admin (API §17). */
 export const POST = route({
   auth: "user",
-  // Phase 1: Foundation: created(await weddingsService.createWedding(ctx, body))
-  handler: () => notImplemented("Phase 1: Foundation"),
+  body: createWeddingSchema,
+  handler: async ({ ctx, body }) => created(await weddingsService.createWedding(ctx, body)),
 });
 
 /** PATCH — API §19. */
