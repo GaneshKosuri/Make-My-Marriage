@@ -45,7 +45,19 @@ export const membershipRepository = {
     input: { userId: string; role: MemberRole },
     session?: ClientSession,
   ): Promise<MembershipRecord> {
-    return notImplemented("DATABASE_DESIGN §85–86 (Phase 1: Foundation)");
+    await connectToDatabase();
+    const [doc] = await MembershipModel.create(
+      [
+        {
+          weddingId: toObjectId(weddingId, "weddingId"),
+          userId: toObjectId(input.userId, "userId"),
+          role: input.role,
+        },
+      ],
+      { session },
+    );
+    if (!doc) throw new Error("Membership was not created");
+    return doc.toObject() as MembershipRecord;
   },
 
   async updateRole(

@@ -1,8 +1,8 @@
 # Project Status — Make My Marriage
 
-**Last updated:** 2026-10-09
+**Last updated:** 2026-10-17
 **Current phase:** Phase 1 — Foundation (PRD §16)
-**Next up:** Authentication pages and API (sign-up, sign-in, forgot/reset password)
+**Next up:** Dashboard (`GET /api/dashboard`, summary cards, countdown) from the Stitch dashboard designs
 
 This file tracks what has been built and what comes next. Update it whenever a feature lands or new
 work starts: move items between the tables, add a row to the change log and refresh the header.
@@ -34,10 +34,11 @@ Status key: ✅ Done · 🚧 In progress · ⏳ Not started (scaffold stub only)
 | Feature | Status | Notes |
 | --- | --- | --- |
 | Public home page | ✅ | See Completed |
-| Authentication (sign-up, sign-in, sign-out, forgot/reset password, sessions) | ⏳ | Stitch designs exist for sign-in, sign-up and forgot password |
-| Wedding creation (create wedding + ADMIN membership) | ⏳ | |
+| Authentication API (6 endpoints) | ✅ | Signup, login, logout, me, forgot and reset password; passwords ≥ 8 characters, reset links last 60 minutes and revoke all sessions |
+| Authentication screens | ✅ | Sign in, sign up, forgot password ("Check your email"), reset password (expired / used / updated), desktop + mobile, from the Stitch auth designs |
+| Wedding creation (create wedding + ADMIN membership) | ✅ | `POST /api/wedding` (one transaction, unique web address, gallery token, one wedding per user) and the Create Wedding screen with live preview, time zone, sign out and the "Invited by family?" note |
 | Wedding members (invite, accept, roles) | ⏳ | |
-| Dashboard shell | ⏳ | Guarded layout exists; content not built. Stitch dashboard design exists |
+| Dashboard shell | ⏳ | Guarded layout and header (couple, countdown, sign out) exist; content not built. Stitch dashboard design exists |
 
 ### Phase 2 — Planning ⏳
 
@@ -92,13 +93,43 @@ monitoring.
   match reality before the site goes public.
 - **Privacy wording.** Confirm the home page line "Your data stays yours: used only to run your
   wedding".
-- **Legal pages.** Privacy policy and terms are needed before production (not linked from the footer
-  yet).
+- **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** still lists the six auth endpoints as
+  "501 stub". That file is outside the editable set; `tests/architecture/api-inventory.ts` marks them
+  `implemented: true`.
+- **Per-email limit on forgot-password.** Only a per-IP limit exists today, so one IP can send up to
+  5 reset emails per 15 minutes to the same address. Revisit if abuse appears.
+- **`GET` / `PATCH /api/wedding`** are still stubs; they arrive with the dashboard and wedding settings.
+- **Database name.** `.env.local` points at the Atlas cluster without a database name, so data lands in
+  `test`. Add `/make-my-marriage-dev` before `?` in `MONGODB_URI` to give it its own database.
+- **Deleting a wedding (when it is built).** The "already has a wedding" check in `createWedding` counts a
+  membership even when its wedding is soft-deleted, but the dashboard guard treats that user as having no
+  wedding and sends them to Create Wedding, so they would be stuck. Deleting a wedding must also remove
+  (or release) its memberships. Found in the 2026-10-17 code review.
+- **Three-way web-address race.** If three people create a wedding with the same names and date at the
+  same instant, the third can get a 500 instead of the next free address (`createWedding` retries a
+  taken address only twice). Very unlikely; harden if it ever shows up. Found in the 2026-10-17 code review.
+- **Legal pages.** Privacy policy and terms are needed before production. Until they exist, the home
+  footer, the auth footer and the sign-up form leave out the "Privacy · Terms" links and the
+  "By continuing you agree…" line shown in the designs.
 
-## 4. Change log
+## 4. Decisions
+
+| Date | Decision |
+| --- | --- |
+| 2026-10-10 | Passwords need at least 8 characters; reset links expire after 60 minutes |
+| 2026-10-10 | Couple names default to groom first ("Romeo & Juliet"), and the website address follows the same order (`romeo-juliet-14022027`). The form still asks for the bride's name first. Resolves CODEBASE_ARCHITECTURE open decision 21 |
+| 2026-10-10 | Wedding date must be today or later, judged in the wedding's time zone |
+| 2026-10-10 | Country is optional and prefilled with India; time zone defaults to India (IST) and can be changed |
+| 2026-10-10 | Cover image is left out of Create Wedding until uploads exist (Phase 5) |
+
+## 5. Change log
 
 | Date | Change |
 | --- | --- |
 | 2026-10-07 | Product docs added |
 | 2026-10-08 | Toolchain, infrastructure, modules, API stubs, app shell, test harness and architecture docs (scaffold complete) |
 | 2026-10-09 | Public home page (desktop + mobile) with smooth in-page scrolling; project status file started |
+| 2026-10-10 | Auth screens reviewed against the home page and PRD (Stitch fix prompt issued); authentication API implemented with 24 integration tests |
+| 2026-10-10 | Authentication screens built (sign in, sign up, forgot and reset password), verified end to end against a local database |
+| 2026-10-10 | Wedding creation: `POST /api/wedding`, Create Wedding screen, sign out, and redirects for signed-in users on /login, /signup and /create-wedding |
+| 2026-10-17 | Sign out in the dashboard header (shared `SignOutButton`, also used on Create Wedding) |

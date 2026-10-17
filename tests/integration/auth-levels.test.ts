@@ -109,7 +109,7 @@ describe("admin routes (API_DESIGN §97)", () => {
 
 describe("user routes", () => {
   it("accept signed-in users without a wedding", async () => {
-    expect((await call(me, { cookie: noWedding.cookie })).status).toBe(501);
+    expect((await call(me, { cookie: noWedding.cookie })).status).toBe(200);
     expect((await call(me)).status).toBe(401);
   });
 });

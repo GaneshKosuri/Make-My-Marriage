@@ -30,7 +30,10 @@ Tailwind CSS 4 + shadcn/ui · TanStack Query · Vitest · Playwright · Vercel (
   - **Atlas (recommended):** create a separate free _development_ cluster. Atlas clusters are
     replica sets. Never point development at the production database. `env.ts` rejects
     production-looking database names outside production.
-  - **Local:** run `mongod` as a single-node replica set:
+  - **Local, nothing to install:** `npm run db:dev` starts a single-node replica set on
+    `127.0.0.1:27017` (data in the git-ignored `.mongo-data/`), using the `mongod` binary the
+    integration tests download. Keep it running in its own terminal next to `npm run dev`.
+  - **Local, your own MongoDB:** run `mongod` as a single-node replica set:
 
     ```bash
     mongod --replSet rs0 --dbpath ./.mongo-data --port 27017
@@ -79,6 +82,7 @@ Open http://localhost:3000. `GET /api/health` reports `{ "status": "ok", "db": "
 | Script                            | What it does                                                                      |
 | --------------------------------- | --------------------------------------------------------------------------------- |
 | `npm run dev`                     | Next.js dev server                                                                |
+| `npm run db:dev`                  | Local MongoDB replica set on port 27017 for development (data in `.mongo-data/`)  |
 | `npm run build` / `npm start`     | Production build / server                                                         |
 | `npm run lint`                    | ESLint (includes the dependency-rule fences)                                      |
 | `npm run typecheck`               | `next typegen` + `tsc --noEmit`                                                   |

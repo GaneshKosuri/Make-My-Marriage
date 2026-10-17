@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
 
-import { PagePlaceholder } from "@/components/layout/page-placeholder";
+import { LoginForm } from "@/features/auth/components/login-form";
 
-export const metadata: Metadata = { title: "Log in" };
+import { RedirectIfSignedIn } from "../redirect-if-signed-in";
+
+export const metadata: Metadata = { title: "Sign in" };
 
 export default function LoginPage() {
   return (
-    <PagePlaceholder
-      title="Log in"
-      phase="Phase 1: Foundation"
-      description="Email and password sign-in (PRD §9.1)."
-    />
+    <>
+      <RedirectIfSignedIn />
+      <LoginForm />
+    </>
   );
 }

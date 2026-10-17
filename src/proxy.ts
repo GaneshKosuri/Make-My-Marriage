@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/session-cookie";
 
 /**
- * Cheap optimistic redirect for /app/*: no session cookie → /login.
+ * Cheap optimistic redirect for /app/* and /create-wedding: no session cookie → /login.
  * It never validates the session (no database access here). The real checks
  * are the dashboard layout guard and `route({ auth })` on every API call.
  */
@@ -13,5 +13,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/app/:path*"],
+  matcher: ["/app/:path*", "/create-wedding"],
 };

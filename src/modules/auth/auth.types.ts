@@ -1,9 +1,15 @@
-/**
- * Auth DTOs and inputs (API_DESIGN §11–16). Isomorphic.
- * TODO(Phase 1): derive the input types from ./auth.schemas.ts with z.infer once the schemas exist.
- */
+/** Auth DTOs and inputs (API_DESIGN §11–16). Isomorphic. */
+
+import type { z } from "zod";
 
 import type { MemberRole } from "@/modules/members/member.constants";
+
+import type {
+  forgotPasswordSchema,
+  loginSchema,
+  resetPasswordSchema,
+  signupSchema,
+} from "./auth.schemas";
 
 export interface PublicUserDto {
   id: string;
@@ -29,22 +35,7 @@ export interface MeDto {
   } | null;
 }
 
-export interface SignupInput {
-  name: string;
-  email: string;
-  password: string;
-}
-
-export interface LoginInput {
-  email: string;
-  password: string;
-}
-
-export interface ForgotPasswordInput {
-  email: string;
-}
-
-export interface ResetPasswordInput {
-  token: string;
-  password: string;
-}
+export type SignupInput = z.output<typeof signupSchema>;
+export type LoginInput = z.output<typeof loginSchema>;
+export type ForgotPasswordInput = z.output<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.output<typeof resetPasswordSchema>;

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { connectToDatabase } from "@/server/db/connection";
+import { isDuplicateKeyError } from "@/server/db/errors";
 import { AppError } from "@/server/errors";
 
 import { RateLimitModel } from "./rate-limit.model";
@@ -168,12 +169,6 @@ export function createRateLimiter({
 }
 
 export type RateLimiter = ReturnType<typeof createRateLimiter>;
-
-function isDuplicateKeyError(error: unknown): boolean {
-  return (
-    typeof error === "object" && error !== null && (error as { code?: unknown }).code === 11000
-  );
-}
 
 /** Atomic `$inc` upsert. Two concurrent first hits can race on insert; retry once. */
 export const mongoRateLimitStore: RateLimitStore = {

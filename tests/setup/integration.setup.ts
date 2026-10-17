@@ -10,10 +10,15 @@ import { disconnectFromDatabase } from "@/server/db/connection";
 
 import { applyTestEnv } from "./test-env";
 
-// `connection()` needs a Next.js request scope; tests call route handlers directly.
+// `connection()` and `after()` need a Next.js request scope; tests call route
+// handlers directly. `after` runs its task at once (not awaited), so assert on
+// its effects with `vi.waitFor`.
 vi.mock("next/server", async (importOriginal) => ({
   ...(await importOriginal<typeof NextServer>()),
   connection: async () => undefined,
+  after: (task: Promise<unknown> | (() => unknown)) => {
+    void (typeof task === "function" ? task() : task);
+  },
 }));
 
 /** A fresh database per test file on the shared in-memory replica set. */

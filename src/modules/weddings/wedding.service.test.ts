@@ -5,12 +5,7 @@ import { describe, it } from "vitest";
  * when the behaviour is implemented; DB-backed cases belong in tests/integration.
  */
 describe("weddingsService", () => {
-  describe("createWedding (API_DESIGN §17, DATABASE_DESIGN §85)", () => {
-    it.todo("creates wedding + ADMIN membership atomically in one transaction");
-    it.todo("rejects users who already have a membership (ALREADY_HAS_WEDDING)");
-    it.todo("generates a unique slug brideName-groomName-ddmmyyyy with -2 suffix on collision");
-    it.todo("generates a stable 32-byte gallery token");
-  });
+  // createWedding: tests/integration/create-wedding.test.ts, wedding.slug.test.ts, wedding.schemas.test.ts
   describe("getWedding / updateWedding (API_DESIGN §18–19)", () => {
     it.todo("never returns the gallery token or hashes");
     it.todo("keeps the slug unchanged when names or date change");
