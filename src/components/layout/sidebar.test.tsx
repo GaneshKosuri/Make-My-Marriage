@@ -41,9 +41,9 @@ describe("<Sidebar />", () => {
     );
   });
 
-  it("hides the members link from Managers", () => {
+  it("shows Managers the members link too (the page is read-only for them)", () => {
     render(<Sidebar items={navItemsForRole("MANAGER")} userName="Priya Agarwal" role="MANAGER" />);
-    expect(screen.queryByRole("link", { name: "Wedding Members" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Wedding Members" })).toBeInTheDocument();
   });
 
   it("shows who is signed in, with their role and Sign out", () => {

@@ -48,7 +48,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
     href: "/app/settings",
     children: [
       { label: "Wedding Details", href: "/app/settings" },
-      { label: "Wedding Members", href: "/app/settings/members", adminOnly: true },
+      // Managers see the list read-only; only Admins get the controls (decided 2026-10-29).
+      { label: "Wedding Members", href: "/app/settings/members" },
     ],
   },
 ];

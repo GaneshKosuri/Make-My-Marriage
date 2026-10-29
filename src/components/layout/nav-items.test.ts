@@ -6,19 +6,27 @@ const flatten = (items: readonly NavItem[]): string[] =>
   items.flatMap((item) => [item.href, ...flatten(item.children ?? [])]);
 
 describe("navItemsForRole (PRD §10, §9.4)", () => {
-  it("shows Wedding Members to Admins only", () => {
-    expect(flatten(navItemsForRole("ADMIN"))).toContain("/app/settings/members");
-    expect(flatten(navItemsForRole("MANAGER"))).not.toContain("/app/settings/members");
+  it("shows Managers every page, Wedding Members included (read-only there)", () => {
+    expect(flatten(navItemsForRole("MANAGER"))).toEqual(flatten(NAV_ITEMS));
+    expect(flatten(navItemsForRole("MANAGER"))).toContain("/app/settings/members");
   });
 
-  it("keeps every other destination for Managers", () => {
-    const all = flatten(NAV_ITEMS).filter((href) => href !== "/app/settings/members");
-    expect(new Set(flatten(navItemsForRole("MANAGER")))).toEqual(new Set(all));
+  const withAdminPage: NavItem[] = [
+    {
+      label: "Settings",
+      href: "/s",
+      children: [{ label: "Secret", href: "/s/x", adminOnly: true }],
+    },
+  ];
+
+  it("removes adminOnly items for Managers, at any depth", () => {
+    expect(flatten(navItemsForRole("ADMIN", withAdminPage))).toEqual(["/s", "/s/x"]);
+    expect(flatten(navItemsForRole("MANAGER", withAdminPage))).toEqual(["/s"]);
   });
 
-  it("does not mutate the shared configuration", () => {
-    navItemsForRole("MANAGER");
-    expect(flatten(NAV_ITEMS)).toContain("/app/settings/members");
+  it("does not mutate the configuration it filters", () => {
+    navItemsForRole("MANAGER", withAdminPage);
+    expect(flatten(withAdminPage)).toContain("/s/x");
   });
 });
 
@@ -46,7 +54,7 @@ describe("moreGroups (mobile More sheet)", () => {
     ]);
   });
 
-  it("leaves out Wedding Members for Managers", () => {
-    expect(labels("MANAGER").at(-1)).toEqual(["Settings", ["Wedding Details"]]);
+  it("lists Wedding Members for Managers too", () => {
+    expect(labels("MANAGER")).toEqual(labels("ADMIN"));
   });
 });

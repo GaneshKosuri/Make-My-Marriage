@@ -60,9 +60,9 @@ describe("<MobileNav />", () => {
     expect(more).toHaveFocus();
   });
 
-  it("leaves Wedding Members out for Managers", () => {
+  it("lists Wedding Members for Managers too", () => {
     renderNav("MANAGER");
     fireEvent.click(screen.getByRole("button", { name: "More" }));
-    expect(screen.queryByRole("link", { name: /Wedding Members/ })).toBeNull();
+    expect(screen.getByRole("link", { name: /Wedding Members/ })).toBeInTheDocument();
   });
 });

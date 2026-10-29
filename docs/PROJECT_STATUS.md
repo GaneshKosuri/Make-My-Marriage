@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-29
 **Current phase:** Phase 1 — Foundation (PRD §16)
-**Next up:** Settings → Wedding Members screen (member list, roles, invite dialog, pending invitations)
+**Next up:** Wedding settings (`PATCH /api/wedding` and the Wedding Details page), the last Phase 1 feature
 
 This file tracks what has been built and what comes next. Update it whenever a feature lands or new
 work starts: move items between the tables, add a row to the change log and refresh the header.
@@ -37,7 +37,7 @@ Status key: ✅ Done · 🚧 In progress · ⏳ Not started (scaffold stub only)
 | Authentication API (6 endpoints) | ✅ | Signup, login, logout, me, forgot and reset password; passwords ≥ 8 characters, reset links last 60 minutes and revoke all sessions |
 | Authentication screens | ✅ | Sign in, sign up, forgot password ("Check your email"), reset password (expired / used / updated), desktop + mobile, from the Stitch auth designs |
 | Wedding creation (create wedding + ADMIN membership) | ✅ | `POST /api/wedding` (one transaction, unique web address, gallery token, one wedding per user) and the Create Wedding screen with live preview, time zone, sign out and the "Invited by family?" note |
-| Wedding members (invite, accept, roles) | 🚧 | API done: all 8 endpoints (list, invite, list and revoke invitations, public invite preview, accept, change role, remove) with the last-Admin rule, emailed `/join/[token]` links valid 7 days, and 32 integration tests. `/join/[token]` done: shows the couple, date and role; sign up or sign in right there with the invited email locked, then joins and opens the dashboard; explains invalid, expired, used, wrong-email and already-in-a-wedding cases. Next: Settings → Wedding Members |
+| Wedding members (invite, accept, roles) | ✅ | All 8 endpoints (list, invite, list and revoke invitations, public invite preview, accept, change role, remove) with the last-Admin rule and emailed `/join/[token]` links valid 7 days. `/join/[token]`: sign up or sign in with the invited email locked, then join. Settings → Wedding Members: member list, invite dialog, role changes, remove and leave (with confirmation), pending invitations with resend and revoke; read-only for Managers. Settings tabs (Details, Members). Dashboard style, desktop + mobile |
 | Dashboard | ✅ | `GET /api/dashboard` and `GET /api/wedding`; dashboard screen (countdown, six summary cards, upcoming events and tasks, RSVP overview, "Get started" checklist, empty and loading states) and the restyled app shell (sidebar, top bar with "+ Add", phone bottom bar with "More" and "+" sheets), desktop + mobile, from the Stitch dashboard designs |
 
 ### Phase 2 — Planning ⏳
@@ -89,7 +89,7 @@ monitoring.
 ## 3. Open items
 
 - **Home page "Coming soon" badges.** `feature-availability.ts` marks events, tasks, guests, family
-  members and the organiser gallery as `live`, but those features are not built yet. Flip each one to
+  members and the organiser gallery as `live`; family members is now built, the others are not yet. Flip each one to
   match reality before the site goes public.
 - **Privacy wording.** Confirm the home page line "Your data stays yours: used only to run your
   wedding".
@@ -105,8 +105,8 @@ monitoring.
   tasks land, unassign the removed member's tasks (`assignedMembershipId`); a TODO marks the spot.
 - **Member rate limits are placeholders.** Invites 30 per wedding per hour, the public invite preview
   60 per IP per minute, accepting 20 per user per 15 minutes. Tune with real traffic.
-- **Join flow not yet clicked through against a database.** The API is covered by integration tests and
-  the screen by component tests, and the invalid-link page was checked in the browser. A full run (invite
+- **Members screens not yet clicked through against a database.** The API is covered by integration tests
+  and both screens by component tests; only the invalid-link page was checked in the browser. A full run (invite
   email → sign up → dashboard) needs `npm run db:dev` and a `.env.local` without `RESEND_API_KEY`, so no
   real email is sent.
 - **Restart `next dev` after this change.** The identity ports are registered once at startup, so a
@@ -152,6 +152,7 @@ monitoring.
 | 2026-10-29 | Inviting someone already in the wedding, or an email with an invitation still waiting, is `CONFLICT` (409) with the reason under `details.email`. An expired pending invitation for that email is revoked and replaced. `GET /api/members/invitations` lists pending, unexpired invitations only |
 | 2026-10-29 | An Admin may change their own role or remove themselves while another Admin remains. Managers cannot leave a wedding in V1 (the endpoint is Admin only) |
 | 2026-10-29 | `/join/[token]` has its own compact sign-up and sign-in forms (invited email locked, "Create an account" first) built from the shared form controls, rather than reusing the /login and /signup forms with an override. Signing in with an account that already has a wedding does not try to accept |
+| 2026-10-29 | Wedding Members is in every member's navigation (no longer Admin only); Managers get the read-only list. Changing someone else's role is one click; removing, leaving and stepping down yourself ask first. The only Admin gets no demote or leave controls. Leaving sends you to Create Wedding |
 
 ## 5. Change log
 
@@ -168,3 +169,4 @@ monitoring.
 | 2026-10-29 | Security upgrade: Next.js 16.4.0 → 16.4.3 (critical advisories: RCE in `use cache` typed arrays and SVG image optimisation, Server Actions DoS), `eslint-config-next` to match, zod 4.6.5 → 4.6.7 and fast-uri via `npm audit fix`; `npm audit` clean |
 | 2026-10-29 | Wedding members API: list members, invite by email, list and revoke invitations, public invite preview, accept (one transaction), change role and remove with the last-Admin rule; placeholder rate limits; 32 integration tests and race unit tests |
 | 2026-10-29 | `/join/[token]`: invitation page with built-in sign-up and sign-in, one-click join for signed-in invitees, all error states, desktop + mobile; 15 component tests and a smoke test |
+| 2026-10-29 | Settings → Wedding Members screen (invite dialog, roles, remove/leave, pending invitations, Manager read-only view) and Settings tabs; 14 component tests. Wedding members feature complete |
