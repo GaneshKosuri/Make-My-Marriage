@@ -41,3 +41,13 @@ test("API answers unauthenticated member calls with the error envelope", async (
     error: { code: "UNAUTHENTICATED", message: "Please sign in to continue." },
   });
 });
+
+test("an unusable member invitation link explains itself", async ({ page }) => {
+  const response = await page.goto("/join/not-a-real-token");
+  expect(response?.headers()["x-robots-tag"]).toContain("noindex");
+  expect(response?.headers()["referrer-policy"]).toBe("no-referrer");
+  await expect(
+    page.getByRole("heading", { name: "This invitation is no longer valid" }),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Go to sign in" })).toHaveAttribute("href", "/login");
+});
