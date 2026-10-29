@@ -1,7 +1,8 @@
 /**
  * The complete API surface: API_DESIGN §106 (endpoint inventory) + §83 cover
  * uploads (route tree §105) + GET /api/photos/:photoId/download (2026-09-18
- * notes) + GET /api/health (scaffold only). docs/CODEBASE_ARCHITECTURE.md
+ * notes) + POST /api/members/invitations/:id/resend (PROJECT_STATUS 2026-10-29)
+ * + GET /api/health (scaffold only). docs/CODEBASE_ARCHITECTURE.md
  * renders the same table. `tests/architecture/api-routes.test.ts` asserts that
  * every entry exists with exactly these methods and auth levels.
  */
@@ -47,27 +48,105 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
   },
 
   // ── Authentication (API §11–16) ────────────────────────────────────────────
-  { method: "POST", path: "/api/auth/signup", auth: "public", phase: P1, doc: "API §11" },
-  { method: "POST", path: "/api/auth/login", auth: "public", phase: P1, doc: "API §12" },
-  { method: "POST", path: "/api/auth/logout", auth: "user", phase: P1, doc: "API §13" },
-  { method: "GET", path: "/api/auth/me", auth: "user", phase: P1, doc: "API §14" },
-  { method: "POST", path: "/api/auth/forgot-password", auth: "public", phase: P1, doc: "API §15" },
-  { method: "POST", path: "/api/auth/reset-password", auth: "public", phase: P1, doc: "API §16" },
+  {
+    method: "POST",
+    path: "/api/auth/signup",
+    auth: "public",
+    phase: P1,
+    doc: "API §11",
+    implemented: true,
+  },
+  {
+    method: "POST",
+    path: "/api/auth/login",
+    auth: "public",
+    phase: P1,
+    doc: "API §12",
+    implemented: true,
+  },
+  {
+    method: "POST",
+    path: "/api/auth/logout",
+    auth: "user",
+    phase: P1,
+    doc: "API §13",
+    implemented: true,
+  },
+  {
+    method: "GET",
+    path: "/api/auth/me",
+    auth: "user",
+    phase: P1,
+    doc: "API §14",
+    implemented: true,
+  },
+  {
+    method: "POST",
+    path: "/api/auth/forgot-password",
+    auth: "public",
+    phase: P1,
+    doc: "API §15",
+    implemented: true,
+  },
+  {
+    method: "POST",
+    path: "/api/auth/reset-password",
+    auth: "public",
+    phase: P1,
+    doc: "API §16",
+    implemented: true,
+  },
 
   // ── Wedding + dashboard (API §17–20) ───────────────────────────────────────
-  { method: "POST", path: "/api/wedding", auth: "user", phase: P1, doc: "API §17" },
-  { method: "GET", path: "/api/wedding", auth: "member", phase: P1, doc: "API §18" },
-  { method: "PATCH", path: "/api/wedding", auth: "member", phase: P1, doc: "API §19" },
-  { method: "GET", path: "/api/dashboard", auth: "member", phase: P1, doc: "API §20" },
+  {
+    method: "POST",
+    path: "/api/wedding",
+    auth: "user",
+    phase: P1,
+    doc: "API §17",
+    implemented: true,
+  },
+  {
+    method: "GET",
+    path: "/api/wedding",
+    auth: "member",
+    phase: P1,
+    doc: "API §18",
+    implemented: true,
+  },
+  {
+    method: "PATCH",
+    path: "/api/wedding",
+    auth: "member",
+    phase: P1,
+    doc: "API §19",
+    implemented: true,
+  },
+  {
+    method: "GET",
+    path: "/api/dashboard",
+    auth: "member",
+    phase: P1,
+    doc: "API §20",
+    implemented: true,
+  },
 
   // ── Members (API §21–28) ───────────────────────────────────────────────────
-  { method: "GET", path: "/api/members", auth: "member", phase: P1, doc: "API §21" },
+  {
+    method: "GET",
+    path: "/api/members",
+    auth: "member",
+    phase: P1,
+    doc: "API §21",
+    implemented: true,
+  },
   {
     method: "PATCH",
     path: "/api/members/[membershipId]",
     auth: "admin",
     phase: P1,
     doc: "API §27",
+    implemented: true,
   },
   {
     method: "DELETE",
@@ -75,15 +154,39 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "admin",
     phase: P1,
     doc: "API §28",
+    implemented: true,
   },
-  { method: "POST", path: "/api/members/invitations", auth: "admin", phase: P1, doc: "API §22" },
-  { method: "GET", path: "/api/members/invitations", auth: "admin", phase: P1, doc: "API §23" },
+  {
+    method: "POST",
+    path: "/api/members/invitations",
+    auth: "admin",
+    phase: P1,
+    doc: "API §22",
+    implemented: true,
+  },
+  {
+    method: "GET",
+    path: "/api/members/invitations",
+    auth: "admin",
+    phase: P1,
+    doc: "API §23",
+    implemented: true,
+  },
   {
     method: "DELETE",
     path: "/api/members/invitations/[invitationId]",
     auth: "admin",
     phase: P1,
     doc: "API §24",
+    implemented: true,
+  },
+  {
+    method: "POST",
+    path: "/api/members/invitations/[invitationId]/resend",
+    auth: "admin",
+    phase: P1,
+    doc: "PROJECT_STATUS 2026-10-29",
+    implemented: true,
   },
   {
     method: "GET",
@@ -91,6 +194,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "public",
     phase: P1,
     doc: "API §25",
+    implemented: true,
   },
   {
     method: "POST",
@@ -98,6 +202,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "user",
     phase: P1,
     doc: "API §26",
+    implemented: true,
   },
 
   // ── Events (API §29–33) ────────────────────────────────────────────────────

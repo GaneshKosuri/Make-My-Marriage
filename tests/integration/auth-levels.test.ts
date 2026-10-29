@@ -103,13 +103,16 @@ describe("admin routes (API_DESIGN §97)", () => {
   });
 
   it("Admins pass", async () => {
-    expect((await call(listMemberInvitations, { cookie: admin.cookie })).status).toBe(501);
+    expect(await call(listMemberInvitations, { cookie: admin.cookie })).toEqual({
+      status: 200,
+      body: { data: [] },
+    });
   });
 });
 
 describe("user routes", () => {
   it("accept signed-in users without a wedding", async () => {
-    expect((await call(me, { cookie: noWedding.cookie })).status).toBe(501);
+    expect((await call(me, { cookie: noWedding.cookie })).status).toBe(200);
     expect((await call(me)).status).toBe(401);
   });
 });

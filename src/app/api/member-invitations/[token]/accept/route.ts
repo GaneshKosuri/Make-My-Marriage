@@ -1,15 +1,13 @@
-import { notImplemented, route, tokenParams } from "@/server/http";
+import { ok, policies, route, tokenParams } from "@/server/http";
+import { memberInvitationService } from "@/modules/members";
 
-/**
- * /api/member-invitations/[token]/accept — stub (POST API §26).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 1: Foundation.
- */
+/** /api/member-invitations/[token]/accept (POST API §26). */
 
-/** POST — API §26. */
+/** POST — the signed-in invitee joins the wedding (API §26). */
 export const POST = route({
   auth: "user",
   params: tokenParams,
   invalidParams: "INVALID_TOKEN",
-  // Phase 1: Foundation: ok(await memberInvitationService.accept(ctx, params.token))
-  handler: () => notImplemented("Phase 1: Foundation"),
+  rateLimit: policies.memberInvitationAccept,
+  handler: async ({ ctx, params }) => ok(await memberInvitationService.accept(ctx, params.token)),
 });

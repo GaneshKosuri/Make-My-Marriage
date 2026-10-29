@@ -1,41 +1,71 @@
-import { coupleDisplayName } from "@/lib/couple";
+import Image from "next/image";
+import Link from "next/link";
+
+import {
+  coupleDisplayName,
+  weddingCountdownLabel,
+  weddingPlace,
+  type CoupleWedding,
+} from "@/lib/couple";
 import { daysUntil, formatDateOnly } from "@/lib/dates";
-import type { MemberRole } from "@/modules/members/member.constants";
-import { MEMBER_ROLE_LABELS } from "@/modules/members/member.constants";
+
+import { QuickAdd } from "./quick-add";
+import { UserAvatar } from "./user-avatar";
 
 export interface WeddingHeaderProps {
-  wedding: {
-    brideName: string;
-    groomName: string;
-    title: string | null;
-    weddingDate: string;
-    timeZone: string;
-  };
+  wedding: CoupleWedding;
   userName: string;
-  role: MemberRole;
 }
 
-function countdownLabel(days: number): string {
-  if (days > 1) return `${days} days to go`;
-  if (days === 1) return "Tomorrow!";
-  if (days === 0) return "Today!";
-  return "Married";
-}
+/**
+ * Couple identity on every signed-in page (PRD §12.1). Desktop: couple, date
+ * and place with "+ Add". Phones: logo and couple; AppShell adds the floating
+ * "+" outside this header so its sheet can cover the bottom bar. Sign out lives
+ * in the sidebar and in the phone's "More" sheet.
+ *
+ * No backdrop-filter here: it would become the containing block of the
+ * position:fixed menu backdrop, pinning it to the header.
+ */
+export function WeddingHeader({ wedding, userName }: Readonly<WeddingHeaderProps>) {
+  const couple = coupleDisplayName(wedding);
+  const place = weddingPlace(wedding);
 
-/** Couple identity on every signed-in page (PRD §12.1) with the wedding countdown (PRD §9.3). */
-export function WeddingHeader({ wedding, userName, role }: Readonly<WeddingHeaderProps>) {
-  const days = daysUntil(wedding.weddingDate, wedding.timeZone);
   return (
-    <header className="flex flex-wrap items-center justify-between gap-3 border-b bg-card px-4 py-4 md:px-8">
-      <div>
-        <p className="font-serif text-xl font-semibold">{coupleDisplayName(wedding)}</p>
-        <p className="text-sm text-muted-foreground">
-          {formatDateOnly(wedding.weddingDate)} · {countdownLabel(days)}
-        </p>
+    <header className="sticky top-0 z-30 border-b border-sand bg-ivory">
+      <div className="hidden items-center justify-between gap-4 px-8 py-4 md:flex">
+        <div className="min-w-0">
+          <p className="truncate font-serif text-headline-sm text-graphite">{couple}</p>
+          <p className="truncate text-body-md text-plum">
+            {formatDateOnly(wedding.weddingDate)}
+            {place && ` · ${place}`}
+          </p>
+        </div>
+        <QuickAdd variant="button" subtitle={quickAddSubtitle(wedding)} />
       </div>
-      <p className="text-sm text-muted-foreground">
-        {userName} · {MEMBER_ROLE_LABELS[role]}
-      </p>
+
+      <div className="flex items-center justify-between gap-3 px-4 py-3 md:hidden">
+        <Link
+          href="/app"
+          className="flex min-w-0 items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burgundy"
+        >
+          <Image src="/brand/logo-mark.svg" alt="" width={40} height={40} className="size-10" />
+          <span className="min-w-0">
+            <span className="block text-eyebrow text-gold-deep uppercase">Make My Marriage</span>
+            <span className="block truncate font-serif text-title-lg text-graphite">{couple}</span>
+          </span>
+        </Link>
+        <span className="flex items-center gap-2">
+          <span className="sr-only">Signed in as {userName}</span>
+          <UserAvatar name={userName} />
+        </span>
+      </div>
     </header>
   );
+}
+
+/** Eyebrow of the "Add to your wedding" menu: "Akshay & Princi · 42 days to go". */
+export function quickAddSubtitle(wedding: CoupleWedding): string {
+  return `${coupleDisplayName(wedding)} · ${weddingCountdownLabel(
+    daysUntil(wedding.weddingDate, wedding.timeZone),
+  )}`;
 }

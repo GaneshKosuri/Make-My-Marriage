@@ -1,8 +1,24 @@
 import "server-only";
 
-import type { CreatedSession, PublicContext, UserContext } from "@/server/auth";
-import { notImplemented } from "@/server/errors";
+import { normalizeEmail } from "@/lib/email";
+import {
+  createSession,
+  destroyAllSessionsForUser,
+  destroySession,
+  type CreatedSession,
+  type PublicContext,
+  type UserContext,
+} from "@/server/auth";
+import { getEnv } from "@/server/config/env";
+import { getEmailService } from "@/server/email";
+import { AppError } from "@/server/errors";
+import { runAfterResponse } from "@/server/http/after-response";
+import { logger } from "@/server/logging/logger";
+import { hashPassword, verifyPasswordOrBurn } from "@/server/security/password";
+import { generateToken, hashToken, isWellFormedToken } from "@/server/security/tokens";
 
+import { PASSWORD_RESET_TTL_MINUTES } from "./auth.constants";
+import { toAuthResultDto, toMeDto } from "./auth.mapper";
 import type {
   AuthResultDto,
   ForgotPasswordInput,
@@ -11,6 +27,9 @@ import type {
   ResetPasswordInput,
   SignupInput,
 } from "./auth.types";
+import { passwordResetTokenRepository } from "./password-reset-token.repository";
+import { userRepository } from "./user.repository";
+import { findWeddingContext } from "./wedding-context";
 
 /** A result plus the new session; the route handler sets the cookie. */
 export interface AuthenticatedResult {
@@ -18,38 +37,118 @@ export interface AuthenticatedResult {
   session: CreatedSession;
 }
 
+const INVALID_CREDENTIALS = "Invalid email or password.";
+const MS_PER_MINUTE = 60_000;
+
 /**
  * Authentication use cases (PRD §9.1, SYSTEM_DESIGN §8–12, API_DESIGN §11–16).
- * Phase 1: Foundation.
  */
 export const authService = {
-  /** Normalise email → reject duplicates (EMAIL_ALREADY_EXISTS) → argon2id → user → session. API §11. */
+  /** API §11. No email verification (PRD §9.1). */
   async signup(ctx: PublicContext, input: SignupInput): Promise<AuthenticatedResult> {
-    return notImplemented("API_DESIGN §11 (Phase 1: Foundation)");
+    const emailNormalized = normalizeEmail(input.email);
+    if (await userRepository.findByEmailNormalized(emailNormalized)) {
+      throw new AppError("EMAIL_ALREADY_EXISTS");
+    }
+    const user = await userRepository.create({
+      name: input.name,
+      email: input.email,
+      emailNormalized,
+      passwordHash: await hashPassword(input.password),
+    });
+    const session = await createSession(user._id.toString());
+    logger.info("User signed up", { requestId: ctx.requestId, userId: user._id.toString() });
+    return { body: toAuthResultDto(user, false), session };
   },
 
-  /** Generic "Invalid email or password." on failure; use verifyPasswordOrBurn. API §12. */
+  /**
+   * API §12. Unknown email and wrong password fail identically, in wording and
+   * in timing (verifyPasswordOrBurn hashes against a dummy when there is no account).
+   */
   async login(ctx: PublicContext, input: LoginInput): Promise<AuthenticatedResult> {
-    return notImplemented("API_DESIGN §12 (Phase 1: Foundation)");
+    const user = await userRepository.findByEmailNormalizedWithPassword(
+      normalizeEmail(input.email),
+    );
+    const valid = await verifyPasswordOrBurn(user?.passwordHash, input.password);
+    if (!user || !valid) throw new AppError("UNAUTHENTICATED", INVALID_CREDENTIALS);
+
+    const userId = user._id.toString();
+    const [session, context] = await Promise.all([
+      createSession(userId),
+      findWeddingContext(userId),
+    ]);
+    return { body: toAuthResultDto(user, context !== null), session };
   },
 
-  /** Destroys the current session; the handler clears the cookie. API §13. */
+  /** API §13. Destroys only the current session; the handler clears the cookie. */
   async logout(ctx: UserContext, rawSessionToken: string | null): Promise<void> {
-    return notImplemented("API_DESIGN §13 (Phase 1: Foundation)");
+    await destroySession(rawSessionToken);
   },
 
-  /** Current user + membership + wedding summary. API §14. */
+  /** API §14. Current user + membership + wedding summary (nulls before a wedding exists). */
   async me(ctx: UserContext): Promise<MeDto> {
-    return notImplemented("API_DESIGN §14 (Phase 1: Foundation)");
+    const [user, context] = await Promise.all([
+      userRepository.findById(ctx.userId),
+      findWeddingContext(ctx.userId),
+    ]);
+    if (!user) throw new AppError("UNAUTHENTICATED");
+    return toMeDto(user, context);
   },
 
-  /** Always succeeds outwardly; emails a single-use link only if the account exists. API §15. */
+  /**
+   * API §15. Always succeeds outwardly. For an existing account it stores the
+   * HMAC of a fresh single-use token and emails the raw link after the
+   * response is sent, so neither the answer nor its timing reveals the account.
+   */
   async forgotPassword(ctx: PublicContext, input: ForgotPasswordInput): Promise<void> {
-    return notImplemented("API_DESIGN §15 (Phase 1: Foundation)");
+    const user = await userRepository.findByEmailNormalized(normalizeEmail(input.email));
+    if (!user) return;
+
+    const token = generateToken();
+    await passwordResetTokenRepository.create({
+      userId: user._id.toString(),
+      tokenHash: hashToken("password-reset", token),
+      expiresAt: new Date(Date.now() + PASSWORD_RESET_TTL_MINUTES * MS_PER_MINUTE),
+    });
+
+    const resetUrl = new URL(`/reset-password/${token}`, getEnv().NEXT_PUBLIC_APP_URL).toString();
+    runAfterResponse("password-reset-email", () =>
+      getEmailService().send({
+        to: user.email,
+        template: "password-reset",
+        props: {
+          recipientName: user.name,
+          resetUrl,
+          expiresInMinutes: PASSWORD_RESET_TTL_MINUTES,
+        },
+      }),
+    );
   },
 
-  /** INVALID_TOKEN / TOKEN_EXPIRED; marks token used; may revoke all sessions. API §16. */
+  /**
+   * API §16. INVALID_TOKEN for malformed, unknown or used links; TOKEN_EXPIRED
+   * once the link is past its expiry. A successful reset signs the user out
+   * everywhere (SYSTEM_DESIGN §12), so they sign in again with the new password.
+   */
   async resetPassword(ctx: PublicContext, input: ResetPasswordInput): Promise<void> {
-    return notImplemented("API_DESIGN §16 (Phase 1: Foundation)");
+    if (!isWellFormedToken(input.token)) throw new AppError("INVALID_TOKEN");
+
+    const record = await passwordResetTokenRepository.findByTokenHash(
+      hashToken("password-reset", input.token),
+    );
+    if (!record || record.usedAt) throw new AppError("INVALID_TOKEN");
+    const now = new Date();
+    if (record.expiresAt.getTime() <= now.getTime()) throw new AppError("TOKEN_EXPIRED");
+
+    // Hash first (slow), then claim the token atomically so a link works exactly once.
+    const passwordHash = await hashPassword(input.password);
+    if (!(await passwordResetTokenRepository.markUsed(record._id.toString(), now))) {
+      throw new AppError("INVALID_TOKEN");
+    }
+
+    const userId = record.userId.toString();
+    await userRepository.updatePasswordHash(userId, passwordHash);
+    await destroyAllSessionsForUser(userId);
+    logger.info("Password reset", { requestId: ctx.requestId, userId });
   },
 };

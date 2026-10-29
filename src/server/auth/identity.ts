@@ -51,6 +51,8 @@ export interface IdentityWedding {
   title: string | null;
   weddingDate: string;
   timeZone: string;
+  city: string | null;
+  state: string | null;
 }
 
 export interface IdentityDirectory {

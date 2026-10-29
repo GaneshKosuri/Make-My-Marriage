@@ -1,25 +1,33 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
-import { PagePlaceholder } from "@/components/layout/page-placeholder";
+import { MembersScreen } from "@/features/members/components/members-screen";
 import { getCurrentContext } from "@/server/auth";
 
 export const metadata: Metadata = { title: "Wedding Members" };
 
 /**
- * Settings → Wedding Members: ADMIN only (PRD §9.4). The nav hides the link from
- * Managers and every /api/members mutation is `auth: "admin"`; this page check
- * is a third layer.
+ * Settings → Wedding Members (PRD §9.4). Admins manage members; Managers see
+ * the list read-only (decided 2026-10-29). Every mutation is `auth: "admin"`
+ * in the API regardless of what this page shows.
  */
-export default async function MembersPage() {
-  const current = await getCurrentContext();
-  if (current?.membership?.role !== "ADMIN") notFound();
-
+export default function MembersPage() {
   return (
-    <PagePlaceholder
-      title="Wedding Members"
-      phase="Phase 1: Foundation"
-      description="Invite family members, change roles and remove members. A wedding always keeps at least one Admin (PRD §9.4)."
+    <Suspense fallback={null}>
+      <Members />
+    </Suspense>
+  );
+}
+
+async function Members() {
+  // Memoised per request: the layout's guard made the same call.
+  const current = await getCurrentContext();
+  if (!current?.membership || !current.wedding) return null;
+  return (
+    <MembersScreen
+      role={current.membership.role}
+      currentMembershipId={current.membership.membershipId}
+      timeZone={current.wedding.timeZone}
     />
   );
 }

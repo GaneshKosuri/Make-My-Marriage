@@ -1,6 +1,7 @@
 import "server-only";
 
 import { connectToDatabase } from "@/server/db/connection";
+import { isDuplicateKeyError } from "@/server/db/errors";
 import { AppError } from "@/server/errors";
 
 import { RateLimitModel } from "./rate-limit.model";
@@ -49,6 +50,20 @@ export const policies = {
   signup: { name: "auth.signup", limit: 10, windowMs: 60 * MINUTE, scope: "ip" }, // placeholder
   forgotPassword: { name: "auth.forgot-password", limit: 5, windowMs: 15 * MINUTE, scope: "ip" }, // placeholder
   resetPassword: { name: "auth.reset-password", limit: 10, windowMs: 15 * MINUTE, scope: "ip" }, // placeholder
+  // Wedding members (API §22, §25–26): not in API §99; placeholders.
+  memberInvite: { name: "members.invite", limit: 30, windowMs: 60 * MINUTE, scope: "wedding" }, // placeholder
+  publicMemberInvitationView: {
+    name: "public.member-invitation.view",
+    limit: 60,
+    windowMs: MINUTE,
+    scope: "ip",
+  }, // placeholder
+  memberInvitationAccept: {
+    name: "members.invitation.accept",
+    limit: 20,
+    windowMs: 15 * MINUTE,
+    scope: "user",
+  }, // placeholder
   publicInvitationView: {
     name: "public.invitation.view",
     limit: 120,
@@ -168,12 +183,6 @@ export function createRateLimiter({
 }
 
 export type RateLimiter = ReturnType<typeof createRateLimiter>;
-
-function isDuplicateKeyError(error: unknown): boolean {
-  return (
-    typeof error === "object" && error !== null && (error as { code?: unknown }).code === 11000
-  );
-}
 
 /** Atomic `$inc` upsert. Two concurrent first hits can race on insert; retry once. */
 export const mongoRateLimitStore: RateLimitStore = {

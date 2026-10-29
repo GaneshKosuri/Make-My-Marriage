@@ -43,6 +43,11 @@
   --destructive: #8b1e1e;
   --destructive-foreground: var(--ivory);
 
+  /* Status: attending / completed, and waiting for a reply. Not attending and overdue use --destructive. */
+  --success: #2e604a;
+  /* #c27803 is 3.1:1 on white: use it for bars and dots; small text uses --gold-deep. */
+  --pending: #c27803;
+
   --border: var(--sand);
   --input: var(--sand);
   --ring: var(--burgundy);
@@ -69,6 +74,8 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-pending: var(--pending);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);

@@ -26,15 +26,42 @@ export const weddingRepository = {
     input: Omit<WeddingDoc, "createdAt" | "updatedAt" | "deletedAt">,
     session: ClientSession,
   ): Promise<WeddingRecord> {
-    return notImplemented("DATABASE_DESIGN §85 (Phase 1: Foundation)");
+    await connectToDatabase();
+    const [doc] = await WeddingModel.create([{ ...input, deletedAt: null }], { session });
+    if (!doc) throw new Error("Wedding was not created");
+    return doc.toObject() as WeddingRecord;
   },
 
-  async update(weddingId: string, changes: Partial<WeddingDoc>): Promise<WeddingRecord | null> {
-    return notImplemented("API_DESIGN §19 (Phase 1: Foundation)");
+  /** Sets the given top-level fields on an active wedding; null when it is missing or deleted. */
+  async update(
+    weddingId: string,
+    changes: Partial<
+      Pick<
+        WeddingDoc,
+        | "brideName"
+        | "groomName"
+        | "title"
+        | "description"
+        | "weddingDate"
+        | "timeZone"
+        | "location"
+      >
+    >,
+  ): Promise<WeddingRecord | null> {
+    await connectToDatabase();
+    return WeddingModel.findOneAndUpdate(
+      { _id: toObjectId(weddingId, "weddingId"), deletedAt: null },
+      { $set: changes },
+      { returnDocument: "after", runValidators: true },
+    )
+      .lean<WeddingRecord>()
+      .exec();
   },
 
+  /** Includes soft-deleted weddings: a slug is never reused. */
   async slugExists(slug: string): Promise<boolean> {
-    return notImplemented("SYSTEM_DESIGN §27 (Phase 1: Foundation)");
+    await connectToDatabase();
+    return (await WeddingModel.exists({ "website.slug": slug }).exec()) !== null;
   },
 
   /** Public website: published and not deleted (API_DESIGN §69). */

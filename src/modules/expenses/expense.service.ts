@@ -4,6 +4,7 @@ import type { PageResult } from "@/lib/pagination";
 import type { MemberContext } from "@/server/auth";
 import { notImplemented } from "@/server/errors";
 
+import { expenseRepository } from "./expense.repository";
 import type {
   CreateExpenseInput,
   ExpenseDto,
@@ -55,6 +56,6 @@ export const expensesService = {
 
   /** Dashboard "Expenses: ₹12,45,000". */
   async totalForDashboard(weddingId: string): Promise<number> {
-    return notImplemented("DATABASE_DESIGN §88 (Phase 1: Foundation — dashboard)");
+    return expenseRepository.sumTotal(weddingId);
   },
 };

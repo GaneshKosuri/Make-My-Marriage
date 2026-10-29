@@ -1,8 +1,11 @@
 /**
  * Wedding DTOs and inputs (API_DESIGN §17–19, §67–74, §84). Isomorphic.
- * TODO: derive inputs from ./wedding.schemas.ts with z.infer once defined.
+ * TODO: derive the remaining inputs from ./wedding.schemas.ts as they are defined.
  */
+import type { z } from "zod";
+
 import type { WebsiteTheme } from "./wedding.constants";
+import type { createWeddingSchema, updateWeddingSchema } from "./wedding.schemas";
 
 export interface WeddingLocationDto {
   formattedAddress: string | null;
@@ -38,19 +41,9 @@ export interface CreatedWeddingDto {
   website: { slug: string };
 }
 
-export interface CreateWeddingInput {
-  brideName: string;
-  groomName: string;
-  title?: string;
-  description?: string;
-  weddingDate: string;
-  timeZone: string;
-  location?: Partial<WeddingLocationDto>;
-}
+export type CreateWeddingInput = z.output<typeof createWeddingSchema>;
 
-export type UpdateWeddingInput = Partial<Omit<CreateWeddingInput, "timeZone">> & {
-  timeZone?: string;
-};
+export type UpdateWeddingInput = z.output<typeof updateWeddingSchema>;
 
 /** GET /api/wedding/website (API_DESIGN §67). The slug is system-managed. */
 export interface WebsiteSettingsDto {

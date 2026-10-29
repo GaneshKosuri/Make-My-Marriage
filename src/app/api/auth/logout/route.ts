@@ -1,13 +1,13 @@
-import { notImplemented, route } from "@/server/http";
+import { authService } from "@/modules/auth";
+import { clearSessionCookie, readSessionToken, route, success } from "@/server/http";
 
-/**
- * /api/auth/logout — stub (POST API §13).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 1: Foundation.
- */
-
-/** POST — API §13. */
+/** POST /api/auth/logout — end this session and clear the cookie (API §13). */
 export const POST = route({
   auth: "user",
-  // Phase 1: Foundation: authService.logout(ctx, token) → success() + clearSessionCookie
-  handler: () => notImplemented("Phase 1: Foundation"),
+  handler: async ({ ctx, request }) => {
+    await authService.logout(ctx, readSessionToken(request));
+    const response = success();
+    clearSessionCookie(response);
+    return response;
+  },
 });

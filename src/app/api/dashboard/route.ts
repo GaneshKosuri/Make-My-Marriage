@@ -1,13 +1,10 @@
-import { notImplemented, route } from "@/server/http";
+import { ok, route } from "@/server/http";
+import { dashboardService } from "@/modules/dashboard";
 
-/**
- * /api/dashboard — stub (GET API §20).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 1: Foundation.
- */
+/** /api/dashboard (GET API §20). */
 
-/** GET — API §20. */
+/** GET — countdown, summary counts, upcoming events and tasks (API §20). */
 export const GET = route({
   auth: "member",
-  // Phase 1: Foundation: ok(await dashboardService.getDashboard(ctx))
-  handler: () => notImplemented("Phase 1: Foundation"),
+  handler: async ({ ctx }) => ok(await dashboardService.getDashboard(ctx)),
 });

@@ -1,8 +1,12 @@
 import "server-only";
 
-import { notImplemented } from "@/server/errors";
+import { connectToDatabase } from "@/server/db/connection";
+import { toObjectId } from "@/server/db/object-id";
 
-import type { PasswordResetTokenRecord } from "./password-reset-token.model";
+import {
+  PasswordResetTokenModel,
+  type PasswordResetTokenRecord,
+} from "./password-reset-token.model";
 
 /** Data access for `password_reset_tokens` (DATABASE_DESIGN §12). Keyed by user / token hash. */
 export const passwordResetTokenRepository = {
@@ -11,15 +15,31 @@ export const passwordResetTokenRepository = {
     tokenHash: string;
     expiresAt: Date;
   }): Promise<PasswordResetTokenRecord> {
-    return notImplemented("SYSTEM_DESIGN §12 (Phase 1: Foundation)");
+    await connectToDatabase();
+    const doc = await PasswordResetTokenModel.create({
+      userId: toObjectId(input.userId, "userId"),
+      tokenHash: input.tokenHash,
+      expiresAt: input.expiresAt,
+      usedAt: null,
+    });
+    return doc.toObject() as PasswordResetTokenRecord;
   },
 
   async findByTokenHash(tokenHash: string): Promise<PasswordResetTokenRecord | null> {
-    return notImplemented("API_DESIGN §16 (Phase 1: Foundation)");
+    await connectToDatabase();
+    return PasswordResetTokenModel.findOne({ tokenHash }).lean<PasswordResetTokenRecord>().exec();
   },
 
-  /** Atomically marks an unused token as used; false if it was already used. */
+  /**
+   * Atomically marks an unused, unexpired token as used. False when another
+   * request used it first or it expired in the meantime.
+   */
   async markUsed(tokenId: string, usedAt: Date): Promise<boolean> {
-    return notImplemented("API_DESIGN §16 (Phase 1: Foundation)");
+    await connectToDatabase();
+    const result = await PasswordResetTokenModel.updateOne(
+      { _id: toObjectId(tokenId), usedAt: null, expiresAt: { $gt: usedAt } },
+      { $set: { usedAt } },
+    ).exec();
+    return result.modifiedCount === 1;
   },
 };
