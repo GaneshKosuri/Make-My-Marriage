@@ -1,6 +1,6 @@
 # Project Status — Make My Marriage
 
-**Last updated:** 2026-10-17
+**Last updated:** 2026-10-29
 **Current phase:** Phase 1 — Foundation (PRD §16)
 **Next up:** Wedding members (invite, accept, roles) and wedding settings (`PATCH /api/wedding`)
 
@@ -147,3 +147,4 @@ monitoring.
 | 2026-10-10 | Wedding creation: `POST /api/wedding`, Create Wedding screen, sign out, and redirects for signed-in users on /login, /signup and /create-wedding |
 | 2026-10-17 | Sign out in the dashboard header (shared `SignOutButton`, also used on Create Wedding) |
 | 2026-10-17 | Dashboard: `GET /api/dashboard`, `GET /api/wedding`, the dashboard screen and the restyled app shell; dashboard reads implemented in the events, tasks, guests, expenses, vendors and members modules |
+| 2026-10-29 | Security upgrade: Next.js 16.4.0 → 16.4.3 (critical advisories: RCE in `use cache` typed arrays and SVG image optimisation, Server Actions DoS), `eslint-config-next` to match, zod 4.6.5 → 4.6.7 and fast-uri via `npm audit fix`; `npm audit` clean |
