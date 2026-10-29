@@ -124,13 +124,21 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
   },
 
   // ── Members (API §21–28) ───────────────────────────────────────────────────
-  { method: "GET", path: "/api/members", auth: "member", phase: P1, doc: "API §21" },
+  {
+    method: "GET",
+    path: "/api/members",
+    auth: "member",
+    phase: P1,
+    doc: "API §21",
+    implemented: true,
+  },
   {
     method: "PATCH",
     path: "/api/members/[membershipId]",
     auth: "admin",
     phase: P1,
     doc: "API §27",
+    implemented: true,
   },
   {
     method: "DELETE",
@@ -138,15 +146,31 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "admin",
     phase: P1,
     doc: "API §28",
+    implemented: true,
   },
-  { method: "POST", path: "/api/members/invitations", auth: "admin", phase: P1, doc: "API §22" },
-  { method: "GET", path: "/api/members/invitations", auth: "admin", phase: P1, doc: "API §23" },
+  {
+    method: "POST",
+    path: "/api/members/invitations",
+    auth: "admin",
+    phase: P1,
+    doc: "API §22",
+    implemented: true,
+  },
+  {
+    method: "GET",
+    path: "/api/members/invitations",
+    auth: "admin",
+    phase: P1,
+    doc: "API §23",
+    implemented: true,
+  },
   {
     method: "DELETE",
     path: "/api/members/invitations/[invitationId]",
     auth: "admin",
     phase: P1,
     doc: "API §24",
+    implemented: true,
   },
   {
     method: "GET",
@@ -154,6 +178,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "public",
     phase: P1,
     doc: "API §25",
+    implemented: true,
   },
   {
     method: "POST",
@@ -161,6 +186,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "user",
     phase: P1,
     doc: "API §26",
+    implemented: true,
   },
 
   // ── Events (API §29–33) ────────────────────────────────────────────────────

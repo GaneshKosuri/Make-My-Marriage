@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-29
 **Current phase:** Phase 1 — Foundation (PRD §16)
-**Next up:** Wedding members (invite, accept, roles) and wedding settings (`PATCH /api/wedding`)
+**Next up:** Wedding members screens: the `/join/[token]` flow, then Settings → Wedding Members (the API is done)
 
 This file tracks what has been built and what comes next. Update it whenever a feature lands or new
 work starts: move items between the tables, add a row to the change log and refresh the header.
@@ -37,7 +37,7 @@ Status key: ✅ Done · 🚧 In progress · ⏳ Not started (scaffold stub only)
 | Authentication API (6 endpoints) | ✅ | Signup, login, logout, me, forgot and reset password; passwords ≥ 8 characters, reset links last 60 minutes and revoke all sessions |
 | Authentication screens | ✅ | Sign in, sign up, forgot password ("Check your email"), reset password (expired / used / updated), desktop + mobile, from the Stitch auth designs |
 | Wedding creation (create wedding + ADMIN membership) | ✅ | `POST /api/wedding` (one transaction, unique web address, gallery token, one wedding per user) and the Create Wedding screen with live preview, time zone, sign out and the "Invited by family?" note |
-| Wedding members (invite, accept, roles) | ⏳ | |
+| Wedding members (invite, accept, roles) | 🚧 | API done: all 8 endpoints (list, invite, list and revoke invitations, public invite preview, accept, change role, remove) with the last-Admin rule, emailed `/join/[token]` links valid 7 days, and 32 integration tests. Screens next: `/join/[token]`, then Settings → Wedding Members |
 | Dashboard | ✅ | `GET /api/dashboard` and `GET /api/wedding`; dashboard screen (countdown, six summary cards, upcoming events and tasks, RSVP overview, "Get started" checklist, empty and loading states) and the restyled app shell (sidebar, top bar with "+ Add", phone bottom bar with "More" and "+" sheets), desktop + mobile, from the Stitch dashboard designs |
 
 ### Phase 2 — Planning ⏳
@@ -99,6 +99,12 @@ monitoring.
 - **Per-email limit on forgot-password.** Only a per-IP limit exists today, so one IP can send up to
   5 reset emails per 15 minutes to the same address. Revisit if abuse appears.
 - **`PATCH /api/wedding`** is still a stub; it arrives with wedding settings. `GET /api/wedding` is live.
+- **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** also lists the eight member endpoints as
+  "501 stub"; the inventory marks them implemented.
+- **Removing a member and their tasks (Phase 2).** `removeMember` deletes the membership only. When
+  tasks land, unassign the removed member's tasks (`assignedMembershipId`); a TODO marks the spot.
+- **Member rate limits are placeholders.** Invites 30 per wedding per hour, the public invite preview
+  60 per IP per minute, accepting 20 per user per 15 minutes. Tune with real traffic.
 - **Restart `next dev` after this change.** The identity ports are registered once at startup, so a
   running dev server keeps showing the header without the wedding's place until it restarts.
 - **Dashboard links lead to placeholders.** Every card, "+ Add" item and checklist step links to the
@@ -134,6 +140,13 @@ monitoring.
 | 2026-10-17 | Upcoming events include events still in progress; upcoming tasks are incomplete, nearest due date first, undated last. The RSVPs card counts replies (attending + not attending) with "N still to reply" |
 | 2026-10-17 | The dashboard reads its numbers on the client (`useDashboard`, TanStack Query) so later mutations can refresh it by invalidating `dashboardKeys.all` |
 | 2026-10-17 | "Get started" has five steps (event, task, guests, family member, invitations), leads the page for a new wedding and disappears once all are done. Managers see the family-member step without a link |
+| 2026-10-29 | `/join/[token]` will show the sign-in and sign-up forms itself and accept the invitation once signed in, instead of adding `?next=` to /login (binding decision 12 only allows `/app` targets) |
+| 2026-10-29 | Managers see Wedding Members read-only (API §21 lets them list members); only Admins invite, change roles, remove and see pending invitations |
+| 2026-10-29 | If the invitation email cannot be sent, the invitation is revoked (kept, not deleted) and the Admin gets `EXTERNAL_SERVICE_ERROR` (503) to try again; the raw link exists nowhere else. "Resend" means revoke and invite again |
+| 2026-10-29 | The last-Admin rule runs without a transaction (binding rule: transactions only for create wedding and accept): check, write, then check again and undo if two Admins demoted or removed each other at the same moment (`LAST_ADMIN`, 409) |
+| 2026-10-29 | The public invite preview answers `NOT_FOUND` for unknown, revoked, accepted and expired links alike; accepting still returns the specific API §26 codes (`INVALID_TOKEN` 400, `TOKEN_EXPIRED` 410, `INVITATION_ALREADY_ACCEPTED` 409, `INVITATION_EMAIL_MISMATCH` 403, `ALREADY_HAS_WEDDING` 409). `requiresLogin` is always true |
+| 2026-10-29 | Inviting someone already in the wedding, or an email with an invitation still waiting, is `CONFLICT` (409) with the reason under `details.email`. An expired pending invitation for that email is revoked and replaced. `GET /api/members/invitations` lists pending, unexpired invitations only |
+| 2026-10-29 | An Admin may change their own role or remove themselves while another Admin remains. Managers cannot leave a wedding in V1 (the endpoint is Admin only) |
 
 ## 5. Change log
 
@@ -148,3 +161,4 @@ monitoring.
 | 2026-10-17 | Sign out in the dashboard header (shared `SignOutButton`, also used on Create Wedding) |
 | 2026-10-17 | Dashboard: `GET /api/dashboard`, `GET /api/wedding`, the dashboard screen and the restyled app shell; dashboard reads implemented in the events, tasks, guests, expenses, vendors and members modules |
 | 2026-10-29 | Security upgrade: Next.js 16.4.0 → 16.4.3 (critical advisories: RCE in `use cache` typed arrays and SVG image optimisation, Server Actions DoS), `eslint-config-next` to match, zod 4.6.5 → 4.6.7 and fast-uri via `npm audit fix`; `npm audit` clean |
+| 2026-10-29 | Wedding members API: list members, invite by email, list and revoke invitations, public invite preview, accept (one transaction), change role and remove with the last-Admin rule; placeholder rate limits; 32 integration tests and race unit tests |

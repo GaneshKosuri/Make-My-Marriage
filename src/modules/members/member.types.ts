@@ -1,8 +1,10 @@
 /**
  * Member DTOs and inputs (API_DESIGN §21–28). Isomorphic.
- * TODO(Phase 1): derive inputs from ./member.schemas.ts with z.infer.
  */
+import type { z } from "zod";
+
 import type { MemberInvitationStatus, MemberRole } from "./member.constants";
+import type { changeMemberRoleSchema, inviteMemberSchema } from "./member.schemas";
 
 /** GET /api/members (API_DESIGN §21). */
 export interface MemberDto {
@@ -35,11 +37,5 @@ export interface AcceptMemberInvitationResultDto {
   role: MemberRole;
 }
 
-export interface InviteMemberInput {
-  email: string;
-  role: MemberRole;
-}
-
-export interface ChangeMemberRoleInput {
-  role: MemberRole;
-}
+export type InviteMemberInput = z.infer<typeof inviteMemberSchema>;
+export type ChangeMemberRoleInput = z.infer<typeof changeMemberRoleSchema>;

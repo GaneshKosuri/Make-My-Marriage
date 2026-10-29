@@ -1,23 +1,24 @@
-import { notImplemented, route } from "@/server/http";
-import { membershipIdParams } from "@/modules/members/member.schemas";
+import { ok, route, success } from "@/server/http";
+import { membersService } from "@/modules/members";
+import { changeMemberRoleSchema, membershipIdParams } from "@/modules/members/member.schemas";
 
-/**
- * /api/members/[membershipId] — stub (PATCH API §27, DELETE API §28).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 1: Foundation.
- */
+/** /api/members/[membershipId] (PATCH API §27, DELETE API §28). Admin only. */
 
-/** PATCH — API §27. */
+/** PATCH — change a member's role; the wedding keeps at least one Admin (API §27). */
 export const PATCH = route({
   auth: "admin",
   params: membershipIdParams,
-  // Phase 1: Foundation: ok(await membersService.changeRole(ctx, params.membershipId, body))
-  handler: () => notImplemented("Phase 1: Foundation"),
+  body: changeMemberRoleSchema,
+  handler: async ({ ctx, params, body }) =>
+    ok(await membersService.changeRole(ctx, params.membershipId, body)),
 });
 
-/** DELETE — API §28. */
+/** DELETE — remove a member; their access ends at once (API §28). */
 export const DELETE = route({
   auth: "admin",
   params: membershipIdParams,
-  // Phase 1: Foundation: await membersService.removeMember(ctx, params.membershipId); return success()
-  handler: () => notImplemented("Phase 1: Foundation"),
+  handler: async ({ ctx, params }) => {
+    await membersService.removeMember(ctx, params.membershipId);
+    return success();
+  },
 });

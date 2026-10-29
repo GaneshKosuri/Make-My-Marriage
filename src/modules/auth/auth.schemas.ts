@@ -12,7 +12,8 @@ import {
  * reuse them with React Hook Form. Messages are shown to users as-is.
  */
 
-const emailField = z
+/** Shared with member invitations (one definition of a valid email address). */
+export const emailField = z
   .string()
   .trim()
   .max(EMAIL_MAX_LENGTH, "Email address is too long")

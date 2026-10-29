@@ -1,13 +1,10 @@
-import { notImplemented, route } from "@/server/http";
+import { ok, route } from "@/server/http";
+import { membersService } from "@/modules/members";
 
-/**
- * /api/members — stub (GET API §21).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 1: Foundation.
- */
+/** /api/members (GET API §21). */
 
-/** GET — API §21. */
+/** GET — the wedding's members; Admins and Managers (API §21). */
 export const GET = route({
   auth: "member",
-  // Phase 1: Foundation: ok(await membersService.listMembers(ctx))
-  handler: () => notImplemented("Phase 1: Foundation"),
+  handler: async ({ ctx }) => ok(await membersService.listMembers(ctx)),
 });

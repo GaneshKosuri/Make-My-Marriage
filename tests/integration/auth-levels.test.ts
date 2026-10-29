@@ -103,7 +103,10 @@ describe("admin routes (API_DESIGN §97)", () => {
   });
 
   it("Admins pass", async () => {
-    expect((await call(listMemberInvitations, { cookie: admin.cookie })).status).toBe(501);
+    expect(await call(listMemberInvitations, { cookie: admin.cookie })).toEqual({
+      status: 200,
+      body: { data: [] },
+    });
   });
 });
 

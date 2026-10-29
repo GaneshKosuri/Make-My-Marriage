@@ -1,20 +1,19 @@
-import { notImplemented, route } from "@/server/http";
+import { created, ok, policies, route } from "@/server/http";
+import { memberInvitationService } from "@/modules/members";
+import { inviteMemberSchema } from "@/modules/members/member.schemas";
 
-/**
- * /api/members/invitations — stub (GET API §23, POST API §22).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 1: Foundation.
- */
+/** /api/members/invitations (GET API §23, POST API §22). Admin only. */
 
-/** GET — API §23. */
+/** GET — pending, unexpired invitations (API §23). */
 export const GET = route({
   auth: "admin",
-  // Phase 1: Foundation: ok(await memberInvitationService.listPending(ctx))
-  handler: () => notImplemented("Phase 1: Foundation"),
+  handler: async ({ ctx }) => ok(await memberInvitationService.listPending(ctx)),
 });
 
-/** POST — API §22. */
+/** POST — invite someone by email; the email is sent before the response (API §22). */
 export const POST = route({
   auth: "admin",
-  // Phase 1: Foundation: created(await memberInvitationService.invite(ctx, body))
-  handler: () => notImplemented("Phase 1: Foundation"),
+  body: inviteMemberSchema,
+  rateLimit: policies.memberInvite,
+  handler: async ({ ctx, body }) => created(await memberInvitationService.invite(ctx, body)),
 });

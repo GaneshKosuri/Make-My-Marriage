@@ -5,7 +5,6 @@ import type { ClientSession } from "mongoose";
 import { connectToDatabase } from "@/server/db/connection";
 import { toObjectId } from "@/server/db/object-id";
 import { TENANT_SCOPED_OPTION } from "@/server/db/plugins/tenant-guard";
-import { notImplemented } from "@/server/errors";
 
 import type { MemberRole } from "./member.constants";
 import { MembershipModel, type MembershipRecord } from "./membership.model";
@@ -28,12 +27,23 @@ export const membershipRepository = {
       .exec();
   },
 
+  /** Oldest first, so the couple who created the wedding lead the list. */
   async listByWedding(weddingId: string): Promise<MembershipRecord[]> {
-    return notImplemented("API_DESIGN §21 (Phase 1: Foundation)");
+    await connectToDatabase();
+    return MembershipModel.find({ weddingId: toObjectId(weddingId, "weddingId") })
+      .sort({ joinedAt: 1, _id: 1 })
+      .lean<MembershipRecord[]>()
+      .exec();
   },
 
   async findById(weddingId: string, membershipId: string): Promise<MembershipRecord | null> {
-    return notImplemented("API_DESIGN §27–28 (Phase 1: Foundation)");
+    await connectToDatabase();
+    return MembershipModel.findOne({
+      weddingId: toObjectId(weddingId, "weddingId"),
+      _id: toObjectId(membershipId, "membershipId"),
+    })
+      .lean<MembershipRecord>()
+      .exec();
   },
 
   async findByIds(
@@ -55,8 +65,12 @@ export const membershipRepository = {
     return MembershipModel.countDocuments({ weddingId: toObjectId(weddingId, "weddingId") }).exec();
   },
 
-  async countAdmins(weddingId: string, session?: ClientSession): Promise<number> {
-    return notImplemented("DATABASE_DESIGN §27 (Phase 1: Foundation)");
+  async countAdmins(weddingId: string): Promise<number> {
+    await connectToDatabase();
+    return MembershipModel.countDocuments({
+      weddingId: toObjectId(weddingId, "weddingId"),
+      role: "ADMIN",
+    }).exec();
   },
 
   async create(
@@ -79,15 +93,42 @@ export const membershipRepository = {
     return doc.toObject() as MembershipRecord;
   },
 
+  /** Puts back a membership exactly as it was (undoing a removal that left no Admin). */
+  async restore(weddingId: string, membership: MembershipRecord): Promise<void> {
+    await connectToDatabase();
+    await MembershipModel.create({
+      _id: membership._id,
+      weddingId: toObjectId(weddingId, "weddingId"),
+      userId: membership.userId,
+      role: membership.role,
+      joinedAt: membership.joinedAt,
+    });
+  },
+
   async updateRole(
     weddingId: string,
     membershipId: string,
     role: MemberRole,
   ): Promise<MembershipRecord | null> {
-    return notImplemented("API_DESIGN §27 (Phase 1: Foundation)");
+    await connectToDatabase();
+    return MembershipModel.findOneAndUpdate(
+      {
+        weddingId: toObjectId(weddingId, "weddingId"),
+        _id: toObjectId(membershipId, "membershipId"),
+      },
+      { $set: { role } },
+      { returnDocument: "after" },
+    )
+      .lean<MembershipRecord>()
+      .exec();
   },
 
   async delete(weddingId: string, membershipId: string): Promise<boolean> {
-    return notImplemented("API_DESIGN §28 (Phase 1: Foundation)");
+    await connectToDatabase();
+    const result = await MembershipModel.deleteOne({
+      weddingId: toObjectId(weddingId, "weddingId"),
+      _id: toObjectId(membershipId, "membershipId"),
+    }).exec();
+    return result.deletedCount === 1;
   },
 };
