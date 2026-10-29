@@ -1,10 +1,12 @@
 import "server-only";
 
 import type { PageQuery } from "@/lib/pagination";
+import { connectToDatabase } from "@/server/db/connection";
+import { toObjectId } from "@/server/db/object-id";
 import { notImplemented } from "@/server/errors";
 
 import type { ExpenseCategory } from "./expense.constants";
-import type { ExpenseDoc, ExpenseRecord } from "./expense.model";
+import { ExpenseModel, type ExpenseDoc, type ExpenseRecord } from "./expense.model";
 
 export interface ExpenseListFilter {
   category?: ExpenseCategory;
@@ -46,6 +48,16 @@ export const expenseRepository = {
 
   async delete(weddingId: string, expenseId: string): Promise<boolean> {
     return notImplemented("API_DESIGN §58 (Phase 4: Financial & Vendors)");
+  },
+
+  /** SUM(amountPaise) for the wedding (DATABASE_DESIGN §58, §88); 0 when there are none. */
+  async sumTotal(weddingId: string): Promise<number> {
+    await connectToDatabase();
+    const [row] = await ExpenseModel.aggregate<{ total: number }>([
+      { $match: { weddingId: toObjectId(weddingId, "weddingId") } },
+      { $group: { _id: null, total: { $sum: "$amountPaise" } } },
+    ]).exec();
+    return row?.total ?? 0;
   },
 
   /** `$match: { weddingId }` first, then group by category (tenant guard requires it). */

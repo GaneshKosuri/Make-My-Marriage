@@ -11,7 +11,7 @@ import { generateToken } from "@/server/security/tokens";
 import { membersService } from "@/modules/members";
 
 import { DEFAULT_WEBSITE_THEME } from "./wedding.constants";
-import { toCreatedWeddingDto, toIdentityWedding } from "./wedding.mapper";
+import { toCreatedWeddingDto, toIdentityWedding, toWeddingDto } from "./wedding.mapper";
 import type { WeddingLocation } from "./wedding.model";
 import { weddingRepository } from "./wedding.repository";
 import { generateUniqueWeddingSlug } from "./wedding.slug";
@@ -106,9 +106,11 @@ export const weddingsService = {
     throw new Error("Unreachable: slug attempts exhausted");
   },
 
-  /** API §18. */
+  /** The caller's wedding (API §18). A soft-deleted wedding is NOT_FOUND. */
   async getWedding(ctx: MemberContext): Promise<WeddingDto> {
-    return notImplemented("API_DESIGN §18 (Phase 1: Foundation)");
+    const wedding = await weddingRepository.findActiveById(ctx.weddingId);
+    if (!wedding) throw new AppError("NOT_FOUND");
+    return toWeddingDto(wedding);
   },
 
   /** Admin + Manager; partial; slug unchanged. API §19. */

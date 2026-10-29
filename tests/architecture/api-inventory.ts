@@ -105,9 +105,23 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     doc: "API §17",
     implemented: true,
   },
-  { method: "GET", path: "/api/wedding", auth: "member", phase: P1, doc: "API §18" },
+  {
+    method: "GET",
+    path: "/api/wedding",
+    auth: "member",
+    phase: P1,
+    doc: "API §18",
+    implemented: true,
+  },
   { method: "PATCH", path: "/api/wedding", auth: "member", phase: P1, doc: "API §19" },
-  { method: "GET", path: "/api/dashboard", auth: "member", phase: P1, doc: "API §20" },
+  {
+    method: "GET",
+    path: "/api/dashboard",
+    auth: "member",
+    phase: P1,
+    doc: "API §20",
+    implemented: true,
+  },
 
   // ── Members (API §21–28) ───────────────────────────────────────────────────
   { method: "GET", path: "/api/members", auth: "member", phase: P1, doc: "API §21" },

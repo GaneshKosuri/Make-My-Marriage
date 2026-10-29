@@ -2,7 +2,7 @@ import "server-only";
 
 import type { ClientSession } from "mongoose";
 
-import type { IdentityMembership, MemberContext } from "@/server/auth";
+import { getIdentity, type IdentityMembership, type MemberContext } from "@/server/auth";
 import { notImplemented } from "@/server/errors";
 
 import type { MemberRole } from "./member.constants";
@@ -62,6 +62,28 @@ export const membersService = {
     weddingId: string,
     membershipIds: readonly string[],
   ): Promise<Map<string, { membershipId: string; name: string; role: MemberRole }>> {
-    return notImplemented("API_DESIGN §34 (Phase 2: Planning)");
+    const memberships = await membershipRepository.findByIds(weddingId, [
+      ...new Set(membershipIds),
+    ]);
+    // Names come from the identity directory (users belong to the auth module).
+    const { directory } = getIdentity();
+    const summaries = await Promise.all(
+      memberships.map(async (membership) => {
+        const user = await directory.findUserById(membership.userId.toString());
+        return user
+          ? { membershipId: membership._id.toString(), name: user.name, role: membership.role }
+          : null;
+      }),
+    );
+    return new Map(
+      summaries
+        .filter((summary) => summary !== null)
+        .map((summary) => [summary.membershipId, summary]),
+    );
+  },
+
+  /** Dashboard "Invite a family member" step: how many people plan this wedding. */
+  async countMembers(weddingId: string): Promise<number> {
+    return membershipRepository.countByWedding(weddingId);
   },
 };

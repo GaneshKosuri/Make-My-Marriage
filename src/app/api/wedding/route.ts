@@ -1,17 +1,16 @@
-import { notImplemented, created, route } from "@/server/http";
+import { created, notImplemented, ok, route } from "@/server/http";
 import { weddingsService } from "@/modules/weddings";
 import { createWeddingSchema } from "@/modules/weddings/wedding.schemas";
 
 /**
  * /api/wedding (GET API §18, POST API §17, PATCH API §19).
- * GET and PATCH arrive with the dashboard and wedding settings (Phase 1: Foundation).
+ * PATCH arrives with wedding settings (Phase 1: Foundation).
  */
 
-/** GET — API §18. */
+/** GET — the caller's wedding (API §18). */
 export const GET = route({
   auth: "member",
-  // Phase 1: Foundation: ok(await weddingsService.getWedding(ctx))
-  handler: () => notImplemented("Phase 1: Foundation"),
+  handler: async ({ ctx }) => ok(await weddingsService.getWedding(ctx)),
 });
 
 /** POST — create the wedding; the caller becomes its first Admin (API §17). */

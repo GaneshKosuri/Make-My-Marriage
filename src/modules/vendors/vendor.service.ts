@@ -4,6 +4,7 @@ import type { PageResult } from "@/lib/pagination";
 import type { MemberContext } from "@/server/auth";
 import { notImplemented } from "@/server/errors";
 
+import { vendorRepository } from "./vendor.repository";
 import type {
   AddVendorFromPlaceInput,
   CreateVendorInput,
@@ -56,6 +57,6 @@ export const vendorsService = {
 
   /** Dashboard "Vendors: 8". */
   async countForDashboard(weddingId: string): Promise<number> {
-    return notImplemented("DATABASE_DESIGN §88 (Phase 1: Foundation — dashboard)");
+    return vendorRepository.countActive(weddingId);
   },
 };

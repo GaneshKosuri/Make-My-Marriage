@@ -4,6 +4,7 @@ import type { PageResult } from "@/lib/pagination";
 import type { MemberContext } from "@/server/auth";
 import { notImplemented } from "@/server/errors";
 
+import { guestRepository } from "./guest.repository";
 import type {
   BulkEmailInput,
   BulkEmailResultDto,
@@ -77,11 +78,22 @@ export const guestsService = {
 
   // ── Cross-module operations ─────────────────────────────────────────────
 
-  /** Dashboard guest and RSVP counts. */
+  /** Dashboard guest and RSVP counts (API_DESIGN §20; SYSTEM_DESIGN §23 "people attending"). */
   async countForDashboard(weddingId: string): Promise<{
     guests: number;
-    rsvps: { pending: number; attending: number; notAttending: number };
+    rsvps: { pending: number; attending: number; notAttending: number; peopleAttending: number };
+    invitationsSent: number;
   }> {
-    return notImplemented("API_DESIGN §20 (Phase 1: Foundation — dashboard)");
+    const summary = await guestRepository.rsvpSummary(weddingId);
+    return {
+      guests: summary.totalGuests,
+      rsvps: {
+        pending: summary.byStatus.PENDING,
+        attending: summary.byStatus.ATTENDING,
+        notAttending: summary.byStatus.NOT_ATTENDING,
+        peopleAttending: summary.totalPeopleAttending,
+      },
+      invitationsSent: summary.invitationsSent,
+    };
   },
 };

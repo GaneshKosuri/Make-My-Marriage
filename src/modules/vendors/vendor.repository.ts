@@ -1,10 +1,12 @@
 import "server-only";
 
 import type { PageQuery } from "@/lib/pagination";
+import { connectToDatabase } from "@/server/db/connection";
+import { toObjectId } from "@/server/db/object-id";
 import { notImplemented } from "@/server/errors";
 
 import type { VendorCategory } from "./vendor.constants";
-import type { VendorDoc, VendorRecord } from "./vendor.model";
+import { VendorModel, type VendorDoc, type VendorRecord } from "./vendor.model";
 
 export interface VendorListFilter {
   category?: VendorCategory;
@@ -51,6 +53,10 @@ export const vendorRepository = {
   },
 
   async countActive(weddingId: string): Promise<number> {
-    return notImplemented("DATABASE_DESIGN §88 (Phase 1: Foundation — dashboard)");
+    await connectToDatabase();
+    return VendorModel.countDocuments({
+      weddingId: toObjectId(weddingId, "weddingId"),
+      archivedAt: null,
+    }).exec();
   },
 };

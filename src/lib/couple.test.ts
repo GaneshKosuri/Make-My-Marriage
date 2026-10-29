@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { coupleDisplayName, weddingCountdownLabel } from "./couple";
+import { coupleDisplayName, initialsOf, weddingCountdownLabel, weddingPlace } from "./couple";
 
 describe("coupleDisplayName", () => {
   it("puts the groom first when there is no title", () => {
@@ -25,5 +25,24 @@ describe("weddingCountdownLabel", () => {
     [-3, "Married"],
   ])("%i → %s", (days, label) => {
     expect(weddingCountdownLabel(days)).toBe(label);
+  });
+});
+
+describe("weddingPlace", () => {
+  it("joins city and state, skipping blanks", () => {
+    expect(weddingPlace({ city: "Dehradun", state: "Uttarakhand" })).toBe("Dehradun, Uttarakhand");
+    expect(weddingPlace({ city: "Dehradun", state: " " })).toBe("Dehradun");
+    expect(weddingPlace({ city: null, state: null })).toBeNull();
+  });
+});
+
+describe("initialsOf", () => {
+  it.each([
+    ["Akshay Saini", "AS"],
+    ["Akshay Kumar Saini", "AS"],
+    ["princi", "P"],
+    ["  ", ""],
+  ])("%s → %s", (name, initials) => {
+    expect(initialsOf(name)).toBe(initials);
   });
 });

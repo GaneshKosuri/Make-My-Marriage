@@ -5,6 +5,8 @@ import { notImplemented } from "@/server/errors";
 
 import type { CoverUploadRequestInput, CoverUploadUrlDto } from "@/modules/weddings/wedding.types";
 
+import { toEventDto, toEventSummaryDto } from "./event.mapper";
+import { eventRepository } from "./event.repository";
 import type {
   CreateEventInput,
   EventDto,
@@ -64,16 +66,21 @@ export const eventsService = {
     weddingId: string,
     eventIds: readonly string[],
   ): Promise<Map<string, EventSummaryDto>> {
-    return notImplemented("API_DESIGN §34, §39 notes (Phase 2: Planning)");
+    const events = await eventRepository.findByIds(weddingId, [...new Set(eventIds)]);
+    return new Map(events.map((event) => [event._id.toString(), toEventSummaryDto(event)]));
   },
 
-  /** Dashboard. */
+  /** Dashboard: events that are not archived (DATABASE_DESIGN §88). */
   async countActive(weddingId: string): Promise<number> {
-    return notImplemented("DATABASE_DESIGN §88 (Phase 1: Foundation — dashboard)");
+    return eventRepository.countActive(weddingId);
   },
 
-  /** Dashboard "Upcoming Events" (PRD §9.3). */
-  async listUpcoming(weddingId: string, limit: number): Promise<EventSummaryDto[]> {
-    return notImplemented("PRD §9.3 (Phase 1: Foundation — dashboard)");
+  /**
+   * Dashboard "Upcoming Events" (PRD §9.3): the nearest events that have not
+   * finished yet, with venue and dress code for the card.
+   */
+  async listUpcoming(weddingId: string, limit: number, now = new Date()): Promise<EventDto[]> {
+    const events = await eventRepository.listUpcoming(weddingId, now, limit);
+    return events.map(toEventDto);
   },
 };

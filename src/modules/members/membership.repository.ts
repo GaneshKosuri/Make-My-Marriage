@@ -36,6 +36,25 @@ export const membershipRepository = {
     return notImplemented("API_DESIGN §27–28 (Phase 1: Foundation)");
   },
 
+  async findByIds(
+    weddingId: string,
+    membershipIds: readonly string[],
+  ): Promise<MembershipRecord[]> {
+    if (membershipIds.length === 0) return [];
+    await connectToDatabase();
+    return MembershipModel.find({
+      weddingId: toObjectId(weddingId, "weddingId"),
+      _id: { $in: membershipIds.map((id) => toObjectId(id, "membershipId")) },
+    })
+      .lean<MembershipRecord[]>()
+      .exec();
+  },
+
+  async countByWedding(weddingId: string): Promise<number> {
+    await connectToDatabase();
+    return MembershipModel.countDocuments({ weddingId: toObjectId(weddingId, "weddingId") }).exec();
+  },
+
   async countAdmins(weddingId: string, session?: ClientSession): Promise<number> {
     return notImplemented("DATABASE_DESIGN §27 (Phase 1: Foundation)");
   },

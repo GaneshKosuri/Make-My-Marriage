@@ -6,8 +6,8 @@ import { describe, it } from "vitest";
  */
 describe("weddingsService", () => {
   // createWedding: tests/integration/create-wedding.test.ts, wedding.slug.test.ts, wedding.schemas.test.ts
-  describe("getWedding / updateWedding (API_DESIGN §18–19)", () => {
-    it.todo("never returns the gallery token or hashes");
+  // getWedding: tests/integration/dashboard.test.ts (no gallery token, member-only)
+  describe("updateWedding (API_DESIGN §19)", () => {
     it.todo("keeps the slug unchanged when names or date change");
     it.todo("rejects a client-supplied weddingId");
   });

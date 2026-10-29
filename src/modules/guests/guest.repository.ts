@@ -1,10 +1,12 @@
 import "server-only";
 
 import type { PageQuery } from "@/lib/pagination";
+import { connectToDatabase } from "@/server/db/connection";
+import { toObjectId } from "@/server/db/object-id";
 import { notImplemented } from "@/server/errors";
 
 import type { RsvpStatus } from "./guest.constants";
-import type { GuestDoc, GuestRecord } from "./guest.model";
+import { GuestModel, type GuestDoc, type GuestRecord } from "./guest.model";
 
 export interface GuestListFilter {
   /** Literal, case-insensitive; regex metacharacters escaped (API_DESIGN §39 notes). */
@@ -58,12 +60,61 @@ export const guestRepository = {
     return notImplemented("API_DESIGN §43 (Phase 3: Guests)");
   },
 
+  /**
+   * Guest (invitation) counts by RSVP status, people attending (the sum of
+   * `attendingCount` on ATTENDING guests) and invitations sent, in one pass.
+   */
   async rsvpSummary(weddingId: string): Promise<{
     totalGuests: number;
     byStatus: Record<RsvpStatus, number>;
     totalPeopleAttending: number;
+    invitationsSent: number;
   }> {
-    return notImplemented("API_DESIGN §52 (Phase 3: Guests)");
+    await connectToDatabase();
+    const isStatus = (status: RsvpStatus) => ({
+      $cond: [{ $eq: ["$rsvpStatus", status] }, 1, 0],
+    });
+    const [row] = await GuestModel.aggregate<{
+      totalGuests: number;
+      pending: number;
+      attending: number;
+      notAttending: number;
+      totalPeopleAttending: number;
+      invitationsSent: number;
+    }>([
+      { $match: { weddingId: toObjectId(weddingId, "weddingId") } },
+      {
+        $group: {
+          _id: null,
+          totalGuests: { $sum: 1 },
+          pending: { $sum: isStatus("PENDING") },
+          attending: { $sum: isStatus("ATTENDING") },
+          notAttending: { $sum: isStatus("NOT_ATTENDING") },
+          totalPeopleAttending: {
+            $sum: {
+              $cond: [
+                { $eq: ["$rsvpStatus", "ATTENDING"] },
+                { $ifNull: ["$attendingCount", 0] },
+                0,
+              ],
+            },
+          },
+          invitationsSent: {
+            $sum: { $cond: [{ $eq: [{ $ifNull: ["$invitationSentAt", null] }, null] }, 0, 1] },
+          },
+        },
+      },
+    ]).exec();
+    return {
+      totalGuests: row?.totalGuests ?? 0,
+      byStatus: {
+        PENDING: row?.pending ?? 0,
+        ATTENDING: row?.attending ?? 0,
+        NOT_ATTENDING: row?.notAttending ?? 0,
+      },
+      totalPeopleAttending: row?.totalPeopleAttending ?? 0,
+      invitationsSent: row?.invitationsSent ?? 0,
+    };
   },
 
   /** Public token resolution: minimal owner projection (DATABASE_DESIGN §43). */

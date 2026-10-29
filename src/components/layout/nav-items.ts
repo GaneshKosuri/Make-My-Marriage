@@ -53,8 +53,37 @@ export const NAV_ITEMS: readonly NavItem[] = [
   },
 ];
 
-/** Primary destinations for the mobile bottom bar; everything else is in the menu drawer. */
+/** Primary destinations for the mobile bottom bar; everything else is in the "More" sheet. */
 export const MOBILE_PRIMARY_HREFS = ["/app", "/app/events", "/app/guests", "/app/tasks"] as const;
+
+/** How the "More" sheet groups the remaining pages (Stitch "Mobile More Sheet"). */
+export const MOBILE_MORE_GROUPS = [
+  { label: "Plan", hrefs: ["/app/expenses", "/app/vendors", "/app/vendors/discover"] },
+  {
+    label: "Share & memories",
+    hrefs: ["/app/website", "/app/photos", "/app/photos/qr", "/app/livestream"],
+  },
+  { label: "Settings", hrefs: ["/app/settings", "/app/settings/members"] },
+] as const;
+
+/**
+ * The "More" sheet's groups from role-filtered items. Sub-pages are listed by
+ * their own label ("My Vendors", not "Vendors"); hrefs the role cannot see drop out.
+ */
+export function moreGroups(items: readonly NavItem[]): { label: string; items: NavItem[] }[] {
+  const byHref = new Map<string, NavItem>();
+  for (const item of items) {
+    if (item.children?.length) {
+      for (const child of item.children) byHref.set(child.href, child);
+    } else {
+      byHref.set(item.href, item);
+    }
+  }
+  return MOBILE_MORE_GROUPS.map((group) => ({
+    label: group.label,
+    items: group.hrefs.flatMap((href) => byHref.get(href) ?? []),
+  })).filter((group) => group.items.length > 0);
+}
 
 export function navItemsForRole(
   role: MemberRole,

@@ -33,7 +33,7 @@ async function GuardedAppShell({ children }: Readonly<{ children: ReactNode }>) 
   if (!current.membership || !current.wedding) redirect("/create-wedding");
 
   return (
-    <AppShell role={current.membership.role} userName={current.user.name} wedding={current.wedding}>
+    <AppShell role={current.membership.role} user={current.user} wedding={current.wedding}>
       {children}
     </AppShell>
   );

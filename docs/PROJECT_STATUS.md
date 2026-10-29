@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-17
 **Current phase:** Phase 1 — Foundation (PRD §16)
-**Next up:** Dashboard (`GET /api/dashboard`, summary cards, countdown) from the Stitch dashboard designs
+**Next up:** Wedding members (invite, accept, roles) and wedding settings (`PATCH /api/wedding`)
 
 This file tracks what has been built and what comes next. Update it whenever a feature lands or new
 work starts: move items between the tables, add a row to the change log and refresh the header.
@@ -38,7 +38,7 @@ Status key: ✅ Done · 🚧 In progress · ⏳ Not started (scaffold stub only)
 | Authentication screens | ✅ | Sign in, sign up, forgot password ("Check your email"), reset password (expired / used / updated), desktop + mobile, from the Stitch auth designs |
 | Wedding creation (create wedding + ADMIN membership) | ✅ | `POST /api/wedding` (one transaction, unique web address, gallery token, one wedding per user) and the Create Wedding screen with live preview, time zone, sign out and the "Invited by family?" note |
 | Wedding members (invite, accept, roles) | ⏳ | |
-| Dashboard shell | ⏳ | Guarded layout and header (couple, countdown, sign out) exist; content not built. Stitch dashboard design exists |
+| Dashboard | ✅ | `GET /api/dashboard` and `GET /api/wedding`; dashboard screen (countdown, six summary cards, upcoming events and tasks, RSVP overview, "Get started" checklist, empty and loading states) and the restyled app shell (sidebar, top bar with "+ Add", phone bottom bar with "More" and "+" sheets), desktop + mobile, from the Stitch dashboard designs |
 
 ### Phase 2 — Planning ⏳
 
@@ -98,7 +98,16 @@ monitoring.
   `implemented: true`.
 - **Per-email limit on forgot-password.** Only a per-IP limit exists today, so one IP can send up to
   5 reset emails per 15 minutes to the same address. Revisit if abuse appears.
-- **`GET` / `PATCH /api/wedding`** are still stubs; they arrive with the dashboard and wedding settings.
+- **`PATCH /api/wedding`** is still a stub; it arrives with wedding settings. `GET /api/wedding` is live.
+- **Restart `next dev` after this change.** The identity ports are registered once at startup, so a
+  running dev server keeps showing the header without the wedding's place until it restarts.
+- **Dashboard links lead to placeholders.** Every card, "+ Add" item and checklist step links to the
+  page where that record is added (events, tasks, guests, …). Those pages are placeholders until their
+  phase lands.
+- **RSVP reminder and WhatsApp buttons** from the dashboard design are left out until Phase 3 (guest
+  invitations), so the RSVP overview shows counts and a link to RSVP status only.
+- **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** also still lists `GET /api/wedding` and
+  `GET /api/dashboard` as "501 stub"; the inventory marks them implemented.
 - **Database name.** `.env.local` points at the Atlas cluster without a database name, so data lands in
   `test`. Add `/make-my-marriage-dev` before `?` in `MONGODB_URI` to give it its own database.
 - **Deleting a wedding (when it is built).** The "already has a wedding" check in `createWedding` counts a
@@ -121,6 +130,10 @@ monitoring.
 | 2026-10-10 | Wedding date must be today or later, judged in the wedding's time zone |
 | 2026-10-10 | Country is optional and prefilled with India; time zone defaults to India (IST) and can be changed |
 | 2026-10-10 | Cover image is left out of Create Wedding until uploads exist (Phase 5) |
+| 2026-10-17 | `GET /api/dashboard` adds three fields to API_DESIGN §20: `rsvps.peopleAttending` (sum of `attendingCount` on attending guests, per SYSTEM_DESIGN §23), `invitationsSent` and `members` (for the "Get started" checklist). `upcomingEvents` are full event DTOs (venue, dress code) |
+| 2026-10-17 | Upcoming events include events still in progress; upcoming tasks are incomplete, nearest due date first, undated last. The RSVPs card counts replies (attending + not attending) with "N still to reply" |
+| 2026-10-17 | The dashboard reads its numbers on the client (`useDashboard`, TanStack Query) so later mutations can refresh it by invalidating `dashboardKeys.all` |
+| 2026-10-17 | "Get started" has five steps (event, task, guests, family member, invitations), leads the page for a new wedding and disappears once all are done. Managers see the family-member step without a link |
 
 ## 5. Change log
 
@@ -133,3 +146,4 @@ monitoring.
 | 2026-10-10 | Authentication screens built (sign in, sign up, forgot and reset password), verified end to end against a local database |
 | 2026-10-10 | Wedding creation: `POST /api/wedding`, Create Wedding screen, sign out, and redirects for signed-in users on /login, /signup and /create-wedding |
 | 2026-10-17 | Sign out in the dashboard header (shared `SignOutButton`, also used on Create Wedding) |
+| 2026-10-17 | Dashboard: `GET /api/dashboard`, `GET /api/wedding`, the dashboard screen and the restyled app shell; dashboard reads implemented in the events, tasks, guests, expenses, vendors and members modules |

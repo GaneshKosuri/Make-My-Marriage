@@ -1,10 +1,12 @@
 import "server-only";
 
 import type { PageQuery } from "@/lib/pagination";
+import { connectToDatabase } from "@/server/db/connection";
+import { toObjectId } from "@/server/db/object-id";
 import { notImplemented } from "@/server/errors";
 
 import type { TaskPriority, TaskStatus } from "./task.constants";
-import type { TaskDoc, TaskRecord } from "./task.model";
+import { TaskModel, type TaskDoc, type TaskRecord } from "./task.model";
 
 export interface TaskListFilter {
   status?: TaskStatus;
@@ -52,10 +54,29 @@ export const taskRepository = {
   },
 
   async countByStatus(weddingId: string): Promise<{ total: number; completed: number }> {
-    return notImplemented("DATABASE_DESIGN §88 (Phase 1: Foundation — dashboard)");
+    await connectToDatabase();
+    const scope = { weddingId: toObjectId(weddingId, "weddingId") };
+    const [total, completed] = await Promise.all([
+      TaskModel.countDocuments(scope).exec(),
+      TaskModel.countDocuments({ ...scope, status: "COMPLETED" }).exec(),
+    ]);
+    return { total, completed };
   },
 
+  /** Incomplete tasks, nearest due date first; tasks without a due date come last. */
   async listUpcomingIncomplete(weddingId: string, limit: number): Promise<TaskRecord[]> {
-    return notImplemented("PRD §9.3 (Phase 1: Foundation — dashboard)");
+    await connectToDatabase();
+    return TaskModel.aggregate<TaskRecord>([
+      {
+        $match: {
+          weddingId: toObjectId(weddingId, "weddingId"),
+          status: { $ne: "COMPLETED" },
+        },
+      },
+      { $addFields: { hasNoDueDate: { $eq: [{ $ifNull: ["$dueDate", null] }, null] } } },
+      { $sort: { hasNoDueDate: 1, dueDate: 1, createdAt: 1, _id: 1 } },
+      { $limit: limit },
+      { $project: { hasNoDueDate: 0 } },
+    ]).exec();
   },
 };

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isActiveHref, NAV_ITEMS, navItemsForRole, type NavItem } from "./nav-items";
+import { isActiveHref, moreGroups, NAV_ITEMS, navItemsForRole, type NavItem } from "./nav-items";
 
 const flatten = (items: readonly NavItem[]): string[] =>
   items.flatMap((item) => [item.href, ...flatten(item.children ?? [])]);
@@ -28,5 +28,25 @@ describe("isActiveHref", () => {
     expect(isActiveHref("/app/events", "/app")).toBe(false);
     expect(isActiveHref("/app/guests/rsvp", "/app/guests")).toBe(true);
     expect(isActiveHref("/app/guestsxyz", "/app/guests")).toBe(false);
+  });
+});
+
+describe("moreGroups (mobile More sheet)", () => {
+  const labels = (role: "ADMIN" | "MANAGER") =>
+    moreGroups(navItemsForRole(role)).map((group) => [
+      group.label,
+      group.items.map((item) => item.label),
+    ]);
+
+  it("lists every page outside the bottom bar, sub-pages by their own label", () => {
+    expect(labels("ADMIN")).toEqual([
+      ["Plan", ["Expenses", "My Vendors", "Discover Vendors"]],
+      ["Share & memories", ["Wedding Website", "Gallery", "QR Code", "Live Stream"]],
+      ["Settings", ["Wedding Details", "Wedding Members"]],
+    ]);
+  });
+
+  it("leaves out Wedding Members for Managers", () => {
+    expect(labels("MANAGER").at(-1)).toEqual(["Settings", ["Wedding Details"]]);
   });
 });

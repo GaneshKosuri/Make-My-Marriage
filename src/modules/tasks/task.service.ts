@@ -4,6 +4,12 @@ import type { PageResult } from "@/lib/pagination";
 import type { MemberContext } from "@/server/auth";
 import { notImplemented } from "@/server/errors";
 
+import { eventsService } from "@/modules/events";
+import { membersService } from "@/modules/members";
+
+import { toTaskDto } from "./task.mapper";
+import type { TaskRecord } from "./task.model";
+import { taskRepository } from "./task.repository";
 import type { CreateTaskInput, ListTasksQuery, TaskDto, UpdateTaskInput } from "./task.types";
 
 /**
@@ -42,11 +48,26 @@ export const tasksService = {
 
   /** Dashboard "Tasks: 32 / 48 completed". */
   async countForDashboard(weddingId: string): Promise<{ total: number; completed: number }> {
-    return notImplemented("DATABASE_DESIGN §88 (Phase 1: Foundation — dashboard)");
+    return taskRepository.countByStatus(weddingId);
   },
 
   /** Dashboard "Upcoming Tasks": incomplete, nearest due date first. */
   async listUpcoming(weddingId: string, limit: number): Promise<TaskDto[]> {
-    return notImplemented("PRD §9.3 (Phase 1: Foundation — dashboard)");
+    const tasks = await taskRepository.listUpcomingIncomplete(weddingId, limit);
+    return toTaskDtos(weddingId, tasks);
   },
 };
+
+/** Resolves assignee and event summaries in two batched lookups. */
+async function toTaskDtos(weddingId: string, tasks: readonly TaskRecord[]): Promise<TaskDto[]> {
+  if (tasks.length === 0) return [];
+  const membershipIds = tasks.flatMap((task) =>
+    task.assignedMembershipId ? [task.assignedMembershipId.toString()] : [],
+  );
+  const eventIds = tasks.flatMap((task) => (task.eventId ? [task.eventId.toString()] : []));
+  const [assignees, events] = await Promise.all([
+    membersService.findMemberSummaries(weddingId, membershipIds),
+    eventsService.findSummaries(weddingId, eventIds),
+  ]);
+  return tasks.map((task) => toTaskDto(task, assignees, events));
+}
