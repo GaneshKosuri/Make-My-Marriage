@@ -7,6 +7,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { POST as acceptInvitation } from "@/app/api/member-invitations/[token]/accept/route";
 import { GET as listInvitations, POST as invite } from "@/app/api/members/invitations/route";
 import { DELETE as revokeInvitation } from "@/app/api/members/invitations/[invitationId]/route";
+import { POST as resendInvitation } from "@/app/api/members/invitations/[invitationId]/resend/route";
 import { GET as listMembers } from "@/app/api/members/route";
 import {
   DELETE as removeMember,
@@ -325,6 +326,71 @@ describe("GET and DELETE /api/members/invitations (API §23–24)", () => {
       .setOptions({ tenantScoped: false })
       .lean();
     expect(stored?.status).toBe("PENDING");
+  });
+});
+
+describe("POST /api/members/invitations/:invitationId/resend (decided 2026-10-29)", () => {
+  const resend = (cookie: string, invitationId: string) =>
+    call(resendInvitation, { method: "POST", cookie, params: { invitationId } });
+  const tokenFrom = (text: string) => /\/join\/([A-Za-z0-9_-]{43})/.exec(text)?.[1];
+
+  it("emails a fresh link on the same invitation; only the new link works", async () => {
+    const { admin } = await weddingWithAdmin();
+    const first = await inviteViaApi(admin.cookie);
+    await MemberInvitationModel.updateOne(
+      { _id: first.invitationId },
+      { $set: { expiresAt: new Date(Date.now() - 1000) } },
+    ).setOptions({ tenantScoped: false });
+
+    const result = await resend(admin.cookie, first.invitationId);
+    expect(result.status).toBe(200);
+    expect(result.body.data).toMatchObject({ id: first.invitationId, status: "PENDING" });
+    expect(result.body.data).not.toHaveProperty("tokenHash");
+    const fresh = tokenFrom(fakeEmail.sent.at(-1)!.text);
+    expect(fresh).toBeDefined();
+    expect(fresh).not.toBe(first.token);
+
+    expect((await call(publicInvitation, { params: { token: first.token } })).status).toBe(404);
+    expect((await call(publicInvitation, { params: { token: fresh! } })).status).toBe(200);
+    const listed = await call(listInvitations, { cookie: admin.cookie });
+    expect((listed.body.data as { id: string }[]).map((invitation) => invitation.id)).toEqual([
+      first.invitationId,
+    ]);
+  });
+
+  it("keeps the old link working when the email cannot be sent", async () => {
+    const { admin } = await weddingWithAdmin();
+    const first = await inviteViaApi(admin.cookie);
+    fakeEmail.failNext();
+
+    const failed = await resend(admin.cookie, first.invitationId);
+    expect(failed).toMatchObject({
+      status: 503,
+      body: { error: { code: "EXTERNAL_SERVICE_ERROR" } },
+    });
+    expect((await call(publicInvitation, { params: { token: first.token } })).status).toBe(200);
+  });
+
+  it("is NOT_FOUND for another wedding's, revoked or accepted invitations, and Admin only", async () => {
+    const { admin, manager } = await weddingWithAdmin();
+    const other = await weddingWithAdmin();
+    const theirs = await inviteViaApi(other.admin.cookie);
+    expect((await resend(admin.cookie, theirs.invitationId)).body.error?.code).toBe("NOT_FOUND");
+
+    const revoked = await inviteViaApi(admin.cookie);
+    await call(revokeInvitation, {
+      method: "DELETE",
+      cookie: admin.cookie,
+      params: { invitationId: revoked.invitationId },
+    });
+    expect((await resend(admin.cookie, revoked.invitationId)).status).toBe(404);
+
+    const invitee = await signedInUser();
+    const accepted = await inviteViaApi(admin.cookie, invitee.user.email);
+    expect((await accept(accepted.token, invitee.cookie)).status).toBe(200);
+    expect((await resend(admin.cookie, accepted.invitationId)).status).toBe(404);
+
+    expect((await resend(manager.cookie, theirs.invitationId)).status).toBe(403);
   });
 });
 

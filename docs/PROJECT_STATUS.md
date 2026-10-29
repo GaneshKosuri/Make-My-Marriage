@@ -128,6 +128,12 @@ monitoring.
 - **Three-way web-address race.** If three people create a wedding with the same names and date at the
   same instant, the third can get a 500 instead of the next free address (`createWedding` retries a
   taken address only twice). Very unlikely; harden if it ever shows up. Found in the 2026-10-17 code review.
+- **Wedding location is replaced as a whole.** `PATCH /api/wedding` with `location` stores exactly what
+  was sent, so a form that sends only city, state and country clears `formattedAddress`, coordinates and
+  `googlePlaceId`. Harmless today (nothing sets them); merge or resend those fields when the place picker
+  is built. Found in the 2026-10-29 code review.
+- **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** does not list
+  `POST /api/members/invitations/:id/resend` (added 2026-10-29; the inventory has it).
 - **Legal pages.** Privacy policy and terms are needed before production. Until they exist, the home
   footer, the auth footer and the sign-up form leave out the "Privacy · Terms" links and the
   "By continuing you agree…" line shown in the designs.
@@ -147,7 +153,8 @@ monitoring.
 | 2026-10-17 | "Get started" has five steps (event, task, guests, family member, invitations), leads the page for a new wedding and disappears once all are done. Managers see the family-member step without a link |
 | 2026-10-29 | `/join/[token]` will show the sign-in and sign-up forms itself and accept the invitation once signed in, instead of adding `?next=` to /login (binding decision 12 only allows `/app` targets) |
 | 2026-10-29 | Managers see Wedding Members read-only (API §21 lets them list members); only Admins invite, change roles, remove and see pending invitations |
-| 2026-10-29 | If the invitation email cannot be sent, the invitation is revoked (kept, not deleted) and the Admin gets `EXTERNAL_SERVICE_ERROR` (503) to try again; the raw link exists nowhere else. "Resend" means revoke and invite again |
+| 2026-10-29 | If the invitation email cannot be sent, the invitation is revoked (kept, not deleted) and the Admin gets `EXTERNAL_SERVICE_ERROR` (503) to try again; the raw link exists nowhere else |
+| 2026-10-29 | "Resend" is its own endpoint, `POST /api/members/invitations/:id/resend` (Admin, same rate limit as inviting; not in API_DESIGN). It gives the same pending invitation a new token and 7-day expiry and emails it; if the email fails the old token is put back, so the invitee's link keeps working. Replaces revoke-then-invite from the browser, which lost the link when the second request failed |
 | 2026-10-29 | The last-Admin rule runs without a transaction (binding rule: transactions only for create wedding and accept): check, write, then check again and undo if two Admins demoted or removed each other at the same moment (`LAST_ADMIN`, 409) |
 | 2026-10-29 | The public invite preview answers `NOT_FOUND` for unknown, revoked, accepted and expired links alike; accepting still returns the specific API §26 codes (`INVALID_TOKEN` 400, `TOKEN_EXPIRED` 410, `INVITATION_ALREADY_ACCEPTED` 409, `INVITATION_EMAIL_MISMATCH` 403, `ALREADY_HAS_WEDDING` 409). `requiresLogin` is always true |
 | 2026-10-29 | Inviting someone already in the wedding, or an email with an invitation still waiting, is `CONFLICT` (409) with the reason under `details.email`. An expired pending invitation for that email is revoked and replaced. `GET /api/members/invitations` lists pending, unexpired invitations only |
@@ -174,3 +181,4 @@ monitoring.
 | 2026-10-29 | `/join/[token]`: invitation page with built-in sign-up and sign-in, one-click join for signed-in invitees, all error states, desktop + mobile; 15 component tests and a smoke test |
 | 2026-10-29 | Settings → Wedding Members screen (invite dialog, roles, remove/leave, pending invitations, Manager read-only view) and Settings tabs; 14 component tests. Wedding members feature complete |
 | 2026-10-29 | Wedding settings: `PATCH /api/wedding` (9 integration tests) and Settings → Wedding Details (8 component tests); time zone picker shared with Create Wedding. Phase 1 features complete |
+| 2026-10-29 | Code-review fixes: invitation resend endpoint (old link survives a failed email), stored time zone always offered in the picker, rate limit on the `/join/[token]` page lookup, no 403 flash when leaving a wedding (and creating a wedding drops the old wedding's cached data), "already has a wedding" shown right after signing up on the join page, focus kept inside dialogs, one shared wedding-date rule |

@@ -222,6 +222,7 @@ function DetailsForm({ wedding }: Readonly<{ wedding: WeddingDto }>) {
             <TimeZoneSelect
               error={errors.timeZone?.message}
               registration={form.register("timeZone")}
+              current={wedding.timeZone}
             />
           </div>
           <div className="grid gap-5 sm:grid-cols-2">

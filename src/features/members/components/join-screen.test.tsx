@@ -134,6 +134,27 @@ describe("<JoinScreen /> signed out", () => {
     ]);
   });
 
+  it("explains ALREADY_HAS_WEDDING straight after signing up", async () => {
+    reply({
+      status: 201,
+      body: {
+        data: {
+          user: { id: "u1", name: "Rahul Sharma", email: invitation.email },
+          hasWedding: false,
+        },
+      },
+    });
+    reply(apiError(409, "ALREADY_HAS_WEDDING"));
+    renderJoin(ok);
+
+    type("Full name", "Rahul Sharma");
+    type("Password", "correct horse battery");
+    click(JOIN.createAndJoin);
+
+    expect(await screen.findByText(JOIN.alreadyHasWedding.title)).toBeInTheDocument();
+    expect(replace).not.toHaveBeenCalled();
+  });
+
   it("switches to sign-in when the email already has an account, then joins", async () => {
     reply(apiError(409, "EMAIL_ALREADY_EXISTS"));
     reply({

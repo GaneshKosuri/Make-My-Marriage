@@ -51,6 +51,12 @@ export const weddingLocationSchema = z
   })
   .strict();
 
+const weddingDate = z
+  .string()
+  .min(1, "Choose the wedding date")
+  // Blank is already reported by min(1); only judge what was entered.
+  .refine((value) => value === "" || isValidDateOnly(value), "Choose a valid date");
+
 /** API_DESIGN §17. The wedding date must be today or later in the wedding's time zone. */
 export const createWeddingSchema = z
   .object({
@@ -58,11 +64,7 @@ export const createWeddingSchema = z
     groomName: coupleName("Enter the groom's name"),
     title: optionalText(WEDDING_TITLE_MAX_LENGTH, "Title is too long"),
     description: optionalText(WEDDING_DESCRIPTION_MAX_LENGTH, "Keep it under 2,000 characters"),
-    weddingDate: z
-      .string()
-      .min(1, "Choose the wedding date")
-      // Blank is already reported by min(1); only judge what was entered.
-      .refine((value) => value === "" || isValidDateOnly(value), "Choose a valid date"),
+    weddingDate,
     timeZone: z
       .string()
       .refine(isValidTimeZone, "Choose a valid time zone")
@@ -96,11 +98,7 @@ export const updateWeddingSchema = z
     groomName: coupleName("Enter the groom's name").optional(),
     title: optionalText(WEDDING_TITLE_MAX_LENGTH, "Title is too long"),
     description: optionalText(WEDDING_DESCRIPTION_MAX_LENGTH, "Keep it under 2,000 characters"),
-    weddingDate: z
-      .string()
-      .min(1, "Choose the wedding date")
-      .refine((value) => value === "" || isValidDateOnly(value), "Choose a valid date")
-      .optional(),
+    weddingDate: weddingDate.optional(),
     timeZone: z.string().refine(isValidTimeZone, "Choose a valid time zone").optional(),
     location: weddingLocationSchema.optional(),
   })

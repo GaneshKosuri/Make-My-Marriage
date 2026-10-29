@@ -7,7 +7,7 @@ import { API_INVENTORY, type HttpMethod } from "./api-inventory";
 
 /**
  * Definition of done: every endpoint in API_DESIGN §106 (+ cover uploads,
- * photo download, health) exists with the right methods and auth level, and
+ * photo download, invitation resend, health) exists with the right methods and auth level, and
  * nothing undocumented sneaks in.
  */
 
@@ -50,8 +50,8 @@ describe("API route map", () => {
     expect(routeFiles.map(pathOf).sort()).toEqual([...expected.keys()].sort());
   });
 
-  it("covers the 78 documented endpoints", () => {
-    expect(API_INVENTORY).toHaveLength(78);
+  it("covers the 79 documented endpoints", () => {
+    expect(API_INVENTORY).toHaveLength(79);
   });
 
   it.each(routeFiles.map((file) => [pathOf(file), file] as const))(

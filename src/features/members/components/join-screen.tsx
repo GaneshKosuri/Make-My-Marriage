@@ -3,7 +3,7 @@
 import { ArrowRight, CalendarHeart, LinkIcon, Loader2, RefreshCw, UserRoundX } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 
 import { errorCode, useLogout } from "@/features/auth/api";
 import { AUTH_ROUTES, GENERIC_ERROR } from "@/features/auth/auth-content";
@@ -78,7 +78,7 @@ function InvitationFlow({
   token: string;
   invitation: PublicMemberInvitationDto;
   viewer: JoinViewer | null;
-  onViewerChange: (viewer: JoinViewer | null) => void;
+  onViewerChange: Dispatch<SetStateAction<JoinViewer | null>>;
   onEnded: (reason: EndedReason) => void;
 }>) {
   const router = useRouter();
@@ -100,8 +100,8 @@ function InvitationFlow({
           case "INVITATION_ALREADY_ACCEPTED":
             return onEnded("accepted");
           case "ALREADY_HAS_WEDDING":
-            if (viewer) onViewerChange({ ...viewer, hasWedding: true });
-            return;
+            // Functional update: right after sign-in, `viewer` here is still null.
+            return onViewerChange((current) => current && { ...current, hasWedding: true });
         }
       },
     });

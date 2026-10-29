@@ -103,6 +103,12 @@ describe("<WeddingDetailsScreen />", () => {
     expect(screen.getByRole("button", { name: WEDDING_DETAILS.save })).toBeDisabled();
   });
 
+  it("keeps a stored time zone the picker would not list (an alias id)", async () => {
+    getReply = { status: 200, body: { data: { ...wedding, timeZone: "Asia/Calcutta" } } };
+    renderScreen();
+    expect(await screen.findByLabelText(FIELDS.timeZone.label)).toHaveValue("Asia/Calcutta");
+  });
+
   it("saves only what changed, then confirms and refreshes the header", async () => {
     renderScreen();
     await screen.findByLabelText(FIELDS.brideName.label);

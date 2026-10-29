@@ -1,7 +1,8 @@
 /**
  * The complete API surface: API_DESIGN §106 (endpoint inventory) + §83 cover
  * uploads (route tree §105) + GET /api/photos/:photoId/download (2026-09-18
- * notes) + GET /api/health (scaffold only). docs/CODEBASE_ARCHITECTURE.md
+ * notes) + POST /api/members/invitations/:id/resend (PROJECT_STATUS 2026-10-29)
+ * + GET /api/health (scaffold only). docs/CODEBASE_ARCHITECTURE.md
  * renders the same table. `tests/architecture/api-routes.test.ts` asserts that
  * every entry exists with exactly these methods and auth levels.
  */
@@ -177,6 +178,14 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "admin",
     phase: P1,
     doc: "API §24",
+    implemented: true,
+  },
+  {
+    method: "POST",
+    path: "/api/members/invitations/[invitationId]/resend",
+    auth: "admin",
+    phase: P1,
+    doc: "PROJECT_STATUS 2026-10-29",
     implemented: true,
   },
   {

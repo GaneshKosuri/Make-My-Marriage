@@ -157,6 +157,10 @@ describe("<MembersScreen /> as an Admin", () => {
     const dialog = within(screen.getByRole("dialog", { name: MEMBERS.confirm.leaveTitle }));
     fireEvent.click(dialog.getByRole("button", { name: MEMBERS.leave }));
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/create-wedding"));
+    // No refetch of a list you can no longer see (it would flash a 403 error).
+    const gets = calls.filter((call) => call.url === "/api/members");
+    expect(gets).toHaveLength(1);
+    expect(membersCard().queryByRole("alert")).toBeNull();
   });
 
   it("asks before you step down, then refreshes your view", async () => {
@@ -257,21 +261,15 @@ describe("<MembersScreen /> invitations", () => {
     );
   });
 
-  it("resends by replacing the invitation", async () => {
-    routes["DELETE /api/members/invitations/i1"] = success;
-    routes["POST /api/members/invitations"] = () => data({ ...invitation, id: "i2" });
+  it("resends a fresh link in one request", async () => {
+    routes["POST /api/members/invitations/i1/resend"] = () => data(invitation);
     renderScreen();
     fireEvent.click(
       await invitationsCard().findByRole("button", { name: `${MEMBERS.resend}: neha@example.com` }),
     );
     expect(await screen.findByRole("status")).toHaveTextContent(MEMBERS.resent("neha@example.com"));
     expect(mutations()).toEqual([
-      { method: "DELETE", url: "/api/members/invitations/i1", body: undefined },
-      {
-        method: "POST",
-        url: "/api/members/invitations",
-        body: { email: "neha@example.com", role: "MANAGER" },
-      },
+      { method: "POST", url: "/api/members/invitations/i1/resend", body: undefined },
     ]);
   });
 

@@ -20,11 +20,11 @@ export function useCreateWedding() {
   return useMutation({
     mutationFn: (input: CreateWeddingInput) =>
       apiFetch<CreatedWeddingDto>("/api/wedding", { method: "POST", body: input }),
-    onSuccess: () =>
-      Promise.all([
-        queryClient.invalidateQueries({ queryKey: weddingsKeys.all }),
-        queryClient.invalidateQueries({ queryKey: authKeys.all }),
-      ]),
+    onSuccess: () => {
+      // Anything cached from a wedding the user has since left belongs to that wedding.
+      queryClient.removeQueries({ predicate: ({ queryKey }) => queryKey[0] !== authKeys.all[0] });
+      return queryClient.invalidateQueries({ queryKey: authKeys.all });
+    },
   });
 }
 

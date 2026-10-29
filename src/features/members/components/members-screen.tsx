@@ -20,6 +20,7 @@ import type { MemberDto, MemberInvitationDto } from "@/modules/members/member.ty
 
 import {
   useChangeMemberRole,
+  useLeaveWedding,
   useMemberInvitations,
   useMembers,
   useRemoveMember,
@@ -135,15 +136,17 @@ function MembersList({
   const members = useMembers();
   const changeRole = useChangeMemberRole();
   const remove = useRemoveMember();
+  const leave = useLeaveWedding();
   const [confirming, setConfirming] = useState<Pending | null>(null);
 
   const list = members.data ?? [];
   const adminCount = list.filter((member) => member.role === "ADMIN").length;
-  const busy = changeRole.isPending || remove.isPending;
-  const error = changeRole.error ?? remove.error;
+  const busy = changeRole.isPending || remove.isPending || leave.isPending || leave.isSuccess;
+  const error = changeRole.error ?? remove.error ?? leave.error;
 
   function setRole(member: MemberDto, nextRole: MemberRole) {
     remove.reset();
+    leave.reset();
     changeRole.mutate(
       { membershipId: member.membershipId, role: nextRole },
       {
@@ -157,12 +160,14 @@ function MembersList({
 
   function removeMember(member: MemberDto) {
     changeRole.reset();
-    remove.mutate(member.membershipId, {
-      onSuccess: () => {
-        // Leaving the wedding: the dashboard is no longer yours.
-        if (member.membershipId === currentMembershipId) router.replace("/create-wedding");
-      },
-    });
+    remove.reset();
+    leave.reset();
+    if (member.membershipId !== currentMembershipId) {
+      remove.mutate(member.membershipId);
+      return;
+    }
+    // Leaving the wedding: the dashboard is no longer yours.
+    leave.mutate(member.membershipId, { onSuccess: () => router.replace("/create-wedding") });
   }
 
   function confirm() {

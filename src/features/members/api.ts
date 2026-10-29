@@ -69,22 +69,18 @@ export function useRevokeInvitation() {
 }
 
 /**
- * "Resend": the link exists only in the first email, so a new invitation
- * replaces the old one (decided 2026-10-29). Revoke first, then invite again.
+ * POST /api/members/invitations/:id/resend (decided 2026-10-29): a fresh link on
+ * the same invitation. If the email fails, the old link keeps working.
  */
 export function useResendInvitation() {
   const invalidate = useInvalidateMembers();
   return useMutation({
-    mutationFn: async (invitation: MemberInvitationDto) => {
-      await apiAction(`/api/members/invitations/${encodeURIComponent(invitation.id)}`, {
-        method: "DELETE",
-      });
-      return apiFetch<MemberInvitationDto>("/api/members/invitations", {
-        method: "POST",
-        body: { email: invitation.email, role: invitation.role },
-      });
-    },
-    onSettled: invalidate,
+    mutationFn: (invitation: MemberInvitationDto) =>
+      apiFetch<MemberInvitationDto>(
+        `/api/members/invitations/${encodeURIComponent(invitation.id)}/resend`,
+        { method: "POST" },
+      ),
+    onSuccess: invalidate,
   });
 }
 
@@ -108,6 +104,18 @@ export function useRemoveMember() {
     mutationFn: (membershipId: string) =>
       apiAction(`/api/members/${encodeURIComponent(membershipId)}`, { method: "DELETE" }),
     onSuccess: invalidate,
+  });
+}
+
+/**
+ * DELETE /api/members/:id on your own membership (API §28). Nothing is
+ * invalidated: refetching would only answer 403 now. The caller leaves /app,
+ * and useCreateWedding drops what is cached about the old wedding.
+ */
+export function useLeaveWedding() {
+  return useMutation({
+    mutationFn: (membershipId: string) =>
+      apiAction(`/api/members/${encodeURIComponent(membershipId)}`, { method: "DELETE" }),
   });
 }
 

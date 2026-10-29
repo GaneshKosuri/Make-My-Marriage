@@ -10,8 +10,8 @@ import { focusRing } from "@/features/dashboard/components/dashboard-card";
 /**
  * A modal panel in the dashboard style: a bottom sheet on phones, a centred
  * card from `md` up (same look as the "+ Add" sheet). It focuses itself when
- * opened, closes on Escape or the backdrop, and hands focus back to whatever
- * opened it.
+ * opened, keeps Tab inside, closes on Escape or the backdrop, and hands focus
+ * back to whatever opened it.
  */
 export function Dialog({
   open,
@@ -40,6 +40,7 @@ export function Dialog({
     panelRef.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onCloseRef.current();
+      if (event.key === "Tab" && panelRef.current) keepFocusInside(panelRef.current, event);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => {
@@ -99,4 +100,28 @@ export function Dialog({
       </div>
     </>
   );
+}
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** Tab from the last control goes to the first, Shift+Tab from the first to the last. */
+function keepFocusInside(panel: HTMLElement, event: KeyboardEvent) {
+  const focusable = [...panel.querySelectorAll<HTMLElement>(FOCUSABLE)];
+  const first = focusable[0];
+  const last = focusable.at(-1);
+  if (!first || !last) {
+    event.preventDefault();
+    panel.focus();
+    return;
+  }
+  const active = document.activeElement;
+  const outside = !panel.contains(active);
+  if (event.shiftKey && (active === first || active === panel || outside)) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && (active === last || outside)) {
+    event.preventDefault();
+    first.focus();
+  }
 }

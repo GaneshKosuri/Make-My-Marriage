@@ -64,6 +64,54 @@ export const memberInvitationRepository = {
       .exec();
   },
 
+  /** A PENDING invitation (expired or not) with its token hash; null when missing or settled. */
+  async findPendingById(
+    weddingId: string,
+    invitationId: string,
+  ): Promise<MemberInvitationRecord | null> {
+    await connectToDatabase();
+    return MemberInvitationModel.findOne({
+      weddingId: toObjectId(weddingId, "weddingId"),
+      _id: toObjectId(invitationId, "invitationId"),
+      status: "PENDING",
+    })
+      .select("+tokenHash")
+      .lean<MemberInvitationRecord>()
+      .exec();
+  },
+
+  /**
+   * Swaps the token of a PENDING invitation (resend), only while it still has
+   * `fromTokenHash`. Also used to put the previous token back. Null when the
+   * invitation was accepted, revoked or resent by someone else meanwhile.
+   */
+  async replaceToken(
+    weddingId: string,
+    invitationId: string,
+    fromTokenHash: string,
+    next: { tokenHash: string; expiresAt: Date; invitedByUserId: string },
+  ): Promise<MemberInvitationRecord | null> {
+    await connectToDatabase();
+    return MemberInvitationModel.findOneAndUpdate(
+      {
+        weddingId: toObjectId(weddingId, "weddingId"),
+        _id: toObjectId(invitationId, "invitationId"),
+        status: "PENDING",
+        tokenHash: fromTokenHash,
+      },
+      {
+        $set: {
+          tokenHash: next.tokenHash,
+          expiresAt: next.expiresAt,
+          invitedByUserId: toObjectId(next.invitedByUserId, "userId"),
+        },
+      },
+      { returnDocument: "after" },
+    )
+      .lean<MemberInvitationRecord>()
+      .exec();
+  },
+
   /** PENDING → REVOKED. False when it is missing, in another wedding or no longer pending. */
   async revoke(weddingId: string, invitationId: string): Promise<boolean> {
     await connectToDatabase();

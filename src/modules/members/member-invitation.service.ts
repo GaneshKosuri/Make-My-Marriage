@@ -5,6 +5,7 @@ import { formatInstant } from "@/lib/dates";
 import { normalizeEmail } from "@/lib/email";
 import {
   getIdentity,
+  type IdentityWedding,
   type MemberContext,
   type PublicContext,
   type UserContext,
@@ -58,6 +59,32 @@ const findByToken = (token: string) =>
 /** Thrown inside the accept transaction when the invitation changed under us. */
 class InvitationChangedError extends Error {}
 
+const expiryFrom = (now: Date) => new Date(now.getTime() + MEMBER_INVITATION_TTL_DAYS * MS_PER_DAY);
+
+/** The join email: the raw token appears here and nowhere else. */
+async function sendInvitationEmail(
+  invitation: MemberInvitationRecord,
+  token: string,
+  wedding: IdentityWedding,
+  inviterName: string,
+): Promise<void> {
+  await getEmailService().send({
+    to: invitation.email,
+    template: "member-invitation",
+    props: {
+      inviterName,
+      coupleNames: coupleDisplayName(wedding),
+      roleLabel: MEMBER_ROLE_LABELS[invitation.role],
+      acceptUrl: new URL(`/join/${token}`, getEnv().NEXT_PUBLIC_APP_URL).toString(),
+      expiresOn: formatInstant(invitation.expiresAt, wedding.timeZone, {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }),
+    },
+  });
+}
+
 /**
  * Member invitations (SYSTEM_DESIGN §18–20, DATABASE_DESIGN §28–30, API_DESIGN §22–26).
  * Tokens: generateToken() → HMAC("member-invite") stored; raw token only in the email link (/join/[token]).
@@ -104,7 +131,7 @@ export const memberInvitationService = {
         role: input.role,
         tokenHash: hashToken("member-invite", token),
         invitedByUserId: ctx.userId,
-        expiresAt: new Date(now.getTime() + MEMBER_INVITATION_TTL_DAYS * MS_PER_DAY),
+        expiresAt: expiryFrom(now),
       });
     } catch (error) {
       // Two admins invited the same email at once (partial unique index).
@@ -113,21 +140,7 @@ export const memberInvitationService = {
     }
 
     try {
-      await getEmailService().send({
-        to: invitation.email,
-        template: "member-invitation",
-        props: {
-          inviterName: inviter.name,
-          coupleNames: coupleDisplayName(wedding),
-          roleLabel: MEMBER_ROLE_LABELS[invitation.role],
-          acceptUrl: new URL(`/join/${token}`, getEnv().NEXT_PUBLIC_APP_URL).toString(),
-          expiresOn: formatInstant(invitation.expiresAt, wedding.timeZone, {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          }),
-        },
-      });
+      await sendInvitationEmail(invitation, token, wedding, inviter.name);
     } catch (error) {
       await memberInvitationRepository.revoke(ctx.weddingId, invitation._id.toString());
       throw error;
@@ -146,6 +159,51 @@ export const memberInvitationService = {
   async listPending(ctx: MemberContext): Promise<MemberInvitationDto[]> {
     const invitations = await memberInvitationRepository.listPending(ctx.weddingId, new Date());
     return invitations.map(toMemberInvitationDto);
+  },
+
+  /**
+   * Admin only: a fresh link for a pending invitation (decided 2026-10-29). The
+   * token is swapped on the same invitation and emailed; if the email cannot be
+   * sent the previous token is put back, so the link the invitee already has
+   * keeps working. Expired pending invitations get a new 7-day window too.
+   */
+  async resend(ctx: MemberContext, invitationId: string): Promise<MemberInvitationDto> {
+    const { directory } = getIdentity();
+    const [current, wedding, inviter] = await Promise.all([
+      memberInvitationRepository.findPendingById(ctx.weddingId, invitationId),
+      directory.findWeddingById(ctx.weddingId),
+      directory.findUserById(ctx.userId),
+    ]);
+    if (!current || !wedding || !inviter) throw new AppError("NOT_FOUND");
+
+    const token = generateToken();
+    const tokenHash = hashToken("member-invite", token);
+    const invitation = await memberInvitationRepository.replaceToken(
+      ctx.weddingId,
+      invitationId,
+      current.tokenHash,
+      { tokenHash, expiresAt: expiryFrom(new Date()), invitedByUserId: ctx.userId },
+    );
+    // Accepted, revoked or resent by another Admin since we read it.
+    if (!invitation) throw new AppError("NOT_FOUND");
+
+    try {
+      await sendInvitationEmail(invitation, token, wedding, inviter.name);
+    } catch (error) {
+      await memberInvitationRepository.replaceToken(ctx.weddingId, invitationId, tokenHash, {
+        tokenHash: current.tokenHash,
+        expiresAt: current.expiresAt,
+        invitedByUserId: current.invitedByUserId.toString(),
+      });
+      throw error;
+    }
+
+    logger.info("Member invitation resent", {
+      requestId: ctx.requestId,
+      weddingId: ctx.weddingId,
+      invitationId,
+    });
+    return toMemberInvitationDto(invitation);
   },
 
   /** Admin only: status → REVOKED. Unknown, other weddings' or non-pending → NOT_FOUND. API §24. */

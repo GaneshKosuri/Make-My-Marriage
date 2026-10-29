@@ -1,13 +1,16 @@
 import { randomUUID } from "node:crypto";
 
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { JoinScreen, type JoinInvitationState } from "@/features/members/components/join-screen";
 import { memberInvitationService } from "@/modules/members";
 import { isAppError } from "@/server/errors";
+import { getClientIp, policies } from "@/server/http";
 import { logger } from "@/server/logging/logger";
+import { getRateLimiter } from "@/server/security/rate-limit";
 
 import { readSessionSafely } from "../../../read-session-safely";
 
@@ -45,9 +48,18 @@ async function Join({ params }: Pick<PageProps<"/join/[token]">, "params">) {
   return <JoinScreen token={token} state={state} viewer={viewer} />;
 }
 
-/** Same rules as GET /api/public/member-invitations/:token (API §25): unusable links are not found. */
+/**
+ * Same rules and rate limit as GET /api/public/member-invitations/:token (API §25):
+ * unusable links are not found, and too many lookups from one address are refused.
+ */
 async function findInvitation(token: string): Promise<JoinInvitationState> {
   try {
+    await getRateLimiter().enforce([
+      {
+        policy: policies.publicMemberInvitationView,
+        subject: getClientIp({ headers: await headers() }),
+      },
+    ]);
     const invitation = await memberInvitationService.getPublicInvitation(
       { requestId: randomUUID() },
       token,
@@ -55,6 +67,7 @@ async function findInvitation(token: string): Promise<JoinInvitationState> {
     return { status: "ok", invitation };
   } catch (error) {
     if (isAppError(error) && error.code === "NOT_FOUND") return { status: "not-found" };
+    if (isAppError(error) && error.code === "RATE_LIMITED") return { status: "unavailable" };
     logger.warn("Could not load a member invitation", { error });
     return { status: "unavailable" };
   }
