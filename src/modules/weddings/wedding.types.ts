@@ -5,7 +5,7 @@
 import type { z } from "zod";
 
 import type { WebsiteTheme } from "./wedding.constants";
-import type { createWeddingSchema } from "./wedding.schemas";
+import type { createWeddingSchema, updateWeddingSchema } from "./wedding.schemas";
 
 export interface WeddingLocationDto {
   formattedAddress: string | null;
@@ -43,9 +43,7 @@ export interface CreatedWeddingDto {
 
 export type CreateWeddingInput = z.output<typeof createWeddingSchema>;
 
-export type UpdateWeddingInput = Partial<Omit<CreateWeddingInput, "location">> & {
-  location?: Partial<WeddingLocationDto>;
-};
+export type UpdateWeddingInput = z.output<typeof updateWeddingSchema>;
 
 /** GET /api/wedding/website (API_DESIGN §67). The slug is system-managed. */
 export interface WebsiteSettingsDto {

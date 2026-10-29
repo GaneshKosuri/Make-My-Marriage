@@ -1,5 +1,6 @@
 import "server-only";
 
+import { daysUntil } from "@/lib/dates";
 import type { IdentityWedding, MemberContext, UserContext } from "@/server/auth";
 import { isDuplicateKeyError } from "@/server/db/errors";
 import { toObjectId } from "@/server/db/object-id";
@@ -113,9 +114,43 @@ export const weddingsService = {
     return toWeddingDto(wedding);
   },
 
-  /** Admin + Manager; partial; slug unchanged. API §19. */
+  /**
+   * Admin + Manager; partial; the website address (slug) never changes. A new
+   * wedding date must be today or later in the wedding's (new) time zone; an
+   * unchanged date is accepted even after the day. API §19.
+   */
   async updateWedding(ctx: MemberContext, input: UpdateWeddingInput): Promise<WeddingDto> {
-    return notImplemented("API_DESIGN §19 (Phase 1: Foundation)");
+    const wedding = await weddingRepository.findActiveById(ctx.weddingId);
+    if (!wedding) throw new AppError("NOT_FOUND");
+
+    const timeZone = input.timeZone ?? wedding.timeZone;
+    if (
+      input.weddingDate !== undefined &&
+      input.weddingDate !== wedding.weddingDate &&
+      daysUntil(input.weddingDate, timeZone) < 0
+    ) {
+      const message = "Choose today or a later date";
+      throw new AppError("VALIDATION_ERROR", undefined, { details: { weddingDate: message } });
+    }
+
+    const changes: Parameters<typeof weddingRepository.update>[1] = {};
+    if (input.brideName !== undefined) changes.brideName = input.brideName;
+    if (input.groomName !== undefined) changes.groomName = input.groomName;
+    if (input.title !== undefined) changes.title = input.title || null;
+    if (input.description !== undefined) changes.description = input.description || null;
+    if (input.weddingDate !== undefined) changes.weddingDate = input.weddingDate;
+    if (input.timeZone !== undefined) changes.timeZone = input.timeZone;
+    if (input.location !== undefined) changes.location = toLocation(input.location);
+    if (Object.keys(changes).length === 0) return toWeddingDto(wedding);
+
+    const updated = await weddingRepository.update(ctx.weddingId, changes);
+    if (!updated) throw new AppError("NOT_FOUND");
+    logger.info("Wedding details updated", {
+      requestId: ctx.requestId,
+      weddingId: ctx.weddingId,
+      fields: Object.keys(changes),
+    });
+    return toWeddingDto(updated);
   },
 
   /** Direct-to-R2 cover upload; then PATCH coverImageObjectKey. API §83. */

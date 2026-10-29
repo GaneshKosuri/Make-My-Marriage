@@ -84,10 +84,30 @@ export const createWeddingSchema = z
     }
   });
 
+/**
+ * API_DESIGN §19: any subset of the wedding details; the website address
+ * (slug), cover image and settings of other sections are never accepted here.
+ * Blank title or description clears it. Whether a changed date is today or
+ * later depends on the wedding's stored time zone, so the service checks that.
+ */
+export const updateWeddingSchema = z
+  .object({
+    brideName: coupleName("Enter the bride's name").optional(),
+    groomName: coupleName("Enter the groom's name").optional(),
+    title: optionalText(WEDDING_TITLE_MAX_LENGTH, "Title is too long"),
+    description: optionalText(WEDDING_DESCRIPTION_MAX_LENGTH, "Keep it under 2,000 characters"),
+    weddingDate: z
+      .string()
+      .min(1, "Choose the wedding date")
+      .refine((value) => value === "" || isValidDateOnly(value), "Choose a valid date")
+      .optional(),
+    timeZone: z.string().refine(isValidTimeZone, "Choose a valid time zone").optional(),
+    location: weddingLocationSchema.optional(),
+  })
+  .strict();
+
 /*
  * TODO — define with `.strict()`:
- *   Phase 1: Foundation
- *     - updateWeddingSchema         API_DESIGN §19 (partial; slug never editable)
  *   Phase 5: Wedding Experience
  *     - updateWebsiteSettingsSchema API_DESIGN §68 { theme, welcomeMessage, isPublished }
  *     - updateLivestreamSchema      API_DESIGN §71–72 { youtubeUrl (YouTube formats only) | null, isEnabled }

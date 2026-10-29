@@ -113,7 +113,14 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     doc: "API §18",
     implemented: true,
   },
-  { method: "PATCH", path: "/api/wedding", auth: "member", phase: P1, doc: "API §19" },
+  {
+    method: "PATCH",
+    path: "/api/wedding",
+    auth: "member",
+    phase: P1,
+    doc: "API §19",
+    implemented: true,
+  },
   {
     method: "GET",
     path: "/api/dashboard",

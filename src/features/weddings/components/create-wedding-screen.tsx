@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, Clock, Heart, MapPin, ShieldCheck, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
 import { applyFieldErrors, errorCode } from "@/features/auth/api";
@@ -14,7 +14,6 @@ import { SignOutButton } from "@/features/auth/components/sign-out-button";
 import {
   FormAlert,
   OptionalTag,
-  SelectField,
   SubmitButton,
   TextAreaField,
   TextField,
@@ -25,7 +24,8 @@ import { DEFAULT_COUNTRY, DEFAULT_TIME_ZONE } from "@/modules/weddings/wedding.c
 import { createWeddingSchema } from "@/modules/weddings/wedding.schemas";
 
 import { useCreateWedding } from "../api";
-import { CREATE_WEDDING, TIME_ZONE_LABELS, timeZoneLabel } from "../create-wedding-content";
+import { CREATE_WEDDING, timeZoneLabel } from "../create-wedding-content";
+import { TimeZoneSelect } from "./time-zone-select";
 import { WeddingPreview } from "./wedding-preview";
 
 const linkClass =
@@ -235,32 +235,6 @@ export function CreateWeddingScreen({ userName }: Readonly<{ userName: string }>
         {CREATE_WEDDING.invitedNote.description}
       </AuthNote>
     </AuthShell>
-  );
-}
-
-function TimeZoneSelect({
-  error,
-  registration,
-}: Readonly<{
-  error?: string;
-  registration: ReturnType<ReturnType<typeof useForm>["register"]>;
-}>) {
-  const zones = useMemo(() => {
-    const common = Object.keys(TIME_ZONE_LABELS);
-    const all = Intl.supportedValuesOf("timeZone").filter(
-      // Chrome lists India under its legacy id; offer only the canonical one.
-      (zone) => !common.includes(zone) && zone !== "Asia/Calcutta",
-    );
-    return [...common, ...all];
-  }, []);
-  return (
-    <SelectField label={CREATE_WEDDING.fields.timeZone.label} error={error} {...registration}>
-      {zones.map((zone) => (
-        <option key={zone} value={zone}>
-          {timeZoneLabel(zone)}
-        </option>
-      ))}
-    </SelectField>
   );
 }
 

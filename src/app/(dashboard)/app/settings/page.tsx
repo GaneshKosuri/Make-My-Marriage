@@ -1,19 +1,14 @@
 import type { Metadata } from "next";
 
-import { PagePlaceholder } from "@/components/layout/page-placeholder";
-import { SettingsTabs } from "@/components/layout/settings-tabs";
+import { WeddingDetailsScreen } from "@/features/weddings/components/wedding-details-screen";
 
 export const metadata: Metadata = { title: "Wedding Details" };
 
+/**
+ * Settings → Wedding Details (PRD §9.25). Admins and Managers both edit; the
+ * layout's guard has already checked the membership, and the form loads and
+ * saves through GET/PATCH /api/wedding.
+ */
 export default function SettingsPage() {
-  return (
-    <div className="mx-auto flex w-full max-w-[960px] flex-col gap-4 md:gap-6">
-      <SettingsTabs />
-      <PagePlaceholder
-        title="Wedding Details"
-        phase="Phase 1: Foundation"
-        description="Couple names, date, location, cover image and description (PRD §9.25)."
-      />
-    </div>
-  );
+  return <WeddingDetailsScreen />;
 }
