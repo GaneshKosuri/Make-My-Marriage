@@ -125,6 +125,7 @@ function DetailsForm({ wedding }: Readonly<{ wedding: WeddingDto }>) {
     defaultValues: toFormValues(wedding),
   });
   const { errors, dirtyFields, isDirty } = form.formState;
+  const hasChanges = isDirty || update.isPending;
   const [brideName, groomName, timeZone] = useWatch({
     control: form.control,
     name: ["brideName", "groomName", "timeZone"],
@@ -275,7 +276,17 @@ function DetailsForm({ wedding }: Readonly<{ wedding: WeddingDto }>) {
         </div>
       </DashboardCard>
 
-      <div className="sticky bottom-[calc(84px+env(safe-area-inset-bottom))] z-10 flex flex-col-reverse gap-3 rounded-3xl border border-sand bg-white/95 p-3 shadow-sm backdrop-blur sm:flex-row sm:justify-end md:bottom-4">
+      {/*
+        Sticky only while there is something to save. On phones it rests above the
+        floating "+" (bottom 76px, 56px tall); from md up there is no "+".
+      */}
+      <div
+        className={cn(
+          "grid grid-cols-2 gap-2 rounded-3xl border border-sand bg-white/95 p-2 sm:flex sm:justify-end",
+          hasChanges &&
+            "sticky bottom-[calc(144px+env(safe-area-inset-bottom))] z-10 shadow-sm backdrop-blur md:bottom-4",
+        )}
+      >
         <button
           type="button"
           disabled={!isDirty || update.isPending}
@@ -284,7 +295,7 @@ function DetailsForm({ wedding }: Readonly<{ wedding: WeddingDto }>) {
             update.reset();
           }}
           className={cn(
-            "inline-flex h-11 items-center justify-center rounded-full border border-sand bg-white px-5 text-label-md text-graphite hover:bg-sand disabled:opacity-50",
+            "inline-flex h-11 items-center justify-center rounded-full border border-sand bg-white px-4 text-label-md whitespace-nowrap text-graphite hover:bg-sand disabled:opacity-50",
             focusRing,
           )}
         >

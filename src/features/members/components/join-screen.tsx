@@ -121,16 +121,9 @@ function InvitationFlow({
   let body: ReactNode;
   if (!viewer) {
     body = <JoinAuthForms email={invitation.email} onSignedIn={onSignedIn} />;
-  } else if (viewer.hasWedding) {
-    body = (
-      <FormAlert title={JOIN.alreadyHasWedding.title}>
-        <p>{JOIN.alreadyHasWedding.description}</p>
-        <Link href={AUTH_ROUTES.app} className="mt-2 inline-block font-semibold text-burgundy">
-          {JOIN.alreadyHasWedding.action}
-        </Link>
-      </FormAlert>
-    );
   } else if (!emailMatches) {
+    // The wrong account comes first: on a shared device the invitee must be able to
+    // switch, whether or not the signed-in account already has a wedding.
     const [before, invited, middle, current, after] = JOIN.mismatch.description(
       invitation.email,
       viewer.email,
@@ -154,6 +147,15 @@ function InvitationFlow({
           {JOIN.mismatch.action}
         </button>
       </div>
+    );
+  } else if (viewer.hasWedding) {
+    body = (
+      <FormAlert title={JOIN.alreadyHasWedding.title}>
+        <p>{JOIN.alreadyHasWedding.description}</p>
+        <Link href={AUTH_ROUTES.app} className="mt-2 inline-block font-semibold text-burgundy">
+          {JOIN.alreadyHasWedding.action}
+        </Link>
+      </FormAlert>
     );
   } else {
     body = (

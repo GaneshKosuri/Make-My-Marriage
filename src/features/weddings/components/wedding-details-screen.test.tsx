@@ -170,6 +170,17 @@ describe("<WeddingDetailsScreen />", () => {
     expect(await screen.findByText(WEDDING_DETAILS.saveError.title)).toBeInTheDocument();
   });
 
+  it("keeps the save bar in place until there is something to save", async () => {
+    renderScreen();
+    await screen.findByLabelText(FIELDS.groomName.label);
+    const bar = () => screen.getByRole("button", { name: WEDDING_DETAILS.save }).parentElement!;
+    expect(bar()).not.toHaveClass("sticky");
+    type(FIELDS.groomName.label, "Vikram");
+    expect(bar()).toHaveClass("sticky");
+    fireEvent.click(screen.getByRole("button", { name: WEDDING_DETAILS.discard }));
+    expect(bar()).not.toHaveClass("sticky");
+  });
+
   it("discards unsaved changes", async () => {
     renderScreen();
     await screen.findByLabelText(FIELDS.groomName.label);

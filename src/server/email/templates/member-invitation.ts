@@ -2,6 +2,8 @@ import "server-only";
 
 import type { RenderedEmail } from "../types";
 
+import { withArticle } from "@/lib/text";
+
 import { escapeHtml, renderButton, renderLayout, safeUrl } from "./layout";
 
 export interface MemberInvitationEmailProps {
@@ -18,9 +20,10 @@ export interface MemberInvitationEmailProps {
 /** SYSTEM_DESIGN §18–19, PRD §9.4. Placeholder copy. */
 export function renderMemberInvitationEmail(props: MemberInvitationEmailProps): RenderedEmail {
   const url = safeUrl(props.acceptUrl);
+  const role = withArticle(props.roleLabel);
   const subject = `${props.inviterName} invited you to help plan ${props.coupleNames}'s wedding`;
   const text = [
-    `${props.inviterName} has invited you to join ${props.coupleNames}'s wedding on Make My Marriage as a ${props.roleLabel}.`,
+    `${props.inviterName} has invited you to join ${props.coupleNames}'s wedding on Make My Marriage as ${role}.`,
     "",
     "Accept the invitation:",
     url,
@@ -29,7 +32,7 @@ export function renderMemberInvitationEmail(props: MemberInvitationEmailProps): 
   ].join("\n");
   const html = renderLayout({
     preheader: `Join ${props.coupleNames}'s wedding workspace`,
-    bodyHtml: `<p>${escapeHtml(props.inviterName)} has invited you to join <strong>${escapeHtml(props.coupleNames)}</strong>'s wedding on Make My Marriage as a ${escapeHtml(props.roleLabel)}.</p>
+    bodyHtml: `<p>${escapeHtml(props.inviterName)} has invited you to join <strong>${escapeHtml(props.coupleNames)}</strong>'s wedding on Make My Marriage as ${escapeHtml(role)}.</p>
       ${renderButton(url, "Accept invitation")}
       <p>This invitation expires on ${escapeHtml(props.expiresOn)}.</p>`,
   });

@@ -1,3 +1,4 @@
+import { withArticle } from "@/lib/text";
 import { MEMBER_INVITATION_TTL_DAYS } from "@/modules/members/member.constants";
 
 /**
@@ -22,6 +23,10 @@ export const MEMBERS = {
   remove: "Remove",
   leave: "Leave wedding",
   lastAdmin: "A wedding must keep at least one Admin.",
+  /** Managers cannot remove themselves (decided 2026-10-29): an Admin does it. */
+  managerLeaveNote: "To leave this wedding, ask an Admin to remove you.",
+  roleChanged: (name: string, role: string) => `${name} is now ${withArticle(role)}.`,
+  removed: (name: string) => `${name} was removed from the wedding.`,
   loadError: {
     title: "We couldn't load the members.",
     retry: "Try again",
@@ -35,6 +40,7 @@ export const MEMBERS = {
   resending: "Sending…",
   revoke: "Revoke",
   resent: (email: string) => `We've sent a new invitation to ${email}.`,
+  revoked: (email: string) => `The invitation to ${email} was revoked.`,
 
   inviteDialog: {
     title: "Invite a family member",
@@ -65,6 +71,9 @@ export const MEMBERS = {
     demoteSelfTitle: "Become a Manager?",
     demoteSelfDescription:
       "You will no longer be able to invite, change roles or remove members. Another Admin can make you an Admin again.",
+    revokeTitle: (email: string) => `Revoke the invitation to ${email}?`,
+    revokeDescription:
+      "The link in their email stops working straight away. You can invite them again later.",
     cancel: "Cancel",
   },
 
