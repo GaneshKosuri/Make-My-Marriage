@@ -348,6 +348,8 @@ describe("POST /api/members/invitations/:invitationId/resend (decided 2026-10-29
     expect(result.body.data).not.toHaveProperty("tokenHash");
     const fresh = tokenFrom(fakeEmail.sent.at(-1)!.text);
     expect(fresh).toBeDefined();
+    expect(fakeEmail.sent.at(-1)!.subject).toMatch(/^Reminder: /);
+    expect(first.sent.subject).not.toMatch(/^Reminder: /);
     expect(fresh).not.toBe(first.token);
 
     expect((await call(publicInvitation, { params: { token: first.token } })).status).toBe(404);

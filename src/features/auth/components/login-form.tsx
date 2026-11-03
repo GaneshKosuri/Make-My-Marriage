@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 
+import { NEXT_PARAM, safeNextPath } from "@/lib/safe-next";
 import { loginSchema } from "@/modules/auth/auth.schemas";
 
 import { applyFieldErrors, errorCode, useLogin } from "../api";
@@ -28,8 +29,12 @@ export function LoginForm() {
 
   const onSubmit = form.handleSubmit((values) =>
     login.mutate(values, {
-      onSuccess: ({ hasWedding }) =>
-        router.replace(hasWedding ? AUTH_ROUTES.app : AUTH_ROUTES.createWedding),
+      onSuccess: ({ hasWedding }) => {
+        if (!hasWedding) return router.replace(AUTH_ROUTES.createWedding);
+        // Back to the /app page that sent the visitor here (?next=), never elsewhere.
+        const next = safeNextPath(new URLSearchParams(window.location.search).get(NEXT_PARAM));
+        router.replace(next ?? AUTH_ROUTES.app);
+      },
       onError: (error) => applyFieldErrors(error, form.setError, ["email", "password"]),
     }),
   );

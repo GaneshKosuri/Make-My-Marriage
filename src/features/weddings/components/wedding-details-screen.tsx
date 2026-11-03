@@ -24,7 +24,7 @@ import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { coupleDisplayName } from "@/lib/couple";
 import { dateOnlyInTimeZone } from "@/lib/dates";
-import { updateWeddingSchema } from "@/modules/weddings/wedding.schemas";
+import { updateWeddingSchema, weddingDateProblem } from "@/modules/weddings/wedding.schemas";
 import type { UpdateWeddingInput, WeddingDto } from "@/modules/weddings/wedding.types";
 
 import { useUpdateWedding, useWedding } from "../api";
@@ -126,12 +126,22 @@ function DetailsForm({ wedding }: Readonly<{ wedding: WeddingDto }>) {
   });
   const { errors, dirtyFields, isDirty } = form.formState;
   const hasChanges = isDirty || update.isPending;
-  const [brideName, groomName, timeZone] = useWatch({
+  const [brideName, groomName, timeZone, weddingDate] = useWatch({
     control: form.control,
-    name: ["brideName", "groomName", "timeZone"],
+    name: ["brideName", "groomName", "timeZone", "weddingDate"],
   });
+  // Same rule as the server, shown as soon as the date is changed. Only a changed
+  // date is judged, so details stay editable after the wedding day.
+  const dateProblem =
+    weddingDate && weddingDate !== wedding.weddingDate
+      ? weddingDateProblem(weddingDate, timeZone || wedding.timeZone)
+      : null;
 
   const onSubmit = form.handleSubmit((values) => {
+    if (dateProblem) {
+      form.setError("weddingDate", { type: "date", message: dateProblem }, { shouldFocus: true });
+      return;
+    }
     const changes: UpdateWeddingInput = {};
     for (const field of TOP_LEVEL) {
       if (dirtyFields[field]) changes[field] = values[field];
@@ -217,7 +227,7 @@ function DetailsForm({ wedding }: Readonly<{ wedding: WeddingDto }>) {
               label={FIELDS.weddingDate.label}
               type="date"
               min={dateOnlyInTimeZone(new Date(), timeZone || wedding.timeZone)}
-              error={errors.weddingDate?.message}
+              error={errors.weddingDate?.message ?? dateProblem ?? undefined}
               {...form.register("weddingDate")}
             />
             <TimeZoneSelect

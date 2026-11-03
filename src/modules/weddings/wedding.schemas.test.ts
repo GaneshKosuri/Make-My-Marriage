@@ -44,6 +44,18 @@ describe("createWeddingSchema (API_DESIGN §17, PRD §9.2)", () => {
     );
   });
 
+  it("allows dates up to 5 years ahead and no further", () => {
+    expect(createWeddingSchema.safeParse({ ...valid, weddingDate: "2031-10-10" }).success).toBe(
+      true,
+    );
+    expect(messages({ ...valid, weddingDate: "2031-10-11" })).toEqual([
+      "Choose a date within the next 5 years",
+    ]);
+    expect(messages({ ...valid, weddingDate: "9999-12-31" })).toEqual([
+      "Choose a date within the next 5 years",
+    ]);
+  });
+
   it("judges 'today' in the wedding's time zone", () => {
     // 23:30 UTC on 10 Oct is already 11 Oct in India, but still 10 Oct in New York.
     vi.setSystemTime(new Date("2026-10-10T23:30:00Z"));

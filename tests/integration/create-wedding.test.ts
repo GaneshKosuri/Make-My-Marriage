@@ -11,6 +11,9 @@ import { TEST_APP_URL } from "../setup/test-env";
 
 /** POST /api/wedding (API_DESIGN §17, DATABASE_DESIGN §85, PRD §9.2). */
 
+// Wedding dates must be within 5 years: next year's dates are always valid.
+const NEXT_YEAR = new Date().getUTCFullYear() + 1;
+
 type Handler = (request: NextRequest) => Promise<Response>;
 interface ApiBody {
   data?: Record<string, unknown>;
@@ -36,7 +39,7 @@ const input = (overrides: Record<string, unknown> = {}) => ({
   groomName: "Romeo",
   title: "Romeo & Juliet",
   description: "We're getting married!",
-  weddingDate: "2099-02-14",
+  weddingDate: `${NEXT_YEAR}-02-14`,
   location: { city: "Dehradun", state: "Uttarakhand", country: "India" },
   ...overrides,
 });
@@ -54,8 +57,10 @@ describe("POST /api/wedding", () => {
       id: expect.any(String),
       brideName: "Juliet",
       groomName: "Romeo",
-      weddingDate: "2099-02-14",
-      website: { slug: expect.stringMatching(/^romeo-juliet-14022099(-\d+)?$/) },
+      weddingDate: `${NEXT_YEAR}-02-14`,
+      website: {
+        slug: expect.stringMatching(new RegExp(`^romeo-juliet-1402${NEXT_YEAR}(-\\d+)?$`)),
+      },
     });
 
     const weddingId = result.body.data!.id as string;
@@ -108,14 +113,14 @@ describe("POST /api/wedding", () => {
   it("gives the next couple with the same names and date the next free address", async () => {
     const first = await call(createWedding, {
       cookie: (await signedInUser()).cookie,
-      body: input({ weddingDate: "2098-03-01" }),
+      body: input({ weddingDate: `${NEXT_YEAR}-03-01` }),
     });
     const second = await call(createWedding, {
       cookie: (await signedInUser()).cookie,
-      body: input({ weddingDate: "2098-03-01" }),
+      body: input({ weddingDate: `${NEXT_YEAR}-03-01` }),
     });
-    expect(slugOf(first)).toBe("romeo-juliet-01032098");
-    expect(slugOf(second)).toBe("romeo-juliet-01032098-2");
+    expect(slugOf(first)).toBe(`romeo-juliet-0103${NEXT_YEAR}`);
+    expect(slugOf(second)).toBe(`romeo-juliet-0103${NEXT_YEAR}-2`);
   });
 
   it("allows only one wedding per user (PRD Rule 1)", async () => {
@@ -136,8 +141,8 @@ describe("POST /api/wedding", () => {
   it("creates exactly one wedding when the same user submits twice at once", async () => {
     const { user, cookie } = await signedInUser();
     const results = await Promise.all([
-      call(createWedding, { cookie, body: input({ weddingDate: "2097-05-05" }) }),
-      call(createWedding, { cookie, body: input({ weddingDate: "2097-05-05" }) }),
+      call(createWedding, { cookie, body: input({ weddingDate: `${NEXT_YEAR}-05-05` }) }),
+      call(createWedding, { cookie, body: input({ weddingDate: `${NEXT_YEAR}-05-05` }) }),
     ]);
     expect(results.map((result) => result.status).sort()).toEqual([201, 409]);
     expect(await WeddingModel.countDocuments({ createdByUserId: user._id })).toBe(1);

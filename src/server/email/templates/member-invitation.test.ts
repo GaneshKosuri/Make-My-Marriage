@@ -18,4 +18,14 @@ describe("renderMemberInvitationEmail", () => {
     expect(email.text).toContain(phrase);
     expect(email.html).toContain(phrase.replace(".", ".</p>"));
   });
+
+  it("marks a resent invitation as a reminder that replaces the earlier link", () => {
+    const first = renderMemberInvitationEmail({ ...props, roleLabel: "Manager" });
+    const again = renderMemberInvitationEmail({ ...props, roleLabel: "Manager", reminder: true });
+    expect(first.subject).toBe("Akshay Saini invited you to help plan Akshay & Princi's wedding");
+    expect(again.subject).toBe(`Reminder: ${first.subject}`);
+    expect(again.text).toContain("replaces the one in any earlier invitation email");
+    expect(again.html).toContain("replaces the one in any earlier invitation email");
+    expect(first.text).not.toContain("replaces");
+  });
 });

@@ -4,7 +4,7 @@
  */
 import { z } from "zod";
 
-import { daysUntil, isValidDateOnly, isValidTimeZone } from "@/lib/dates";
+import { dateOnlyInTimeZone, isValidDateOnly, isValidTimeZone } from "@/lib/dates";
 
 import {
   COUPLE_NAME_MAX_LENGTH,
@@ -12,6 +12,7 @@ import {
   FORMATTED_ADDRESS_MAX_LENGTH,
   GOOGLE_PLACE_ID_MAX_LENGTH,
   LOCATION_PART_MAX_LENGTH,
+  WEDDING_DATE_MAX_YEARS_AHEAD,
   WEDDING_DESCRIPTION_MAX_LENGTH,
   WEDDING_SLUG_MAX_LENGTH,
   WEDDING_SLUG_PATTERN,
@@ -57,7 +58,28 @@ const weddingDate = z
   // Blank is already reported by min(1); only judge what was entered.
   .refine((value) => value === "" || isValidDateOnly(value), "Choose a valid date");
 
-/** API_DESIGN §17. The wedding date must be today or later in the wedding's time zone. */
+/**
+ * The wedding-date rule shared by Create Wedding, PATCH /api/wedding and both
+ * forms: today or later, and at most WEDDING_DATE_MAX_YEARS_AHEAD years ahead, judged
+ * in the wedding's time zone. Returns the field message, or null when the date is fine.
+ */
+export function weddingDateProblem(
+  date: string,
+  timeZone: string,
+  now: Date = new Date(),
+): string | null {
+  if (!isValidDateOnly(date) || !isValidTimeZone(timeZone)) return null;
+  const today = dateOnlyInTimeZone(now, timeZone);
+  if (date < today) return "Choose today or a later date";
+  // "YYYY-MM-DD" strings compare in date order; 29 Feb simply compares as a string.
+  const latest = `${Number(today.slice(0, 4)) + WEDDING_DATE_MAX_YEARS_AHEAD}${today.slice(4)}`;
+  if (date > latest) {
+    return `Choose a date within the next ${WEDDING_DATE_MAX_YEARS_AHEAD} years`;
+  }
+  return null;
+}
+
+/** API_DESIGN §17. The wedding date follows `weddingDateProblem`. */
 export const createWeddingSchema = z
   .object({
     brideName: coupleName("Enter the bride's name"),
@@ -73,24 +95,15 @@ export const createWeddingSchema = z
   })
   .strict()
   .superRefine((input, ctx) => {
-    if (
-      isValidDateOnly(input.weddingDate) &&
-      isValidTimeZone(input.timeZone) &&
-      daysUntil(input.weddingDate, input.timeZone) < 0
-    ) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["weddingDate"],
-        message: "Choose today or a later date",
-      });
-    }
+    const problem = weddingDateProblem(input.weddingDate, input.timeZone);
+    if (problem) ctx.addIssue({ code: "custom", path: ["weddingDate"], message: problem });
   });
 
 /**
  * API_DESIGN §19: any subset of the wedding details; the website address
  * (slug), cover image and settings of other sections are never accepted here.
- * Blank title or description clears it. Whether a changed date is today or
- * later depends on the wedding's stored time zone, so the service checks that.
+ * Blank title or description clears it. A changed date follows
+ * `weddingDateProblem` in the wedding's stored (or new) time zone, so the service checks it.
  */
 export const updateWeddingSchema = z
   .object({

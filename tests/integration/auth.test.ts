@@ -361,3 +361,43 @@ describe("password reset (API §15–16)", () => {
     expect(await SessionModel.countDocuments({ tokenHash: raw })).toBe(0);
   });
 });
+
+describe("signing up or in while already signed in (QA 2026-11-03)", () => {
+  const sessionToken = (cookie: string) => cookie.slice("mmm_session=".length);
+  const sessionExists = async (cookie: string) =>
+    (await SessionModel.countDocuments({
+      tokenHash: hashToken("session", sessionToken(cookie)),
+    })) === 1;
+
+  it("ends the old session when a new account is created", async () => {
+    const first = await signUp();
+    const second = await call(signup, {
+      cookie: first.cookie,
+      body: { name: "Someone Else", email: uniqueEmail(), password: PASSWORD },
+    });
+    expect(second.status).toBe(201);
+    expect(await sessionExists(first.cookie)).toBe(false);
+    expect(await sessionExists(sessionCookie(second.setCookie))).toBe(true);
+  });
+
+  it("keeps the old session when the sign-up fails", async () => {
+    const first = await signUp();
+    const failed = await call(signup, {
+      cookie: first.cookie,
+      body: { name: "Again", email: first.email, password: PASSWORD },
+    });
+    expect(failed.status).toBe(409);
+    expect(await sessionExists(first.cookie)).toBe(true);
+  });
+
+  it("ends the old session when signing in again", async () => {
+    const first = await signUp();
+    const again = await call(login, {
+      cookie: first.cookie,
+      body: { email: first.email, password: PASSWORD },
+    });
+    expect(again.status).toBe(200);
+    expect(await sessionExists(first.cookie)).toBe(false);
+    expect(await sessionExists(sessionCookie(again.setCookie))).toBe(true);
+  });
+});

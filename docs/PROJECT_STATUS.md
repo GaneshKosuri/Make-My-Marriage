@@ -1,7 +1,7 @@
 # Project Status — Make My Marriage
 
-**Last updated:** 2026-10-29
-**Current phase:** Phase 1 — Foundation (PRD §16): all features built; wrap-up items in §3
+**Last updated:** 2026-11-03
+**Current phase:** Phase 1 — Foundation (PRD §16): complete and QA-verified (3 Nov)
 **Next up:** Phase 2 — Planning: Events (API §29–33), then Tasks (API §34–38)
 
 This file tracks what has been built and what comes next. Update it whenever a feature lands or new
@@ -89,9 +89,8 @@ monitoring.
 
 ## 3. Open items
 
-- **Home page "Coming soon" badges.** `feature-availability.ts` marks events, tasks, guests, family
-  members and the organiser gallery as `live`; family members is now built, the others are not yet. Flip each one to
-  match reality before the site goes public.
+- **Home page badges follow what is built.** Only family members is `live`; flip `events` and `tasks`
+  to `live` in `feature-availability.ts` (and its test) when Phase 2 ships, and so on per phase.
 - **Privacy wording.** Confirm the home page line "Your data stays yours: used only to run your
   wedding".
 - **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** still lists the six auth endpoints as
@@ -105,11 +104,11 @@ monitoring.
   tasks land, unassign the removed member's tasks (`assignedMembershipId`); a TODO marks the spot.
 - **Member rate limits are placeholders.** Invites 30 per wedding per hour, the public invite preview
   60 per IP per minute, accepting 20 per user per 15 minutes. Tune with real traffic.
-- **Members and Wedding Details screens not yet clicked through against a database.** The APIs are
-  covered by integration tests and the screens by component tests; only the invalid-link page was
-  checked in the browser. A full run (invite
-  email → sign up → dashboard) needs `npm run db:dev` and a `.env.local` without `RESEND_API_KEY`, so no
-  real email is sent.
+- **Local testing setup (QA 3 Nov).** `npm run db:dev`, then `next dev` with
+  `MONGODB_URI=mongodb://127.0.0.1:27017/make-my-marriage-dev?replicaSet=rs0` and an empty
+  `RESEND_API_KEY` (emails print to the console). `.env.local` now leaves `RESEND_API_KEY` blank (the old
+  key is kept commented out): it only delivered to the Resend account owner. Use Resend again only with
+  a verified domain and a matching `EMAIL_FROM`.
 - **Restart `next dev` after this change.** The identity ports are registered once at startup, so a
   running dev server keeps showing the header without the wedding's place until it restarts.
 - **Dashboard links lead to placeholders.** Every card, "+ Add" item and checklist step links to the
@@ -119,8 +118,8 @@ monitoring.
   invitations), so the RSVP overview shows counts and a link to RSVP status only.
 - **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** also still lists `GET /api/wedding` and
   `GET /api/dashboard` as "501 stub"; the inventory marks them implemented. The same is true of `PATCH /api/wedding`.
-- **Database name.** `.env.local` points at the Atlas cluster without a database name, so data lands in
-  `test`. Add `/make-my-marriage-dev` before `?` in `MONGODB_URI` to give it its own database.
+- **Atlas database renamed (3 Nov).** `.env.local` now writes to `make-my-marriage-dev`; older data
+  stays in the `test` database.
 - **Deleting a wedding (when it is built).** The "already has a wedding" check in `createWedding` counts a
   membership even when its wedding is soft-deleted, but the dashboard guard treats that user as having no
   wedding and sends them to Create Wedding, so they would be stuck. Deleting a wedding must also remove
@@ -134,6 +133,15 @@ monitoring.
   is built. Found in the 2026-10-29 code review.
 - **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** does not list
   `POST /api/members/invitations/:id/resend` (added 2026-10-29; the inventory has it).
+- **Rate-limit client IP.** Limits key on the first `X-Forwarded-For` address (`src/server/http/client-ip.ts`),
+  which Vercel sets. If the app is ever self-hosted, read the IP only from the proxy's trusted header,
+  or the limits can be bypassed.
+- **Sign-in page flash (accepted).** Signed-in visitors of /login and /signup briefly see the form
+  before the redirect (the check runs inside `<Suspense>`). Cosmetic; left as is.
+- **Watch list (seen once, not reproduced):** `POST /api/auth/logout` answered 500 once on 17 Oct right
+  after creating a wedding; the integration suite failed once on a cold first run. Capture the stack
+  trace / check the in-memory MongoDB start-up timeout if either recurs. Close stray `localhost:3000`
+  tabs when testing: one reloading /login twice a second flooded the dev log on 3 Nov.
 - **Legal pages.** Privacy policy and terms are needed before production. Until they exist, the home
   footer, the auth footer and the sign-up form leave out the "Privacy · Terms" links and the
   "By continuing you agree…" line shown in the designs.
@@ -163,6 +171,11 @@ monitoring.
 | 2026-10-29 | Wedding Members is in every member's navigation (no longer Admin only); Managers get the read-only list. Changing someone else's role is one click; removing, leaving and stepping down yourself ask first. The only Admin gets no demote or leave controls. Leaving sends you to Create Wedding |
 | 2026-10-29 | Wedding details have no version check (decision 8 covers events, tasks and guests only). The form sends only changed fields, and the place as a whole, so two people editing different fields don't overwrite each other |
 | 2026-10-29 | A changed wedding date must be today or later in the wedding's time zone (the new one when it changes too); resending the unchanged date is always accepted, so details stay editable after the wedding day |
+| 2026-11-03 | A wedding date may be at most 5 years ahead (`WEDDING_DATE_MAX_YEARS_AHEAD`), in the wedding's time zone, on create and on a changed date; one rule (`weddingDateProblem`) serves the API, both forms and the preview |
+| 2026-11-03 | Signing in returns to the page asked for: the proxy (no cookie) and the dashboard guard (expired session) add `?next=` for `/app` pages, and the login form follows it. Only same-origin `/app` paths are accepted (binding decision 12) |
+| 2026-11-03 | Signing up or signing in from a browser that already has a session ends that old session once the new one exists; a failed attempt keeps it |
+| 2026-11-03 | Confirmed after QA: Managers cannot leave by themselves; the web address keeps the creation date when the date changes; the dashboard greets the couple; the join page opens on "Create an account" (it never reveals whether an account exists) |
+| 2026-11-03 | A resent invitation email starts with "Reminder:" and says its link replaces the earlier one |
 
 ## 5. Change log
 
@@ -183,3 +196,4 @@ monitoring.
 | 2026-10-29 | Wedding settings: `PATCH /api/wedding` (9 integration tests) and Settings → Wedding Details (8 component tests); time zone picker shared with Create Wedding. Phase 1 features complete |
 | 2026-10-29 | Code-review fixes: invitation resend endpoint (old link survives a failed email), stored time zone always offered in the picker, rate limit on the `/join/[token]` page lookup, no 403 flash when leaving a wedding (and creating a wedding drops the old wedding's cached data), "already has a wedding" shown right after signing up on the join page, focus kept inside dialogs, one shared wedding-date rule |
 | 2026-10-29 | Testing fixes: join page offers "Sign out and continue" before "already in a wedding"; Wedding Details save bar is compact, sticky only with unsaved changes and clear of the phone "+"; Revoke asks first and every member action replaces the last message; the invitation email says "as an Admin"; managers are told how to leave |
+| 2026-11-03 | QA hand-off fixes: Atlas database name and blank Resend key in `.env.local`; honest home page badges; 5-year wedding-date limit; `?next=` after sign-in; replaced sessions end on sign-up and sign-in; preview never shows "Married" for a rejected date; "Get started" eyebrow; Wedding Details flags a bad date as soon as it changes; "Reminder:" on resent invitations; long invited emails wrap on the join page |

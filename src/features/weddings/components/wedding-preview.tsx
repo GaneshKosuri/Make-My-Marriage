@@ -3,6 +3,7 @@ import { CalendarDays, Hourglass, MapPin } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { coupleDisplayName, weddingCountdownLabel } from "@/lib/couple";
 import { daysUntil, formatDateOnly, isValidDateOnly } from "@/lib/dates";
+import { weddingDateProblem } from "@/modules/weddings/wedding.schemas";
 
 import { CREATE_WEDDING } from "../create-wedding-content";
 
@@ -18,7 +19,8 @@ export interface WeddingPreviewValues {
 
 /**
  * Live preview of the wedding being created (Stitch "Create Wedding"). Empty
- * fields show placeholders; the countdown appears once a valid date is set.
+ * fields show placeholders; the countdown appears only for a date the form
+ * would accept (never "Married" for a past date the form rejects).
  */
 export function WeddingPreview({
   values,
@@ -35,6 +37,8 @@ export function WeddingPreview({
         })
       : null);
   const validDate = isValidDateOnly(values.weddingDate);
+  const acceptedDate =
+    validDate && weddingDateProblem(values.weddingDate, values.timeZone) === null;
   const place = [values.city.trim(), values.state.trim()].filter(Boolean).join(", ");
 
   return (
@@ -68,7 +72,7 @@ export function WeddingPreview({
       <hr className={cn("border-sand", compact ? "my-3" : "my-4")} />
       <p className="flex items-center gap-2 text-label-md text-gold-deep">
         <Hourglass aria-hidden className="size-4" />
-        {validDate
+        {acceptedDate
           ? weddingCountdownLabel(daysUntil(values.weddingDate, values.timeZone))
           : preview.countdownPending}
       </p>
