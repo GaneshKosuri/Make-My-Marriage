@@ -245,7 +245,7 @@ describe("<MembersScreen /> invitations", () => {
     );
   });
 
-  it("lists pending invitations with their expiry, and revokes one", async () => {
+  it("lists pending invitations with their expiry, and revokes one after confirming", async () => {
     routes["DELETE /api/members/invitations/i1"] = success;
     renderScreen();
     expect(await invitationsCard().findByText("neha@example.com")).toBeInTheDocument();
@@ -254,11 +254,45 @@ describe("<MembersScreen /> invitations", () => {
     fireEvent.click(
       invitationsCard().getByRole("button", { name: `${MEMBERS.revoke}: neha@example.com` }),
     );
-    await waitFor(() =>
-      expect(mutations()).toEqual([
-        { method: "DELETE", url: "/api/members/invitations/i1", body: undefined },
-      ]),
+    const dialog = within(
+      screen.getByRole("dialog", { name: MEMBERS.confirm.revokeTitle("neha@example.com") }),
     );
+    expect(mutations()).toEqual([]);
+    fireEvent.click(dialog.getByRole("button", { name: MEMBERS.revoke }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      MEMBERS.revoked("neha@example.com"),
+    );
+    expect(mutations()).toEqual([
+      { method: "DELETE", url: "/api/members/invitations/i1", body: undefined },
+    ]);
+  });
+
+  it("keeps the invitation when revoking is cancelled", async () => {
+    renderScreen();
+    fireEvent.click(
+      await invitationsCard().findByRole("button", { name: `${MEMBERS.revoke}: neha@example.com` }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: MEMBERS.confirm.cancel }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(mutations()).toEqual([]);
+  });
+
+  it("replaces the last message with the next action's", async () => {
+    routes["POST /api/members/invitations/i1/resend"] = () => data(invitation);
+    routes["PATCH /api/members/m3"] = () => data({ ...rahul, role: "ADMIN" });
+    renderScreen();
+    fireEvent.click(
+      await invitationsCard().findByRole("button", { name: `${MEMBERS.resend}: neha@example.com` }),
+    );
+    expect(await screen.findByRole("status")).toHaveTextContent(MEMBERS.resent("neha@example.com"));
+
+    fireEvent.click(screen.getByRole("button", { name: `${MEMBERS.makeAdmin}: Rahul Sharma` }));
+    expect(screen.queryByText(MEMBERS.resent("neha@example.com"))).toBeNull();
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      MEMBERS.roleChanged("Rahul Sharma", "Admin"),
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Rahul Sharma is now an Admin.");
   });
 
   it("resends a fresh link in one request", async () => {
@@ -284,6 +318,7 @@ describe("<MembersScreen /> as a Manager", () => {
   it("shows the list read-only and never asks for invitations", async () => {
     renderScreen("MANAGER", rahul.membershipId);
     expect(await membersCard().findByText("Akshay Saini")).toBeInTheDocument();
+    expect(membersCard().getByText(MEMBERS.managerLeaveNote)).toBeInTheDocument();
     expect(screen.getByText(MEMBERS.managerNote)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: MEMBERS.invite })).toBeNull();
     expect(screen.queryByRole("button", { name: new RegExp(MEMBERS.remove) })).toBeNull();

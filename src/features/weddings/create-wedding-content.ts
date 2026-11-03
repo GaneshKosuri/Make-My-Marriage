@@ -1,7 +1,7 @@
 /** Copy for the create-wedding onboarding screen (Stitch "Create Wedding", PRD §9.2). */
 
 export const CREATE_WEDDING = {
-  eyebrow: "Step 1 of 1",
+  eyebrow: "Get started",
   title: "Create your wedding",
   description: "Tell us the basics. You can change these any time.",
   submit: "Create wedding",

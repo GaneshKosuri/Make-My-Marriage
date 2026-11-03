@@ -17,6 +17,9 @@ export const DEFAULT_TIME_ZONE = "Asia/Kolkata";
 /** Prefilled on the create-wedding form; destination weddings change it. */
 export const DEFAULT_COUNTRY = "India";
 
+/** A wedding date may be at most this many years ahead (QA 2026-11-03: no open-ended dates). */
+export const WEDDING_DATE_MAX_YEARS_AHEAD = 5;
+
 export const COUPLE_NAME_MAX_LENGTH = 80;
 export const WEDDING_TITLE_MAX_LENGTH = 120;
 export const WEDDING_DESCRIPTION_MAX_LENGTH = 2000;

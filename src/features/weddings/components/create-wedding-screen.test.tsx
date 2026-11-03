@@ -71,6 +71,16 @@ describe("<CreateWeddingScreen />", () => {
     expect(preview().getByText("Akshay ❤️ Princi")).toBeInTheDocument();
   });
 
+  it("never celebrates a date the form rejects", () => {
+    renderScreen();
+    fill();
+    type("Wedding date", "2026-01-01");
+    expect(preview().getByText(CREATE_WEDDING.preview.countdownPending)).toBeInTheDocument();
+    expect(preview().queryByText("Married")).toBeNull();
+    type("Wedding date", "2040-01-01");
+    expect(preview().getByText(CREATE_WEDDING.preview.countdownPending)).toBeInTheDocument();
+  });
+
   it("validates required fields before calling the API", async () => {
     renderScreen();
     submit();

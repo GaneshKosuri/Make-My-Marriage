@@ -24,7 +24,7 @@ import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { coupleDisplayName } from "@/lib/couple";
 import { dateOnlyInTimeZone } from "@/lib/dates";
-import { updateWeddingSchema } from "@/modules/weddings/wedding.schemas";
+import { updateWeddingSchema, weddingDateProblem } from "@/modules/weddings/wedding.schemas";
 import type { UpdateWeddingInput, WeddingDto } from "@/modules/weddings/wedding.types";
 
 import { useUpdateWedding, useWedding } from "../api";
@@ -125,12 +125,23 @@ function DetailsForm({ wedding }: Readonly<{ wedding: WeddingDto }>) {
     defaultValues: toFormValues(wedding),
   });
   const { errors, dirtyFields, isDirty } = form.formState;
-  const [brideName, groomName, timeZone] = useWatch({
+  const hasChanges = isDirty || update.isPending;
+  const [brideName, groomName, timeZone, weddingDate] = useWatch({
     control: form.control,
-    name: ["brideName", "groomName", "timeZone"],
+    name: ["brideName", "groomName", "timeZone", "weddingDate"],
   });
+  // Same rule as the server, shown as soon as the date is changed. Only a changed
+  // date is judged, so details stay editable after the wedding day.
+  const dateProblem =
+    weddingDate && weddingDate !== wedding.weddingDate
+      ? weddingDateProblem(weddingDate, timeZone || wedding.timeZone)
+      : null;
 
   const onSubmit = form.handleSubmit((values) => {
+    if (dateProblem) {
+      form.setError("weddingDate", { type: "date", message: dateProblem }, { shouldFocus: true });
+      return;
+    }
     const changes: UpdateWeddingInput = {};
     for (const field of TOP_LEVEL) {
       if (dirtyFields[field]) changes[field] = values[field];
@@ -216,7 +227,7 @@ function DetailsForm({ wedding }: Readonly<{ wedding: WeddingDto }>) {
               label={FIELDS.weddingDate.label}
               type="date"
               min={dateOnlyInTimeZone(new Date(), timeZone || wedding.timeZone)}
-              error={errors.weddingDate?.message}
+              error={errors.weddingDate?.message ?? dateProblem ?? undefined}
               {...form.register("weddingDate")}
             />
             <TimeZoneSelect
@@ -275,7 +286,17 @@ function DetailsForm({ wedding }: Readonly<{ wedding: WeddingDto }>) {
         </div>
       </DashboardCard>
 
-      <div className="sticky bottom-[calc(84px+env(safe-area-inset-bottom))] z-10 flex flex-col-reverse gap-3 rounded-3xl border border-sand bg-white/95 p-3 shadow-sm backdrop-blur sm:flex-row sm:justify-end md:bottom-4">
+      {/*
+        Sticky only while there is something to save. On phones it rests above the
+        floating "+" (bottom 76px, 56px tall); from md up there is no "+".
+      */}
+      <div
+        className={cn(
+          "grid grid-cols-2 gap-2 rounded-3xl border border-sand bg-white/95 p-2 sm:flex sm:justify-end",
+          hasChanges &&
+            "sticky bottom-[calc(144px+env(safe-area-inset-bottom))] z-10 shadow-sm backdrop-blur md:bottom-4",
+        )}
+      >
         <button
           type="button"
           disabled={!isDirty || update.isPending}
@@ -284,7 +305,7 @@ function DetailsForm({ wedding }: Readonly<{ wedding: WeddingDto }>) {
             update.reset();
           }}
           className={cn(
-            "inline-flex h-11 items-center justify-center rounded-full border border-sand bg-white px-5 text-label-md text-graphite hover:bg-sand disabled:opacity-50",
+            "inline-flex h-11 items-center justify-center rounded-full border border-sand bg-white px-4 text-label-md whitespace-nowrap text-graphite hover:bg-sand disabled:opacity-50",
             focusRing,
           )}
         >

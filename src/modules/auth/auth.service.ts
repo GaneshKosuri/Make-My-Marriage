@@ -44,8 +44,16 @@ const MS_PER_MINUTE = 60_000;
  * Authentication use cases (PRD §9.1, SYSTEM_DESIGN §8–12, API_DESIGN §11–16).
  */
 export const authService = {
-  /** API §11. No email verification (PRD §9.1). */
-  async signup(ctx: PublicContext, input: SignupInput): Promise<AuthenticatedResult> {
+  /**
+   * API §11. No email verification (PRD §9.1). If the browser was already
+   * signed in, that session ends once the new account exists, so it is never
+   * left behind when the new cookie replaces it.
+   */
+  async signup(
+    ctx: PublicContext,
+    input: SignupInput,
+    replacedSessionToken: string | null = null,
+  ): Promise<AuthenticatedResult> {
     const emailNormalized = normalizeEmail(input.email);
     if (await userRepository.findByEmailNormalized(emailNormalized)) {
       throw new AppError("EMAIL_ALREADY_EXISTS");
@@ -57,6 +65,7 @@ export const authService = {
       passwordHash: await hashPassword(input.password),
     });
     const session = await createSession(user._id.toString());
+    await destroySession(replacedSessionToken);
     logger.info("User signed up", { requestId: ctx.requestId, userId: user._id.toString() });
     return { body: toAuthResultDto(user, false), session };
   },
@@ -64,8 +73,13 @@ export const authService = {
   /**
    * API §12. Unknown email and wrong password fail identically, in wording and
    * in timing (verifyPasswordOrBurn hashes against a dummy when there is no account).
+   * A session the browser already had ends once the new one exists.
    */
-  async login(ctx: PublicContext, input: LoginInput): Promise<AuthenticatedResult> {
+  async login(
+    ctx: PublicContext,
+    input: LoginInput,
+    replacedSessionToken: string | null = null,
+  ): Promise<AuthenticatedResult> {
     const user = await userRepository.findByEmailNormalizedWithPassword(
       normalizeEmail(input.email),
     );
@@ -77,6 +91,7 @@ export const authService = {
       createSession(userId),
       findWeddingContext(userId),
     ]);
+    await destroySession(replacedSessionToken);
     return { body: toAuthResultDto(user, context !== null), session };
   },
 

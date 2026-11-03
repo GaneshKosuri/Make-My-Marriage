@@ -77,6 +77,21 @@ describe("<LoginForm />", () => {
     });
   });
 
+  it.each([
+    ["/login?next=%2Fapp%2Fsettings%2Fmembers", "/app/settings/members"],
+    ["/login?next=https%3A%2F%2Fevil.example", AUTH_ROUTES.app],
+    ["/login?next=%2F%2Fevil.example", AUTH_ROUTES.app],
+  ])("returns to the /app page asked for, and only there (%s)", async (url, destination) => {
+    window.history.pushState({}, "", url);
+    reply({ status: 200, body: { data: { user: {}, hasWedding: true } } });
+    renderWithQuery(<LoginForm />);
+    type("Email address", "akshay@example.com");
+    type("Password", "secret password");
+    submit(SIGN_IN.submit);
+    await waitFor(() => expect(replace).toHaveBeenCalledWith(destination));
+    window.history.pushState({}, "", "/");
+  });
+
   it("shows the generic banner for bad credentials", async () => {
     reply(apiError(401, "UNAUTHENTICATED", "Invalid email or password."));
     renderWithQuery(<LoginForm />);

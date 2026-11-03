@@ -41,6 +41,13 @@ const dangerButton = cn(
   smallButton,
   "border-destructive/30 text-destructive hover:bg-destructive/5",
 );
+const confirmDangerButton = cn(
+  smallButton,
+  "border-transparent bg-destructive text-white hover:bg-destructive/90",
+);
+
+/** One message at a time: each action clears it when it starts and sets its own on success. */
+type Notify = (message: string | null) => void;
 
 export interface MembersScreenProps {
   role: MemberRole;
@@ -81,7 +88,14 @@ export function MembersScreen({
           <p className="mt-1 text-body-md text-plum">{MEMBERS.description}</p>
         </div>
         {isAdmin && (
-          <button type="button" onClick={() => setInviting(true)} className={primaryButton}>
+          <button
+            type="button"
+            onClick={() => {
+              setNotice(null);
+              setInviting(true);
+            }}
+            className={primaryButton}
+          >
             <UserPlus aria-hidden className="size-4" />
             {MEMBERS.invite}
           </button>
@@ -112,6 +126,7 @@ export function MembersScreen({
         isAdmin={isAdmin}
         currentMembershipId={currentMembershipId}
         timeZone={timeZone}
+        onNotice={setNotice}
       />
 
       {isAdmin && <PendingInvitations timeZone={timeZone} onNotice={setNotice} />}
@@ -131,7 +146,13 @@ function MembersList({
   isAdmin,
   currentMembershipId,
   timeZone,
-}: Readonly<{ isAdmin: boolean; currentMembershipId: string; timeZone: string }>) {
+  onNotice,
+}: Readonly<{
+  isAdmin: boolean;
+  currentMembershipId: string;
+  timeZone: string;
+  onNotice: Notify;
+}>) {
   const router = useRouter();
   const members = useMembers();
   const changeRole = useChangeMemberRole();
@@ -145,13 +166,15 @@ function MembersList({
   const error = changeRole.error ?? remove.error ?? leave.error;
 
   function setRole(member: MemberDto, nextRole: MemberRole) {
+    onNotice(null);
     remove.reset();
     leave.reset();
     changeRole.mutate(
       { membershipId: member.membershipId, role: nextRole },
       {
-        // Demoting yourself takes away this page's controls: re-render with the new role.
         onSuccess: () => {
+          onNotice(MEMBERS.roleChanged(member.user.name, MEMBER_ROLE_LABELS[nextRole]));
+          // Demoting yourself takes away this page's controls: re-render with the new role.
           if (member.membershipId === currentMembershipId) router.refresh();
         },
       },
@@ -159,11 +182,14 @@ function MembersList({
   }
 
   function removeMember(member: MemberDto) {
+    onNotice(null);
     changeRole.reset();
     remove.reset();
     leave.reset();
     if (member.membershipId !== currentMembershipId) {
-      remove.mutate(member.membershipId);
+      remove.mutate(member.membershipId, {
+        onSuccess: () => onNotice(MEMBERS.removed(member.user.name)),
+      });
       return;
     }
     // Leaving the wedding: the dashboard is no longer yours.
@@ -214,6 +240,11 @@ function MembersList({
                   {MEMBERS.joined(formatInstant(member.joinedAt, timeZone, SHORT_DATE))}
                 </p>
               </div>
+              {!isAdmin && isSelf && (
+                <p className="w-full text-body-sm text-plum sm:w-auto">
+                  {MEMBERS.managerLeaveNote}
+                </p>
+              )}
               {isAdmin && (
                 <div className="flex w-full flex-wrap gap-2 sm:w-auto">
                   {soleAdmin ? (
@@ -318,11 +349,7 @@ function ConfirmDialog({
         <button
           type="button"
           onClick={onConfirm}
-          className={cn(
-            pending?.kind === "demote-self" ? smallButton : dangerButton,
-            "border-transparent",
-            pending?.kind !== "demote-self" && "bg-destructive text-white hover:bg-destructive/90",
-          )}
+          className={pending?.kind === "demote-self" ? smallButton : confirmDangerButton}
         >
           {content?.action}
         </button>
@@ -334,10 +361,20 @@ function ConfirmDialog({
 function PendingInvitations({
   timeZone,
   onNotice,
-}: Readonly<{ timeZone: string; onNotice: (message: string) => void }>) {
+}: Readonly<{ timeZone: string; onNotice: Notify }>) {
   const invitations = useMemberInvitations(true);
   const revoke = useRevokeInvitation();
   const resend = useResendInvitation();
+  const [revoking, setRevoking] = useState<MemberInvitationDto | null>(null);
+
+  function confirmRevoke() {
+    if (!revoking) return;
+    const { id, email } = revoking;
+    setRevoking(null);
+    onNotice(null);
+    resend.reset();
+    revoke.mutate(id, { onSuccess: () => onNotice(MEMBERS.revoked(email)) });
+  }
   const busy = revoke.isPending || resend.isPending;
   const error = revoke.error ?? resend.error;
 
@@ -384,6 +421,7 @@ function PendingInvitations({
                   type="button"
                   disabled={busy}
                   onClick={() => {
+                    onNotice(null);
                     revoke.reset();
                     resend.mutate(invitation, {
                       onSuccess: () => onNotice(MEMBERS.resent(invitation.email)),
@@ -397,10 +435,7 @@ function PendingInvitations({
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={() => {
-                    resend.reset();
-                    revoke.mutate(invitation.id);
-                  }}
+                  onClick={() => setRevoking(invitation)}
                   className={dangerButton}
                   aria-label={`${MEMBERS.revoke}: ${invitation.email}`}
                 >
@@ -418,6 +453,21 @@ function PendingInvitations({
     <DashboardCard title={MEMBERS.invitationsTitle} description={MEMBERS.invitationsDescription}>
       {error && <InvitationAlert error={error} />}
       {body}
+      <Dialog
+        open={revoking !== null}
+        onClose={() => setRevoking(null)}
+        title={revoking ? MEMBERS.confirm.revokeTitle(revoking.email) : ""}
+        description={MEMBERS.confirm.revokeDescription}
+      >
+        <div className="flex flex-col-reverse gap-3 md:flex-row md:justify-end">
+          <button type="button" onClick={() => setRevoking(null)} className={smallButton}>
+            {MEMBERS.confirm.cancel}
+          </button>
+          <button type="button" onClick={confirmRevoke} className={confirmDangerButton}>
+            {MEMBERS.revoke}
+          </button>
+        </div>
+      </Dialog>
     </DashboardCard>
   );
 }

@@ -1,3 +1,4 @@
+import { withArticle } from "@/lib/text";
 import { MEMBER_INVITATION_TTL_DAYS, type MemberRole } from "@/modules/members/member.constants";
 
 /**
@@ -9,7 +10,7 @@ export const JOIN = {
   eyebrow: "You're invited",
   title: (couple: string) => `Help plan ${couple}'s wedding`,
   panelEyebrow: "You're invited to plan the wedding of",
-  role: (role: string) => `as ${role === "Admin" ? "an" : "a"} ${role}`,
+  role: (role: string) => `as ${withArticle(role)}`,
   roleDescriptions: {
     ADMIN: "Admins manage everything, including who else can plan the wedding.",
     MANAGER: "Managers help with events, tasks, guests and everything else.",
@@ -58,7 +59,7 @@ export const JOIN = {
   alreadyHasWedding: {
     title: "You already belong to a wedding",
     description:
-      "An account can plan one wedding at a time, so this invitation can't be accepted with it.",
+      "An account can plan one wedding at a time. To join this one, leave your current wedding first: Admins can leave from Wedding Members, and Managers ask an Admin there to remove them.",
     action: "Go to your dashboard",
   },
 

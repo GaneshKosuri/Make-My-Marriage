@@ -259,6 +259,13 @@ describe("<JoinScreen /> signed in", () => {
     expect(requests()).toEqual([{ url: "/api/auth/logout", method: "POST", body: undefined }]);
   });
 
+  it("offers the account switch first, even when the signed-in account has a wedding", () => {
+    renderJoin(ok, { name: "Chetan", email: "chetan@example.com", hasWedding: true });
+    expect(screen.getByText(JOIN.mismatch.title)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: JOIN.mismatch.action })).toBeInTheDocument();
+    expect(screen.queryByText(JOIN.alreadyHasWedding.title)).toBeNull();
+  });
+
   it("tells members of another wedding they cannot join", () => {
     renderJoin(ok, { ...rahul, hasWedding: true });
     expect(screen.getByText(JOIN.alreadyHasWedding.title)).toBeInTheDocument();

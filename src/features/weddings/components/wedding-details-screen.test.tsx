@@ -9,6 +9,9 @@ import { CREATE_WEDDING } from "../create-wedding-content";
 import { WEDDING_DETAILS } from "../wedding-details-content";
 import { WeddingDetailsScreen } from "./wedding-details-screen";
 
+// Wedding dates must be within 5 years: next year's dates are always valid.
+const NEXT_YEAR = new Date().getUTCFullYear() + 1;
+
 const refresh = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh, replace: vi.fn(), push: vi.fn() }),
@@ -21,7 +24,7 @@ const wedding: WeddingDto = {
   groomName: "Akshay",
   title: null,
   description: "We're getting married!",
-  weddingDate: "2099-02-14",
+  weddingDate: `${NEXT_YEAR}-02-14`,
   timeZone: "Asia/Kolkata",
   location: {
     city: "Dehradun",
@@ -33,7 +36,7 @@ const wedding: WeddingDto = {
     googlePlaceId: null,
   },
   website: {
-    slug: "akshay-princi-14022099",
+    slug: `akshay-princi-1402${NEXT_YEAR}`,
     theme: "CLASSIC",
     isPublished: false,
     welcomeMessage: null,
@@ -96,10 +99,10 @@ describe("<WeddingDetailsScreen />", () => {
     renderScreen();
     expect(await screen.findByLabelText(FIELDS.brideName.label)).toHaveValue("Princi");
     expect(screen.getByLabelText(FIELDS.groomName.label)).toHaveValue("Akshay");
-    expect(screen.getByLabelText(FIELDS.weddingDate.label)).toHaveValue("2099-02-14");
+    expect(screen.getByLabelText(FIELDS.weddingDate.label)).toHaveValue(`${NEXT_YEAR}-02-14`);
     expect(screen.getByLabelText(FIELDS.city.label)).toHaveValue("Dehradun");
     expect(screen.getByLabelText(FIELDS.timeZone.label)).toHaveValue("Asia/Kolkata");
-    expect(screen.getByText("/w/akshay-princi-14022099")).toBeInTheDocument();
+    expect(screen.getByText(`/w/akshay-princi-1402${NEXT_YEAR}`)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: WEDDING_DETAILS.save })).toBeDisabled();
   });
 
@@ -155,10 +158,22 @@ describe("<WeddingDetailsScreen />", () => {
     });
     renderScreen();
     await screen.findByLabelText(FIELDS.weddingDate.label);
-    type(FIELDS.weddingDate.label, "2099-03-01");
+    type(FIELDS.weddingDate.label, `${NEXT_YEAR}-03-01`);
     save();
     expect(await screen.findByText("Choose today or a later date")).toBeInTheDocument();
     expect(screen.queryByText(WEDDING_DETAILS.saveError.title)).toBeNull();
+  });
+
+  it("flags a past or too-distant date as soon as it is changed, and does not send it", async () => {
+    renderScreen();
+    await screen.findByLabelText(FIELDS.weddingDate.label);
+    type(FIELDS.weddingDate.label, "2020-01-01");
+    expect(screen.getByText("Choose today or a later date")).toBeInTheDocument();
+    type(FIELDS.weddingDate.label, "9999-12-31");
+    expect(screen.getByText("Choose a date within the next 5 years")).toBeInTheDocument();
+    save();
+    await waitFor(() => expect(screen.getByLabelText(FIELDS.weddingDate.label)).toHaveFocus());
+    expect(patches).toEqual([]);
   });
 
   it("says when changes were not saved", async () => {
@@ -168,6 +183,17 @@ describe("<WeddingDetailsScreen />", () => {
     type(FIELDS.title.label, "Our big day");
     save();
     expect(await screen.findByText(WEDDING_DETAILS.saveError.title)).toBeInTheDocument();
+  });
+
+  it("keeps the save bar in place until there is something to save", async () => {
+    renderScreen();
+    await screen.findByLabelText(FIELDS.groomName.label);
+    const bar = () => screen.getByRole("button", { name: WEDDING_DETAILS.save }).parentElement!;
+    expect(bar()).not.toHaveClass("sticky");
+    type(FIELDS.groomName.label, "Vikram");
+    expect(bar()).toHaveClass("sticky");
+    fireEvent.click(screen.getByRole("button", { name: WEDDING_DETAILS.discard }));
+    expect(bar()).not.toHaveClass("sticky");
   });
 
   it("discards unsaved changes", async () => {

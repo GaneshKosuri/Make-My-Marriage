@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 
 import { AppShell, AppShellSkeleton } from "@/components/layout/app-shell";
+import { REQUEST_PATH_HEADER, signInPathFor } from "@/lib/safe-next";
 import { getCurrentContext } from "@/server/auth";
 
 export const metadata: Metadata = {
@@ -29,7 +31,8 @@ export default function DashboardLayout({ children }: Readonly<{ children: React
 
 async function GuardedAppShell({ children }: Readonly<{ children: ReactNode }>) {
   const current = await getCurrentContext();
-  if (!current) redirect("/login");
+  // An expired or revoked session: sign in again, then come back to this page.
+  if (!current) redirect(signInPathFor((await headers()).get(REQUEST_PATH_HEADER)));
   if (!current.membership || !current.wedding) redirect("/create-wedding");
 
   return (

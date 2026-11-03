@@ -51,3 +51,9 @@ test("an unusable member invitation link explains itself", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Go to sign in" })).toHaveAttribute("href", "/login");
 });
+
+test("a signed-out deep link remembers the page for after sign-in", async ({ page }) => {
+  await page.goto("/app/settings/members");
+  await expect(page).toHaveURL(/\/login\?next=%2Fapp%2Fsettings%2Fmembers$/);
+  await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
+});

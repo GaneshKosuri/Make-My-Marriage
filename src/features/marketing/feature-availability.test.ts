@@ -40,10 +40,18 @@ describe("feature availability", () => {
     expect(upcomingFeaturesSentence(availability())).toBeNull();
   });
 
-  it("matches the PRD §16 roadmap today: planning live, later phases coming soon", () => {
-    expect(isComingSoon("events")).toBe(false);
-    expect(isComingSoon("guests")).toBe(false);
-    for (const feature of ["expenses", "vendors", "website", "livestream"] as const) {
+  it("matches what is built today: only Phase 1 (family members) is live", () => {
+    expect(isComingSoon("familyMembers")).toBe(false);
+    for (const feature of [
+      "events",
+      "tasks",
+      "guests",
+      "organiserGallery",
+      "expenses",
+      "vendors",
+      "website",
+      "livestream",
+    ] as const) {
       expect(isComingSoon(feature)).toBe(true);
     }
   });

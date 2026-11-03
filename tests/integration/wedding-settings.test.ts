@@ -8,6 +8,9 @@ import { WeddingModel } from "@/modules/weddings/wedding.model";
 import { createWedding, signedInUser } from "../setup/factories";
 import { TEST_APP_URL } from "../setup/test-env";
 
+// Wedding dates must be within 5 years: next year's dates are always valid.
+const NEXT_YEAR = new Date().getUTCFullYear() + 1;
+
 /** PATCH /api/wedding (API_DESIGN §19, PRD §9.25 Wedding Details). */
 
 interface ApiBody {
@@ -44,7 +47,7 @@ describe("PATCH /api/wedding", () => {
       {
         brideName: " Princi Rawat ",
         groomName: "Akshay Saini",
-        weddingDate: "2099-12-01",
+        weddingDate: `${NEXT_YEAR}-12-01`,
         description: "Two families, one celebration.",
       },
       member.cookie,
@@ -55,7 +58,7 @@ describe("PATCH /api/wedding", () => {
       id: wedding._id.toString(),
       brideName: "Princi Rawat",
       groomName: "Akshay Saini",
-      weddingDate: "2099-12-01",
+      weddingDate: `${NEXT_YEAR}-12-01`,
       description: "Two families, one celebration.",
       website: { slug: wedding.website.slug },
     });
@@ -120,6 +123,21 @@ describe("PATCH /api/wedding", () => {
 
     const today = dateOnlyInTimeZone(new Date(), "Asia/Kolkata");
     expect((await patch({ weddingDate: today }, member.cookie)).status).toBe(200);
+  });
+
+  it("rejects a date more than 5 years ahead", async () => {
+    const { wedding, member } = await weddingWith("ADMIN");
+    const result = await patch({ weddingDate: "9999-12-31" }, member.cookie);
+    expect(result).toMatchObject({
+      status: 400,
+      body: {
+        error: {
+          code: "VALIDATION_ERROR",
+          details: { weddingDate: "Choose a date within the next 5 years" },
+        },
+      },
+    });
+    expect((await stored(wedding._id)).weddingDate).toBe("2027-02-14");
   });
 
   it("accepts the unchanged date after the wedding day, so other details can still be edited", async () => {

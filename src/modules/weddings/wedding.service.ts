@@ -1,6 +1,5 @@
 import "server-only";
 
-import { daysUntil } from "@/lib/dates";
 import type { IdentityWedding, MemberContext, UserContext } from "@/server/auth";
 import { isDuplicateKeyError } from "@/server/db/errors";
 import { toObjectId } from "@/server/db/object-id";
@@ -15,6 +14,7 @@ import { DEFAULT_WEBSITE_THEME } from "./wedding.constants";
 import { toCreatedWeddingDto, toIdentityWedding, toWeddingDto } from "./wedding.mapper";
 import type { WeddingLocation } from "./wedding.model";
 import { weddingRepository } from "./wedding.repository";
+import { weddingDateProblem } from "./wedding.schemas";
 import { generateUniqueWeddingSlug } from "./wedding.slug";
 import type {
   CoverUploadRequestInput,
@@ -124,13 +124,11 @@ export const weddingsService = {
     if (!wedding) throw new AppError("NOT_FOUND");
 
     const timeZone = input.timeZone ?? wedding.timeZone;
-    if (
-      input.weddingDate !== undefined &&
-      input.weddingDate !== wedding.weddingDate &&
-      daysUntil(input.weddingDate, timeZone) < 0
-    ) {
-      const message = "Choose today or a later date";
-      throw new AppError("VALIDATION_ERROR", undefined, { details: { weddingDate: message } });
+    if (input.weddingDate !== undefined && input.weddingDate !== wedding.weddingDate) {
+      const problem = weddingDateProblem(input.weddingDate, timeZone);
+      if (problem) {
+        throw new AppError("VALIDATION_ERROR", undefined, { details: { weddingDate: problem } });
+      }
     }
 
     const changes: Parameters<typeof weddingRepository.update>[1] = {};

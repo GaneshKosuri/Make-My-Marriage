@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, Lock, Mail, UserRound } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
 import { applyFieldErrors, errorCode, useLogin, useSignup } from "@/features/auth/api";
@@ -74,18 +74,34 @@ export function JoinAuthForms({
   );
 }
 
+/**
+ * The invited address, shown as wrapping text so a long email is never cut off on
+ * phones (QA 2026-11-03). A visually hidden read-only input keeps it available to
+ * password managers as the account the password belongs to.
+ */
 function LockedEmail({ email }: Readonly<{ email: string }>) {
+  const id = useId();
   return (
-    <TextField
-      label="Email address"
-      type="email"
-      value={email}
-      readOnly
-      aria-readonly
-      icon={<Mail aria-hidden />}
-      hint={<p className="text-body-sm text-plum">{JOIN.emailLocked}</p>}
-      className="bg-ivory"
-    />
+    <div className="flex flex-col gap-2">
+      <span id={`${id}-label`} className="text-label-md text-graphite">
+        Email address
+      </span>
+      <p className="flex items-start gap-3 rounded-xl border border-sand bg-ivory px-4 py-3 text-body-md break-all text-graphite">
+        <Mail aria-hidden className="mt-0.5 size-[18px] shrink-0 text-plum" />
+        <span>{email}</span>
+      </p>
+      <input
+        type="email"
+        name="email"
+        value={email}
+        readOnly
+        autoComplete="username"
+        aria-labelledby={`${id}-label`}
+        tabIndex={-1}
+        className="sr-only"
+      />
+      <p className="text-body-sm text-plum">{JOIN.emailLocked}</p>
+    </div>
   );
 }
 

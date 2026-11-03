@@ -2,6 +2,8 @@ import "server-only";
 
 import type { RenderedEmail } from "../types";
 
+import { withArticle } from "@/lib/text";
+
 import { escapeHtml, renderButton, renderLayout, safeUrl } from "./layout";
 
 export interface MemberInvitationEmailProps {
@@ -13,25 +15,32 @@ export interface MemberInvitationEmailProps {
   acceptUrl: string;
   /** Already formatted for display, e.g. "21 October 2026" */
   expiresOn: string;
+  /** A resent invitation: the subject starts with "Reminder:" and the old link no longer works. */
+  reminder?: boolean;
 }
 
 /** SYSTEM_DESIGN §18–19, PRD §9.4. Placeholder copy. */
 export function renderMemberInvitationEmail(props: MemberInvitationEmailProps): RenderedEmail {
   const url = safeUrl(props.acceptUrl);
-  const subject = `${props.inviterName} invited you to help plan ${props.coupleNames}'s wedding`;
+  const role = withArticle(props.roleLabel);
+  const subject = `${props.reminder ? "Reminder: " : ""}${props.inviterName} invited you to help plan ${props.coupleNames}'s wedding`;
+  const replaces = props.reminder
+    ? "This link replaces the one in any earlier invitation email."
+    : null;
   const text = [
-    `${props.inviterName} has invited you to join ${props.coupleNames}'s wedding on Make My Marriage as a ${props.roleLabel}.`,
+    `${props.inviterName} has invited you to join ${props.coupleNames}'s wedding on Make My Marriage as ${role}.`,
     "",
     "Accept the invitation:",
     url,
     "",
     `This invitation expires on ${props.expiresOn}.`,
+    ...(replaces ? [replaces] : []),
   ].join("\n");
   const html = renderLayout({
     preheader: `Join ${props.coupleNames}'s wedding workspace`,
-    bodyHtml: `<p>${escapeHtml(props.inviterName)} has invited you to join <strong>${escapeHtml(props.coupleNames)}</strong>'s wedding on Make My Marriage as a ${escapeHtml(props.roleLabel)}.</p>
+    bodyHtml: `<p>${escapeHtml(props.inviterName)} has invited you to join <strong>${escapeHtml(props.coupleNames)}</strong>'s wedding on Make My Marriage as ${escapeHtml(role)}.</p>
       ${renderButton(url, "Accept invitation")}
-      <p>This invitation expires on ${escapeHtml(props.expiresOn)}.</p>`,
+      <p>This invitation expires on ${escapeHtml(props.expiresOn)}.</p>${replaces ? `\n      <p>${escapeHtml(replaces)}</p>` : ""}`,
   });
   return { subject, html, text };
 }

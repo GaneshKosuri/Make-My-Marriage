@@ -67,6 +67,7 @@ async function sendInvitationEmail(
   token: string,
   wedding: IdentityWedding,
   inviterName: string,
+  reminder = false,
 ): Promise<void> {
   await getEmailService().send({
     to: invitation.email,
@@ -81,6 +82,7 @@ async function sendInvitationEmail(
         month: "long",
         year: "numeric",
       }),
+      reminder,
     },
   });
 }
@@ -188,7 +190,7 @@ export const memberInvitationService = {
     if (!invitation) throw new AppError("NOT_FOUND");
 
     try {
-      await sendInvitationEmail(invitation, token, wedding, inviter.name);
+      await sendInvitationEmail(invitation, token, wedding, inviter.name, true);
     } catch (error) {
       await memberInvitationRepository.replaceToken(ctx.weddingId, invitationId, tokenHash, {
         tokenHash: current.tokenHash,
