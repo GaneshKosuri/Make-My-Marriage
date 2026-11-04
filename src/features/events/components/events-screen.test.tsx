@@ -241,4 +241,20 @@ describe("<EventsScreen />", () => {
       vi.useRealTimers();
     }
   });
+
+  it("says when an event ends the next day or later, as its page does (QA P3-1)", async () => {
+    const sangeet = event("e5", "Sangeet", "2027-02-12T14:30:00.000Z", {
+      endsAt: "2027-02-12T19:30:00.000Z",
+    });
+    const allNight = event("e6", "Jagran", "2027-02-12T12:30:00.000Z", {
+      endsAt: "2027-02-13T12:30:00.000Z",
+    });
+    routes[LIST] = () => data([allNight, sangeet]);
+    renderScreen();
+
+    const upcoming = within(await screen.findByRole("region", { name: EVENTS.upcoming }));
+    expect(upcoming.getByText("8:00 PM – 1:00 AM (next day)")).toBeInTheDocument();
+    // Not a bare "6:00 PM – 6:00 PM", which reads like a zero-length event.
+    expect(upcoming.getByText("6:00 PM – 6:00 PM (next day)")).toBeInTheDocument();
+  });
 });

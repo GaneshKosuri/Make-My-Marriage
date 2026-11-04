@@ -1,8 +1,8 @@
 # Project Status — Make My Marriage
 
 **Last updated:** 2026-11-04
-**Current phase:** Phase 2 — Planning (PRD §16): features complete (events and tasks), awaiting QA; Phase 1 complete and QA-verified (3 Nov)
-**Next up:** Phase 2 QA hand-off and click-through, then Phase 3 — Guests (guests, invitations, RSVP, email jobs)
+**Current phase:** Phase 2 — Planning (PRD §16): complete and QA-verified (4 Nov, 256/257 checks; the one P3 fixed); Phase 1 complete and QA-verified (3 Nov)
+**Next up:** Phase 3 — Guests (guests, invitations, RSVP, email jobs), starting with the R8/R9 clean-ups. Open decision: D7 (time zone change and event clock times)
 
 This file tracks what has been built and what comes next. Update it whenever a feature lands or new
 work starts: move items between the tables, add a row to the change log and refresh the header.
@@ -146,6 +146,15 @@ monitoring.
   after creating a wedding; the integration suite failed once on a cold first run. Capture the stack
   trace / check the in-memory MongoDB start-up timeout if either recurs. Close stray `localhost:3000`
   tabs when testing: one reloading /login twice a second flooded the dev log on 3 Nov.
+- **Decision needed: changing the wedding's time zone (QA D7, 4 Nov).** Events and due dates keep their
+  moment in time, so after switching from India to London a 6:00 PM IST Sangeet reads 12:30 PM. Right
+  for a wedding that really moves; surprising when someone corrects a wrongly chosen time zone after
+  adding events. Options: keep as is, warn on the Wedding Details save when events exist, or offer to
+  keep clock times (shift every event and due date by the offset change).
+- **`.env.local` points at Atlas `test` again (QA note, 4 Nov).** The QA plan's local setup uses
+  `db:dev`; switch `MONGODB_URI` before the next QA round, and restart `next dev` (QA stopped it).
+- **PATCH without `version` is last-write-wins for API clients (QA note).** The UI always sends it;
+  making `version` required would match binding decision 8 more strictly. Revisit if other clients appear.
 - **Phase 3 start: shared form pieces (code review R8).** `SaveProblem` (event and task forms), the
   list skeletons and the `secondaryButton` / `dangerButton` class strings are copied across the events
   and tasks screens. Move the buttons next to `primaryButton` in `dashboard-card.tsx` (or a shared
@@ -225,3 +234,4 @@ monitoring.
 | 2026-11-04 | Tasks API (Phase 2, slice 3): list, create, get, update and delete (API §34–38) with filters, pagination, server-owned `completedAt`, optimistic concurrency and same-wedding reference checks (`membersService.assertMembershipInWedding`); 29 integration tests, schema unit tests and the second critical security test (cross-wedding task edit → 404) |
 | 2026-11-04 | Tasks screen (Phase 2, slice 4): `/app/tasks` views, filters, tick, add/edit/delete dialog; tasks on event pages; shared task details with the dashboard ("Former member", archived events); home page Tasks badge live; 18 new unit and component tests. Phase 2 features complete |
 | 2026-11-04 | Phase 2 code-review fixes R1–R7: task links followed while the screen stays mounted; emptied last page moves back; multi-day events editable (Ends on); edit forms survive background refetches; event changes refresh task lists; task form explains failed member/event lists; events Upcoming/Past kept current. 13 new tests, each failing before its fix. R8/R9 clean-ups listed for the start of Phase 3 |
+| 2026-11-04 | Phase 2 QA (handoffs/qa-report-phase-2.md): 256 of 257 checks pass, no P1/P2, no cross-wedding leaks. Fixed P3-1 (event rows now say "(next day)" or the end date, as the event page does) and the filter-label polish (labels linked by id); added the D8 test QA couldn't run (50-task cap and "All tasks for this event" link). Phase 2 QA-verified |

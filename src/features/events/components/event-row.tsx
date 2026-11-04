@@ -2,11 +2,12 @@ import { ChevronRight, MapPin } from "lucide-react";
 import Link from "next/link";
 
 import { focusRing } from "@/features/dashboard/components/dashboard-card";
-import { eventDateTile, eventTimeRange } from "@/features/dashboard/format";
+import { eventDateTile } from "@/features/dashboard/format";
 import { cn } from "@/lib/cn";
 import type { EventDto } from "@/modules/events/event.types";
 
 import { EVENTS, EVENTS_ROUTES } from "../events-content";
+import { eventSchedule } from "../format";
 
 /**
  * One event as a link to its page: date tile, name, time range, venue and
@@ -42,7 +43,8 @@ export function EventRow({ event, timeZone }: Readonly<{ event: EventDto; timeZo
             {event.name}
           </span>
           <span className="rounded-full border border-sand px-2.5 py-0.5 text-body-sm text-plum">
-            {eventTimeRange(event, timeZone)}
+            {/* Same wording as the event page: "(next day)", or the end date when later. */}
+            {eventSchedule(event, timeZone).time}
           </span>
           {archived && (
             <span className="rounded-full bg-sand px-2.5 py-0.5 text-label-sm text-plum">

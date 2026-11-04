@@ -2,7 +2,7 @@
 
 import { Check, CheckCircle2, ListChecks, Plus, RefreshCw } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState, type ComponentProps } from "react";
+import { useEffect, useId, useState, type ComponentProps } from "react";
 
 import { focusRing, primaryButton } from "@/features/dashboard/components/dashboard-card";
 import { isOverdue } from "@/features/dashboard/format";
@@ -350,10 +350,15 @@ function FilterSelect({
   children,
   ...select
 }: Readonly<{ label: string } & ComponentProps<"select">>) {
+  const id = useId();
   return (
-    <label className="flex min-w-0 flex-col gap-1 text-label-sm text-plum">
-      {label}
+    <div className="flex min-w-0 flex-col gap-1">
+      {/* Linked by id, not wrapped, so the name is just the label ("Status"). */}
+      <label htmlFor={id} className="text-label-sm text-plum">
+        {label}
+      </label>
       <select
+        id={id}
         className={cn(
           "h-10 w-full min-w-0 rounded-xl border border-sand bg-ivory px-3 text-body-md text-graphite",
           "focus-visible:border-burgundy focus-visible:ring-[3px] focus-visible:ring-burgundy/10 focus-visible:outline-none",
@@ -362,7 +367,7 @@ function FilterSelect({
       >
         {children}
       </select>
-    </label>
+    </div>
   );
 }
 

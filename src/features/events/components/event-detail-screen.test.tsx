@@ -123,6 +123,36 @@ describe("<EventDetailScreen />", () => {
     );
   });
 
+  it("links to the full list when the event has more tasks than its page shows (D8)", async () => {
+    const many = Array.from({ length: 50 }, (_, index) => ({
+      id: `t${index}`,
+      title: `Task ${index}`,
+      description: null,
+      priority: "MEDIUM",
+      status: "TODO",
+      dueDate: null,
+      completedAt: null,
+      assignedMembershipId: null,
+      assignee: null,
+      event: { id: "e1", name: "Sangeet", archivedAt: null },
+      version: 0,
+      createdAt: "2026-11-01T00:00:00.000Z",
+      updatedAt: "2026-11-01T00:00:00.000Z",
+    }));
+    routes["GET /api/tasks?eventId=e1&limit=50"] = () => ({
+      status: 200,
+      body: { data: many, pagination: { page: 1, limit: 50, total: 60, totalPages: 2 } },
+    });
+    renderScreen();
+
+    const card = within(await screen.findByRole("region", { name: TASKS.forEvent.title }));
+    expect(await card.findAllByRole("button", { name: /^Edit "Task/ })).toHaveLength(50);
+    expect(card.getByRole("link", { name: TASKS.forEvent.all })).toHaveAttribute(
+      "href",
+      "/app/tasks?eventId=e1",
+    );
+  });
+
   it("shows when and where in the wedding's time zone, with a maps link", async () => {
     renderScreen();
 

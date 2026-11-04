@@ -332,4 +332,21 @@ describe("<TasksScreen />", () => {
     expect(await screen.findByText("1–20 of 20")).toBeInTheDocument();
     expect(screen.queryByText(/21–20/)).not.toBeInTheDocument();
   });
+
+  it("names each filter by its label alone (QA note)", async () => {
+    renderScreen();
+    await screen.findByRole("button", { name: 'Edit "Book the DJ"' });
+    for (const name of [
+      TASKS.filters.status,
+      TASKS.filters.event,
+      TASKS.filters.assignee,
+      TASKS.filters.priority,
+    ]) {
+      // Browsers would add a wrapped select's value to its name ("Status Any status"),
+      // so the label must point at the select instead of containing it.
+      const label = screen.getByText(name, { selector: "label" }) as HTMLLabelElement;
+      expect(label.querySelector("select")).toBeNull();
+      expect(document.getElementById(label.htmlFor)).toBe(screen.getByRole("combobox", { name }));
+    }
+  });
 });
