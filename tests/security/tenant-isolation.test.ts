@@ -2,7 +2,9 @@ import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
 
 import { GET as getEvent } from "@/app/api/events/[eventId]/route";
+import { PATCH as updateTask } from "@/app/api/tasks/[taskId]/route";
 import { EventModel } from "@/modules/events/event.model";
+import { TaskModel } from "@/modules/tasks/task.model";
 
 import { createUser, createWedding, signedInUser } from "../setup/factories";
 import { TEST_APP_URL } from "../setup/test-env";
@@ -34,7 +36,31 @@ describe("critical security tests (SYSTEM_DESIGN §91)", () => {
     expect(response.status).toBe(404);
     expect(await response.json()).toMatchObject({ error: { code: "NOT_FOUND" } });
   });
-  it.todo("Wedding A Manager cannot modify Wedding B task (Phase 2: PATCH /api/tasks/:id → 404)");
+  it("Wedding A Manager cannot modify Wedding B task (PATCH /api/tasks/:id → 404)", async () => {
+    const owner = await createUser();
+    const weddingA = await createWedding(owner._id);
+    const weddingB = await createWedding(owner._id);
+    const managerA = await signedInUser({ wedding: weddingA, role: "MANAGER" });
+    const taskB = await TaskModel.create({ weddingId: weddingB._id, title: "Book the band" });
+    const taskId = taskB._id.toString();
+
+    const response = await updateTask(
+      new NextRequest(`${TEST_APP_URL}/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: {
+          cookie: managerA.cookie,
+          origin: TEST_APP_URL,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ status: "COMPLETED" }),
+      }),
+      { params: Promise.resolve({ taskId }) },
+    );
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({ error: { code: "NOT_FOUND" } });
+    const after = await TaskModel.findOne({ _id: taskB._id, weddingId: weddingB._id }).lean();
+    expect(after).toMatchObject({ status: "TODO", __v: 0 });
+  });
   it.todo(
     "Manager cannot manage Wedding Members (Phase 1: invitations, role changes, removal → 403; route level already covered in tests/integration/auth-levels.test.ts)",
   );

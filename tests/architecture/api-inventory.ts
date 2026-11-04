@@ -248,11 +248,46 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
   },
 
   // ── Tasks (API §34–38) ─────────────────────────────────────────────────────
-  { method: "GET", path: "/api/tasks", auth: "member", phase: P2, doc: "API §34" },
-  { method: "POST", path: "/api/tasks", auth: "member", phase: P2, doc: "API §35" },
-  { method: "GET", path: "/api/tasks/[taskId]", auth: "member", phase: P2, doc: "API §36" },
-  { method: "PATCH", path: "/api/tasks/[taskId]", auth: "member", phase: P2, doc: "API §37" },
-  { method: "DELETE", path: "/api/tasks/[taskId]", auth: "member", phase: P2, doc: "API §38" },
+  {
+    method: "GET",
+    path: "/api/tasks",
+    auth: "member",
+    phase: P2,
+    doc: "API §34",
+    implemented: true,
+  },
+  {
+    method: "POST",
+    path: "/api/tasks",
+    auth: "member",
+    phase: P2,
+    doc: "API §35",
+    implemented: true,
+  },
+  {
+    method: "GET",
+    path: "/api/tasks/[taskId]",
+    auth: "member",
+    phase: P2,
+    doc: "API §36",
+    implemented: true,
+  },
+  {
+    method: "PATCH",
+    path: "/api/tasks/[taskId]",
+    auth: "member",
+    phase: P2,
+    doc: "API §37",
+    implemented: true,
+  },
+  {
+    method: "DELETE",
+    path: "/api/tasks/[taskId]",
+    auth: "member",
+    phase: P2,
+    doc: "API §38",
+    implemented: true,
+  },
 
   // ── Guests (API §39–49, §52) ───────────────────────────────────────────────
   { method: "GET", path: "/api/guests", auth: "member", phase: P3, doc: "API §39" },

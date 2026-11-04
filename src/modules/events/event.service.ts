@@ -143,17 +143,21 @@ export const eventsService = {
   // ── Cross-module operations (call through @/modules/events) ─────────────
 
   /**
-   * Throws VALIDATION_ERROR unless every id is an active event of this wedding.
-   * Used by tasks, guests, vendors, expenses and photos (DATABASE_DESIGN §83).
+   * Throws VALIDATION_ERROR (with `field` in the details) unless every id is an
+   * active event of this wedding. Unknown, archived and other weddings' events
+   * look the same. Used by tasks, guests, vendors, expenses and photos (DATABASE_DESIGN §83).
    */
-  async assertActiveEventsInWedding(weddingId: string, eventIds: readonly string[]): Promise<void> {
+  async assertActiveEventsInWedding(
+    weddingId: string,
+    eventIds: readonly string[],
+    field = "eventId",
+  ): Promise<void> {
     const unique = [...new Set(eventIds)];
     const active = await eventRepository.findActiveByIds(weddingId, unique);
     if (active.length !== unique.length) {
-      throw new AppError(
-        "VALIDATION_ERROR",
-        "Choose an event of this wedding that is not archived.",
-      );
+      throw new AppError("VALIDATION_ERROR", undefined, {
+        details: { [field]: "Choose an event of this wedding that is not archived" },
+      });
     }
   },
 

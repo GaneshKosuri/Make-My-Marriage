@@ -81,6 +81,7 @@ const fullDashboard: DashboardDto = {
       // Midnight 30 Dec in India.
       dueDate: "2026-12-29T18:30:00.000Z",
       completedAt: null,
+      assignedMembershipId: "m1",
       assignee: { membershipId: "m1", name: "Akshay Saini", role: "ADMIN" },
       event: null,
       version: 0,
@@ -95,6 +96,7 @@ const fullDashboard: DashboardDto = {
       status: "IN_PROGRESS",
       dueDate: "2027-01-17T18:30:00.000Z",
       completedAt: null,
+      assignedMembershipId: null,
       assignee: null,
       event: { id: "e2", name: "Haldi", archivedAt: null },
       version: 0,

@@ -5,6 +5,7 @@
 import { z } from "zod";
 
 import { objectId } from "@/lib/object-id";
+import { queryFlag } from "@/lib/query";
 
 import {
   EVENT_ADDRESS_MAX_LENGTH,
@@ -76,8 +77,6 @@ export const updateEventSchema = z
     (input) => Object.keys(input).some((key) => key !== "version"),
     "Send at least one field to change",
   );
-
-const queryFlag = z.enum(["true", "false"]).transform((value) => value === "true");
 
 /**
  * API_DESIGN §29. `from`/`to` keep events that start in [from, to); archived
