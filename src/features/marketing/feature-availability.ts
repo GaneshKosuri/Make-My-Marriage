@@ -7,7 +7,7 @@ export type FeatureAvailability = "live" | "coming-soon";
 
 const availability = {
   events: "live", // Phase 2
-  tasks: "coming-soon", // Phase 2: flip to "live" when it ships.
+  tasks: "live", // Phase 2
   guests: "coming-soon", // Phase 3
   familyMembers: "live", // Phase 1
   organiserGallery: "coming-soon", // Phase 6

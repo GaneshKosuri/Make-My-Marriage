@@ -35,7 +35,7 @@ export const QUICK_ADD_ITEMS: readonly {
   {
     label: "Add task",
     hint: "Something to do, with a due date",
-    href: "/app/tasks",
+    href: "/app/tasks?new=1",
     icon: ListChecks,
   },
   {

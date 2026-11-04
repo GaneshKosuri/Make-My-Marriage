@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DashboardDto } from "@/modules/dashboard/dashboard.types";
 import type { MemberRole } from "@/modules/members/member.constants";
 
+import { TASKS } from "@/features/tasks/tasks-content";
+
 import { DASHBOARD } from "../dashboard-content";
 import { DashboardScreen } from "./dashboard-screen";
 
@@ -159,7 +161,7 @@ describe("<DashboardScreen />", () => {
 
     const tasks = region(DASHBOARD.tasks.title);
     expect(tasks.getByText("Due 30 Dec 2026")).toBeInTheDocument();
-    expect(tasks.getAllByText(DASHBOARD.tasks.overdue)).toHaveLength(1);
+    expect(tasks.getAllByText(TASKS.overdue)).toHaveLength(1);
     expect(tasks.getByText("Akshay Saini")).toBeInTheDocument();
     expect(tasks.getByText("Haldi")).toBeInTheDocument();
     expect(tasks.getByRole("link", { name: DASHBOARD.tasks.mine })).toHaveAttribute(

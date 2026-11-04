@@ -23,6 +23,7 @@ import {
   textLink,
 } from "@/features/dashboard/components/dashboard-card";
 import { Dialog } from "@/features/members/components/dialog";
+import { EventTasks } from "@/features/tasks/components/event-tasks";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { formatInstant, type DateOnly } from "@/lib/dates";
@@ -230,6 +231,8 @@ function EventDetail({
           </p>
         </DashboardCard>
       )}
+
+      <EventTasks eventId={event.id} archived={archived} timeZone={timeZone} today={today} />
 
       {!archived && (
         <EventFormDialog

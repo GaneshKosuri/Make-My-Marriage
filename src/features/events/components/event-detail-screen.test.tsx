@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EventDto } from "@/modules/events/event.types";
 
+import { TASKS } from "@/features/tasks/tasks-content";
+
 import { EVENTS } from "../events-content";
 import { EventDetailScreen } from "./event-detail-screen";
 
@@ -85,6 +87,42 @@ afterEach(() => {
 });
 
 describe("<EventDetailScreen />", () => {
+  it("lists the event's tasks and adds one already linked to it", async () => {
+    routes["GET /api/tasks?eventId=e1&limit=50"] = () => ({
+      status: 200,
+      body: {
+        data: [
+          {
+            id: "t1",
+            title: "Book the DJ",
+            description: null,
+            priority: "HIGH",
+            status: "TODO",
+            dueDate: null,
+            completedAt: null,
+            assignedMembershipId: null,
+            assignee: null,
+            event: { id: "e1", name: "Sangeet", archivedAt: null },
+            version: 0,
+            createdAt: "2026-11-01T00:00:00.000Z",
+            updatedAt: "2026-11-01T00:00:00.000Z",
+          },
+        ],
+        pagination: { page: 1, limit: 50, total: 1, totalPages: 1 },
+      },
+    });
+    renderScreen();
+
+    const card = within(await screen.findByRole("region", { name: TASKS.forEvent.title }));
+    expect(await card.findByRole("button", { name: 'Edit "Book the DJ"' })).toBeInTheDocument();
+    // The event's own name isn't repeated on each task.
+    expect(card.queryByText("Sangeet")).not.toBeInTheDocument();
+    expect(card.getByRole("link", { name: TASKS.forEvent.add })).toHaveAttribute(
+      "href",
+      "/app/tasks?new=1&eventId=e1",
+    );
+  });
+
   it("shows when and where in the wedding's time zone, with a maps link", async () => {
     renderScreen();
 

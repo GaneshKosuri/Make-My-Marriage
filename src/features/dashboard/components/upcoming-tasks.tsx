@@ -1,25 +1,14 @@
 import { Circle, CircleDot } from "lucide-react";
 import Link from "next/link";
 
+import { OverdueChip, PriorityChip, TaskMeta } from "@/features/tasks/components/task-meta";
 import { cn } from "@/lib/cn";
-import { initialsOf } from "@/lib/couple";
 import type { DateOnly } from "@/lib/dates";
-import {
-  TASK_PRIORITY_LABELS,
-  TASK_STATUS_LABELS,
-  type TaskPriority,
-} from "@/modules/tasks/task.constants";
 import type { TaskDto } from "@/modules/tasks/task.types";
 
 import { DASHBOARD, DASHBOARD_ROUTES } from "../dashboard-content";
-import { formatShortDate, isOverdue, taskDueDay } from "../format";
+import { isOverdue } from "../format";
 import { ArrowLink, DashboardCard, EmptyState, textLink } from "./dashboard-card";
-
-const PRIORITY_CHIP: Readonly<Record<TaskPriority, string>> = {
-  HIGH: "border-burgundy/20 bg-burgundy/5 text-burgundy",
-  MEDIUM: "border-gold/40 bg-gold/10 text-gold-deep",
-  LOW: "border-sand bg-white text-plum",
-};
 
 /** PRD §9.3 "Upcoming Tasks": incomplete tasks approaching their due dates. */
 export function UpcomingTasks({
@@ -49,7 +38,7 @@ export function UpcomingTasks({
         <EmptyState
           title={copy.empty.title}
           description={copy.empty.description}
-          action={{ label: copy.empty.action, href: DASHBOARD_ROUTES.tasks }}
+          action={{ label: copy.empty.action, href: DASHBOARD_ROUTES.addTask }}
         />
       ) : (
         <>
@@ -74,10 +63,8 @@ function TaskRow({
   timeZone,
   today,
 }: Readonly<{ task: TaskDto; timeZone: string; today: DateOnly }>) {
-  const copy = DASHBOARD.tasks;
   const overdue = isOverdue(task, today, timeZone);
   const StatusIcon = task.status === "IN_PROGRESS" ? CircleDot : Circle;
-  const assignee = task.assignee?.name ?? null;
 
   return (
     <div className="flex items-start gap-3 py-4">
@@ -90,45 +77,11 @@ function TaskRow({
       />
       <div className="min-w-0 flex-1">
         <p className="text-label-md text-graphite">{task.title}</p>
-        <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-body-sm text-plum">
-          {assignee && (
-            <span className="inline-flex items-center gap-1.5">
-              <span
-                aria-hidden
-                className="inline-flex size-6 items-center justify-center rounded-full bg-burgundy text-[10px] font-bold text-ivory"
-              >
-                {initialsOf(assignee)}
-              </span>
-              <span>{assignee}</span>
-            </span>
-          )}
-          {task.event && (
-            <span className="rounded-md border border-sand px-2 py-0.5 text-graphite">
-              {task.event.name}
-            </span>
-          )}
-          {task.dueDate && (
-            <span className={cn(overdue && "font-semibold text-destructive")}>
-              {copy.due} {formatShortDate(taskDueDay(task.dueDate, timeZone))}
-            </span>
-          )}
-          <span>· {TASK_STATUS_LABELS[task.status]}</span>
-        </p>
+        <TaskMeta task={task} timeZone={timeZone} today={today} showStatus />
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1.5">
-        {overdue && (
-          <span className="rounded-full border border-destructive/30 bg-destructive/5 px-2.5 py-0.5 text-label-sm text-destructive">
-            {copy.overdue}
-          </span>
-        )}
-        <span
-          className={cn(
-            "rounded-full border px-2.5 py-0.5 text-label-sm",
-            PRIORITY_CHIP[task.priority],
-          )}
-        >
-          {TASK_PRIORITY_LABELS[task.priority]}
-        </span>
+        {overdue && <OverdueChip />}
+        <PriorityChip priority={task.priority} />
       </div>
     </div>
   );
