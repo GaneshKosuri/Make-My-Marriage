@@ -1,8 +1,8 @@
 # Project Status — Make My Marriage
 
-**Last updated:** 2026-11-03
-**Current phase:** Phase 1 — Foundation (PRD §16): complete and QA-verified (3 Nov)
-**Next up:** Phase 2 — Planning: Events (API §29–33), then Tasks (API §34–38)
+**Last updated:** 2026-11-04
+**Current phase:** Phase 2 — Planning (PRD §16): Events API done; Phase 1 complete and QA-verified (3 Nov)
+**Next up:** Events screen (slice 2, dashboard style), then Tasks API (API §34–38) and the Tasks screen
 
 This file tracks what has been built and what comes next. Update it whenever a feature lands or new
 work starts: move items between the tables, add a row to the change log and refresh the header.
@@ -45,7 +45,7 @@ Status key: ✅ Done · 🚧 In progress · ⏳ Not started (scaffold stub only)
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| Events | ⏳ | |
+| Events | 🚧 | API done (2026-11-04): list (start-time order, archived hidden unless asked, `from`/`to` window), create, get, partial edit with version check, archive. Screen next (dashboard style). Cover images wait for Phase 5 uploads |
 | Tasks | ⏳ | |
 
 ### Phase 3 — Guests ⏳
@@ -131,6 +131,10 @@ monitoring.
   was sent, so a form that sends only city, state and country clears `formattedAddress`, coordinates and
   `googlePlaceId`. Harmless today (nothing sets them); merge or resend those fields when the place picker
   is built. Found in the 2026-10-29 code review.
+- **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** also still lists the five event endpoints as
+  "501 stub"; the inventory marks them implemented.
+- **Event cover images (Phase 5).** PRD §9.5 lists a cover image; `POST /api/events/:id/cover/upload-url`
+  stays a stub until uploads land with the website and covers work.
 - **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** does not list
   `POST /api/members/invitations/:id/resend` (added 2026-10-29; the inventory has it).
 - **Rate-limit client IP.** Limits key on the first `X-Forwarded-For` address (`src/server/http/client-ip.ts`),
@@ -176,6 +180,9 @@ monitoring.
 | 2026-11-03 | Signing up or signing in from a browser that already has a session ends that old session once the new one exists; a failed attempt keeps it |
 | 2026-11-03 | Confirmed after QA: Managers cannot leave by themselves; the web address keeps the creation date when the date changes; the dashboard greets the couple; the join page opens on "Create an account" (it never reveals whether an account exists) |
 | 2026-11-03 | A resent invitation email starts with "Reminder:" and says its link replaces the earlier one |
+| 2026-11-04 | Event edits: `version` (from the event DTO) is optional on `PATCH /api/events/:id`. When sent and stale, the edit is refused with `CONFLICT`; without it the service still checks the version atomically between its read and write (matching the task notes, API §37). A PATCH must change at least one field |
+| 2026-11-04 | Archived events are read-only: editing one answers `CONFLICT` ("This event is archived…"). Archiving bumps the version and archiving again still succeeds. `GET /api/events/:id` returns archived events |
+| 2026-11-04 | `GET /api/events?from&to` keeps events that start in [from, to) (ISO instants with an offset); `to` must be after `from` |
 
 ## 5. Change log
 
@@ -197,3 +204,4 @@ monitoring.
 | 2026-10-29 | Code-review fixes: invitation resend endpoint (old link survives a failed email), stored time zone always offered in the picker, rate limit on the `/join/[token]` page lookup, no 403 flash when leaving a wedding (and creating a wedding drops the old wedding's cached data), "already has a wedding" shown right after signing up on the join page, focus kept inside dialogs, one shared wedding-date rule |
 | 2026-10-29 | Testing fixes: join page offers "Sign out and continue" before "already in a wedding"; Wedding Details save bar is compact, sticky only with unsaved changes and clear of the phone "+"; Revoke asks first and every member action replaces the last message; the invitation email says "as an Admin"; managers are told how to leave |
 | 2026-11-03 | QA hand-off fixes: Atlas database name and blank Resend key in `.env.local`; honest home page badges; 5-year wedding-date limit; `?next=` after sign-in; replaced sessions end on sign-up and sign-in; preview never shows "Married" for a rejected date; "Get started" eyebrow; Wedding Details flags a bad date as soon as it changes; "Reminder:" on resent invitations; long invited emails wrap on the join page |
+| 2026-11-04 | Events API (Phase 2, slice 1): list, create, get, update and archive (API §29–33) with optimistic concurrency, plus `assertActiveEventsInWedding` for tasks; 31 integration tests, schema unit tests and the first critical security test (cross-wedding event fetch → 404) |

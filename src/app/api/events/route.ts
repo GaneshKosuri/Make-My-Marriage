@@ -1,20 +1,19 @@
-import { notImplemented, route } from "@/server/http";
+import { created, ok, route } from "@/server/http";
+import { eventsService } from "@/modules/events";
+import { createEventSchema, listEventsQuerySchema } from "@/modules/events/event.schemas";
 
-/**
- * /api/events — stub (GET API §29, POST API §30).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 2: Planning.
- */
+/** /api/events (GET API §29, POST API §30). */
 
 /** GET — API §29. */
 export const GET = route({
   auth: "member",
-  // Phase 2: Planning: ok(await eventsService.list(ctx, query))
-  handler: () => notImplemented("Phase 2: Planning"),
+  query: listEventsQuerySchema,
+  handler: async ({ ctx, query }) => ok(await eventsService.list(ctx, query)),
 });
 
 /** POST — API §30. */
 export const POST = route({
   auth: "member",
-  // Phase 2: Planning: created(await eventsService.create(ctx, body))
-  handler: () => notImplemented("Phase 2: Planning"),
+  body: createEventSchema,
+  handler: async ({ ctx, body }) => created(await eventsService.create(ctx, body)),
 });

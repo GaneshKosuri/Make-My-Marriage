@@ -206,11 +206,46 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
   },
 
   // ── Events (API §29–33) ────────────────────────────────────────────────────
-  { method: "GET", path: "/api/events", auth: "member", phase: P2, doc: "API §29" },
-  { method: "POST", path: "/api/events", auth: "member", phase: P2, doc: "API §30" },
-  { method: "GET", path: "/api/events/[eventId]", auth: "member", phase: P2, doc: "API §31" },
-  { method: "PATCH", path: "/api/events/[eventId]", auth: "member", phase: P2, doc: "API §32" },
-  { method: "DELETE", path: "/api/events/[eventId]", auth: "member", phase: P2, doc: "API §33" },
+  {
+    method: "GET",
+    path: "/api/events",
+    auth: "member",
+    phase: P2,
+    doc: "API §29",
+    implemented: true,
+  },
+  {
+    method: "POST",
+    path: "/api/events",
+    auth: "member",
+    phase: P2,
+    doc: "API §30",
+    implemented: true,
+  },
+  {
+    method: "GET",
+    path: "/api/events/[eventId]",
+    auth: "member",
+    phase: P2,
+    doc: "API §31",
+    implemented: true,
+  },
+  {
+    method: "PATCH",
+    path: "/api/events/[eventId]",
+    auth: "member",
+    phase: P2,
+    doc: "API §32",
+    implemented: true,
+  },
+  {
+    method: "DELETE",
+    path: "/api/events/[eventId]",
+    auth: "member",
+    phase: P2,
+    doc: "API §33",
+    implemented: true,
+  },
 
   // ── Tasks (API §34–38) ─────────────────────────────────────────────────────
   { method: "GET", path: "/api/tasks", auth: "member", phase: P2, doc: "API §34" },
