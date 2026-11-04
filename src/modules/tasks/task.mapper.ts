@@ -11,7 +11,8 @@ export type AssigneeSummary = { membershipId: string; name: string; role: Member
 /**
  * Task document → DTO (API_DESIGN §34 notes): nullable `assignee` (membership
  * id, name, role — never email) and `event` (id, name, archivedAt) summaries.
- * A removed assignee or a missing event maps to null.
+ * A removed assignee keeps `assignedMembershipId` with a null `assignee`
+ * ("Former member"); a missing event maps to null.
  */
 export function toTaskDto(
   task: TaskRecord,
@@ -30,6 +31,7 @@ export function toTaskDto(
     status: task.status,
     dueDate: task.dueDate?.toISOString() ?? null,
     completedAt: task.completedAt?.toISOString() ?? null,
+    assignedMembershipId: task.assignedMembershipId?.toString() ?? null,
     assignee: assignee ?? null,
     event: event ? { id: event.id, name: event.name, archivedAt: event.archivedAt } : null,
     version: task.__v,

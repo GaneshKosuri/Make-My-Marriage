@@ -1,8 +1,10 @@
 /**
  * Event DTOs and inputs (API_DESIGN §29–33). Isomorphic.
- * TODO(Phase 2): derive inputs from ./event.schemas.ts with z.infer.
  */
+import type { z } from "zod";
+
 import type { EventType } from "./event.constants";
+import type { createEventSchema, listEventsQuerySchema, updateEventSchema } from "./event.schemas";
 
 export interface EventDto {
   id: string;
@@ -27,21 +29,6 @@ export interface EventSummaryDto {
   archivedAt: string | null;
 }
 
-export interface ListEventsQuery {
-  includeArchived?: boolean;
-  from?: string;
-  to?: string;
-}
-
-export interface CreateEventInput {
-  name: string;
-  type?: EventType | null;
-  startsAt: string;
-  endsAt?: string | null;
-  venueName?: string;
-  address?: string;
-  description?: string;
-  dressCode?: string;
-}
-
-export type UpdateEventInput = Partial<CreateEventInput> & { version: number };
+export type ListEventsQuery = z.output<typeof listEventsQuerySchema>;
+export type CreateEventInput = z.output<typeof createEventSchema>;
+export type UpdateEventInput = z.output<typeof updateEventSchema>;

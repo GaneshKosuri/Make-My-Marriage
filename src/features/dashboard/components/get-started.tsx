@@ -25,13 +25,13 @@ export function gettingStartedSteps(summary: DashboardDto["summary"], role: Memb
       key: "event",
       ...steps.event,
       done: summary.events > 0,
-      action: { label: steps.event.action, href: DASHBOARD_ROUTES.events },
+      action: { label: steps.event.action, href: DASHBOARD_ROUTES.addEvent },
     },
     {
       key: "task",
       ...steps.task,
       done: summary.tasks.total > 0,
-      action: { label: steps.task.action, href: DASHBOARD_ROUTES.tasks },
+      action: { label: steps.task.action, href: DASHBOARD_ROUTES.addTask },
     },
     {
       key: "guests",

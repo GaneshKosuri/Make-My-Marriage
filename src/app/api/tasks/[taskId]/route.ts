@@ -1,31 +1,30 @@
-import { notImplemented, route } from "@/server/http";
-import { taskIdParams } from "@/modules/tasks/task.schemas";
+import { ok, route, success } from "@/server/http";
+import { tasksService } from "@/modules/tasks";
+import { taskIdParams, updateTaskSchema } from "@/modules/tasks/task.schemas";
 
-/**
- * /api/tasks/[taskId] — stub (GET API §36, PATCH API §37, DELETE API §38).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 2: Planning.
- */
+/** /api/tasks/[taskId] (GET API §36, PATCH API §37, DELETE API §38). */
 
 /** GET — API §36. */
 export const GET = route({
   auth: "member",
   params: taskIdParams,
-  // Phase 2: Planning: ok(await tasksService.get(ctx, params.taskId))
-  handler: () => notImplemented("Phase 2: Planning"),
+  handler: async ({ ctx, params }) => ok(await tasksService.get(ctx, params.taskId)),
 });
 
 /** PATCH — API §37. */
 export const PATCH = route({
   auth: "member",
   params: taskIdParams,
-  // Phase 2: Planning: ok(await tasksService.update(ctx, params.taskId, body))
-  handler: () => notImplemented("Phase 2: Planning"),
+  body: updateTaskSchema,
+  handler: async ({ ctx, params, body }) => ok(await tasksService.update(ctx, params.taskId, body)),
 });
 
-/** DELETE — API §38. */
+/** DELETE — API §38: hard delete. */
 export const DELETE = route({
   auth: "member",
   params: taskIdParams,
-  // Phase 2: Planning: await tasksService.delete(ctx, params.taskId); return noContent()
-  handler: () => notImplemented("Phase 2: Planning"),
+  handler: async ({ ctx, params }) => {
+    await tasksService.delete(ctx, params.taskId);
+    return success();
+  },
 });

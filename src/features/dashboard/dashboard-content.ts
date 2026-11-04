@@ -5,8 +5,12 @@
 
 export const DASHBOARD_ROUTES = {
   events: "/app/events",
+  /** Opens the add form straight away (see features/events/events-content.ts). */
+  addEvent: "/app/events?new=1",
   event: (eventId: string) => `/app/events/${eventId}`,
   tasks: "/app/tasks",
+  /** Opens the add form straight away (see features/tasks/tasks-content.ts). */
+  addTask: "/app/tasks?new=1",
   myTasks: "/app/tasks?mine=true",
   guests: "/app/guests",
   rsvp: "/app/guests/rsvp",
@@ -49,7 +53,6 @@ export const DASHBOARD = {
     title: "Upcoming events",
     add: "Add event",
     all: "All events",
-    dressCode: "Dress code",
     empty: {
       title: "No events yet",
       description: "Add your ceremonies, such as Mehendi, Haldi, Sangeet and the Wedding.",
@@ -60,8 +63,6 @@ export const DASHBOARD = {
     title: "Upcoming tasks",
     all: "All tasks",
     mine: "My tasks",
-    due: "Due",
-    overdue: "Overdue",
     empty: {
       title: "No tasks yet",
       description: "Add the things to do, who is doing them and when they are due.",

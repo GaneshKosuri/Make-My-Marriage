@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DashboardDto } from "@/modules/dashboard/dashboard.types";
 import type { MemberRole } from "@/modules/members/member.constants";
 
+import { TASKS } from "@/features/tasks/tasks-content";
+
 import { DASHBOARD } from "../dashboard-content";
 import { DashboardScreen } from "./dashboard-screen";
 
@@ -81,6 +83,7 @@ const fullDashboard: DashboardDto = {
       // Midnight 30 Dec in India.
       dueDate: "2026-12-29T18:30:00.000Z",
       completedAt: null,
+      assignedMembershipId: "m1",
       assignee: { membershipId: "m1", name: "Akshay Saini", role: "ADMIN" },
       event: null,
       version: 0,
@@ -95,6 +98,7 @@ const fullDashboard: DashboardDto = {
       status: "IN_PROGRESS",
       dueDate: "2027-01-17T18:30:00.000Z",
       completedAt: null,
+      assignedMembershipId: null,
       assignee: null,
       event: { id: "e2", name: "Haldi", archivedAt: null },
       version: 0,
@@ -157,7 +161,7 @@ describe("<DashboardScreen />", () => {
 
     const tasks = region(DASHBOARD.tasks.title);
     expect(tasks.getByText("Due 30 Dec 2026")).toBeInTheDocument();
-    expect(tasks.getAllByText(DASHBOARD.tasks.overdue)).toHaveLength(1);
+    expect(tasks.getAllByText(TASKS.overdue)).toHaveLength(1);
     expect(tasks.getByText("Akshay Saini")).toBeInTheDocument();
     expect(tasks.getByText("Haldi")).toBeInTheDocument();
     expect(tasks.getByRole("link", { name: DASHBOARD.tasks.mine })).toHaveAttribute(
@@ -177,9 +181,10 @@ describe("<DashboardScreen />", () => {
     expect(await screen.findByText("Welcome, Akshay & Princi!")).toBeInTheDocument();
     const checklist = region(DASHBOARD.checklist.title);
     expect(checklist.getByText("0 of 5 done")).toBeInTheDocument();
+    // Opens the add form straight away.
     expect(checklist.getByRole("link", { name: "Add your first event" })).toHaveAttribute(
       "href",
-      "/app/events",
+      "/app/events?new=1",
     );
     expect(checklist.getByRole("link", { name: "Invite a family member" })).toHaveAttribute(
       "href",

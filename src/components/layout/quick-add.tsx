@@ -29,13 +29,13 @@ export const QUICK_ADD_ITEMS: readonly {
   {
     label: "Add event",
     hint: "Mehendi, Haldi, Sangeet or your own",
-    href: "/app/events",
+    href: "/app/events?new=1",
     icon: CalendarDays,
   },
   {
     label: "Add task",
     hint: "Something to do, with a due date",
-    href: "/app/tasks",
+    href: "/app/tasks?new=1",
     icon: ListChecks,
   },
   {

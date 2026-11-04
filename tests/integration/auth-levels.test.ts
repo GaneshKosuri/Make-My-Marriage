@@ -8,7 +8,7 @@ import {
 } from "@/app/api/internal/jobs/email/route";
 import { DELETE as removeMember } from "@/app/api/members/[membershipId]/route";
 import { GET as listMemberInvitations } from "@/app/api/members/invitations/route";
-import { GET as listTasks } from "@/app/api/tasks/route";
+import { GET as listGuests } from "@/app/api/guests/route";
 
 import { createWedding, signedInUser } from "../setup/factories";
 import { TEST_APP_URL, TEST_CRON_SECRET } from "../setup/test-env";
@@ -66,25 +66,25 @@ beforeAll(async () => {
 
 describe("member routes", () => {
   it("401 without a session", async () => {
-    expect(await call(listTasks)).toMatchObject({
+    expect(await call(listGuests)).toMatchObject({
       status: 401,
       body: { error: { code: "UNAUTHENTICATED" } },
     });
   });
 
   it("403 for a signed-in user with no wedding", async () => {
-    expect(await call(listTasks, { cookie: noWedding.cookie })).toMatchObject({
+    expect(await call(listGuests, { cookie: noWedding.cookie })).toMatchObject({
       status: 403,
       body: { error: { code: "FORBIDDEN" } },
     });
   });
 
   it("403 when the member's wedding is soft-deleted", async () => {
-    expect((await call(listTasks, { cookie: deletedWeddingMember.cookie })).status).toBe(403);
+    expect((await call(listGuests, { cookie: deletedWeddingMember.cookie })).status).toBe(403);
   });
 
   it("passes members through to the (stubbed) handler", async () => {
-    expect(await call(listTasks, { cookie: manager.cookie })).toMatchObject({
+    expect(await call(listGuests, { cookie: manager.cookie })).toMatchObject({
       status: 501,
       body: { error: { code: "NOT_IMPLEMENTED" } },
     });

@@ -1,8 +1,8 @@
 # Project Status — Make My Marriage
 
-**Last updated:** 2026-11-03
-**Current phase:** Phase 1 — Foundation (PRD §16): complete and QA-verified (3 Nov)
-**Next up:** Phase 2 — Planning: Events (API §29–33), then Tasks (API §34–38)
+**Last updated:** 2026-11-04
+**Current phase:** Phase 2 — Planning (PRD §16): complete and QA-verified (4 Nov, 256/257 checks; the one P3 fixed); Phase 1 complete and QA-verified (3 Nov)
+**Next up:** Phase 3 — Guests (guests, invitations, RSVP, email jobs), starting with the R8/R9 clean-ups. Open decision: D7 (time zone change and event clock times)
 
 This file tracks what has been built and what comes next. Update it whenever a feature lands or new
 work starts: move items between the tables, add a row to the change log and refresh the header.
@@ -41,12 +41,12 @@ Status key: ✅ Done · 🚧 In progress · ⏳ Not started (scaffold stub only)
 | Dashboard | ✅ | `GET /api/dashboard` and `GET /api/wedding`; dashboard screen (countdown, six summary cards, upcoming events and tasks, RSVP overview, "Get started" checklist, empty and loading states) and the restyled app shell (sidebar, top bar with "+ Add", phone bottom bar with "More" and "+" sheets), desktop + mobile, from the Stitch dashboard designs |
 | Wedding settings (Wedding Details) | ✅ | `PATCH /api/wedding` for Admins and Managers: any subset of names, title, description, date, time zone and place; the web address never changes; blank title or description clears it; a changed date must be today or later in the wedding's time zone. Settings → Wedding Details form in the dashboard style, sending only changed fields, with the fixed website address shown. Cover photo waits for Phase 5 |
 
-### Phase 2 — Planning ⏳
+### Phase 2 — Planning ✅
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| Events | ⏳ | |
-| Tasks | ⏳ | |
+| Events | ✅ | API (2026-11-04): list (start-time order, archived hidden unless asked, `from`/`to` window), create, get, partial edit with version check, archive. Screens (dashboard style, desktop + mobile): `/app/events` with upcoming, past and archived-on-request lists, an add/edit dialog with occasion shortcuts and wall-clock times in the wedding's time zone (an end before the start is the next day); `/app/events/[id]` with when and where, Google Maps link, dress code, notes, edit (reload on conflict) and archive with confirmation. Dashboard and "+" links open the add form (`?new=1`). Cover images wait for Phase 5 uploads |
+| Tasks | ✅ | API (2026-11-04): paged list (newest first) with status, priority, event, assignee, `none` and `mine` filters; create, get, partial edit with version check, hard delete; assignee and event checked against the wedding; server-owned `completedAt`. Screen (dashboard style, desktop + mobile): `/app/tasks` with All / My / Completed views, filters by status, event, assignee and priority (kept in the address), a tick to complete or reopen, overdue flags, "Former member" and archived-event labels, pages of 20, add/edit dialog (assignee, event, due day in the wedding's time zone, priority, status, notes) with reload on conflict and delete with confirmation. Event pages list their tasks with "Add task" linked to the event. Dashboard, checklist and "+" links open the add form |
 
 ### Phase 3 — Guests ⏳
 
@@ -89,8 +89,8 @@ monitoring.
 
 ## 3. Open items
 
-- **Home page badges follow what is built.** Only family members is `live`; flip `events` and `tasks`
-  to `live` in `feature-availability.ts` (and its test) when Phase 2 ships, and so on per phase.
+- **Home page badges follow what is built.** Family members, events and tasks are `live`; flip each
+  later feature in `feature-availability.ts` (and its test) when its phase ships.
 - **Privacy wording.** Confirm the home page line "Your data stays yours: used only to run your
   wedding".
 - **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** still lists the six auth endpoints as
@@ -100,8 +100,6 @@ monitoring.
   5 reset emails per 15 minutes to the same address. Revisit if abuse appears.
 - **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** also lists the eight member endpoints as
   "501 stub"; the inventory marks them implemented.
-- **Removing a member and their tasks (Phase 2).** `removeMember` deletes the membership only. When
-  tasks land, unassign the removed member's tasks (`assignedMembershipId`); a TODO marks the spot.
 - **Member rate limits are placeholders.** Invites 30 per wedding per hour, the public invite preview
   60 per IP per minute, accepting 20 per user per 15 minutes. Tune with real traffic.
 - **Local testing setup (QA 3 Nov).** `npm run db:dev`, then `next dev` with
@@ -112,8 +110,10 @@ monitoring.
 - **Restart `next dev` after this change.** The identity ports are registered once at startup, so a
   running dev server keeps showing the header without the wedding's place until it restarts.
 - **Dashboard links lead to placeholders.** Every card, "+ Add" item and checklist step links to the
-  page where that record is added (events, tasks, guests, …). Those pages are placeholders until their
-  phase lands.
+  page where that record is added (guests, expenses, …). Those pages are placeholders until their phase
+  lands; events and tasks are real since 2026-11-04.
+- **Archiving an event cannot be undone yet.** There is no unarchive endpoint in API_DESIGN; the
+  confirmation says so. Add one if families ask for it.
 - **RSVP reminder and WhatsApp buttons** from the dashboard design are left out until Phase 3 (guest
   invitations), so the RSVP overview shows counts and a link to RSVP status only.
 - **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** also still lists `GET /api/wedding` and
@@ -131,6 +131,10 @@ monitoring.
   was sent, so a form that sends only city, state and country clears `formattedAddress`, coordinates and
   `googlePlaceId`. Harmless today (nothing sets them); merge or resend those fields when the place picker
   is built. Found in the 2026-10-29 code review.
+- **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** also still lists the five event and five task
+  endpoints as "501 stub"; the inventory marks them implemented.
+- **Event cover images (Phase 5).** PRD §9.5 lists a cover image; `POST /api/events/:id/cover/upload-url`
+  stays a stub until uploads land with the website and covers work.
 - **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** does not list
   `POST /api/members/invitations/:id/resend` (added 2026-10-29; the inventory has it).
 - **Rate-limit client IP.** Limits key on the first `X-Forwarded-For` address (`src/server/http/client-ip.ts`),
@@ -142,6 +146,24 @@ monitoring.
   after creating a wedding; the integration suite failed once on a cold first run. Capture the stack
   trace / check the in-memory MongoDB start-up timeout if either recurs. Close stray `localhost:3000`
   tabs when testing: one reloading /login twice a second flooded the dev log on 3 Nov.
+- **Decision needed: changing the wedding's time zone (QA D7, 4 Nov).** Events and due dates keep their
+  moment in time, so after switching from India to London a 6:00 PM IST Sangeet reads 12:30 PM. Right
+  for a wedding that really moves; surprising when someone corrects a wrongly chosen time zone after
+  adding events. Options: keep as is, warn on the Wedding Details save when events exist, or offer to
+  keep clock times (shift every event and due date by the offset change).
+- **`.env.local` points at Atlas `test` again (QA note, 4 Nov).** The QA plan's local setup uses
+  `db:dev`; switch `MONGODB_URI` before the next QA round, and restart `next dev` (QA stopped it).
+- **PATCH without `version` is last-write-wins for API clients (QA note).** The UI always sends it;
+  making `version` required would match binding decision 8 more strictly. Revisit if other clients appear.
+- **Phase 3 start: shared form pieces (code review R8).** `SaveProblem` (event and task forms), the
+  list skeletons and the `secondaryButton` / `dangerButton` class strings are copied across the events
+  and tasks screens. Move the buttons next to `primaryButton` in `dashboard-card.tsx` (or a shared
+  button module), make one `SaveProblem` that takes its copy as props and one list skeleton, before
+  guests copies them again.
+- **Phase 3 start: shared UI in other features (code review R9).** Events and tasks import `Dialog` from
+  `features/members` and `isOverdue`, `eventTimeRange`, `formatShortDate`, `taskDueDay` from
+  `features/dashboard/format.ts`. Move `Dialog` (and its test) to `src/components/` and the formatters
+  to `src/lib/`; no behaviour change.
 - **Legal pages.** Privacy policy and terms are needed before production. Until they exist, the home
   footer, the auth footer and the sign-up form leave out the "Privacy · Terms" links and the
   "By continuing you agree…" line shown in the designs.
@@ -176,6 +198,16 @@ monitoring.
 | 2026-11-03 | Signing up or signing in from a browser that already has a session ends that old session once the new one exists; a failed attempt keeps it |
 | 2026-11-03 | Confirmed after QA: Managers cannot leave by themselves; the web address keeps the creation date when the date changes; the dashboard greets the couple; the join page opens on "Create an account" (it never reveals whether an account exists) |
 | 2026-11-03 | A resent invitation email starts with "Reminder:" and says its link replaces the earlier one |
+| 2026-11-04 | Event edits: `version` (from the event DTO) is optional on `PATCH /api/events/:id`. When sent and stale, the edit is refused with `CONFLICT`; without it the service still checks the version atomically between its read and write (matching the task notes, API §37). A PATCH must change at least one field |
+| 2026-11-04 | Archived events are read-only: editing one answers `CONFLICT` ("This event is archived…"). Archiving bumps the version and archiving again still succeeds. `GET /api/events/:id` returns archived events |
+| 2026-11-04 | `GET /api/events?from&to` keeps events that start in [from, to) (ISO instants with an offset); `to` must be after `from` |
+| 2026-11-04 | Event form: date plus wall-clock start and optional end time in the wedding's time zone; an end earlier than the start means the next day (a Sangeet from 8 PM to 1 AM). New events default to the wedding day (or today once it has passed) at 6 PM. Picking an occasion fills the name unless the person typed their own |
+| 2026-11-04 | Removing a member keeps their tasks assigned to them (API_DESIGN §35 notes: removed-member references "remain visible and can be retained or cleared on edit"); the DTO carries `assignedMembershipId` with a null `assignee`, which the UI shows as "Former member". This replaces the earlier plan to unassign them |
+| 2026-11-04 | Task references: a new assignee must be a current member and a new event an active event of the wedding (`VALIDATION_ERROR` with `assignedMembershipId` / `eventId` details, both reported together); a reference the task already has is kept even if that member left or the event was archived. Tasks follow the event rules for `version` (optional, stale → `CONFLICT`) and need at least one field per PATCH. `DELETE /api/tasks/:id` answers `{ success: true }` |
+| 2026-11-04 | Tasks screen: "All tasks" is every task (any status), "My tasks" the caller's, "Completed" the completed ones; the other filters apply within a view and stay in the address (`?view=`, `?status=`, `?eventId=`, `?assignedMembershipId=`, `?priority=`). A due date is a day in the wedding's time zone, stored as midnight there. The tick toggles Completed ↔ To Do; In Progress is set in the form. An event page shows up to 50 of its tasks |
+| 2026-11-04 | Event form: an optional **Ends on** date covers events longer than a day; it is filled from the stored end when the same-day / next-day rule doesn't give it, and moving the start date moves it too (code review R3) |
+| 2026-11-04 | Event and task edit forms keep what was typed when a newer copy arrives in the background; saving then answers CONFLICT and **Reload** fetches the latest copy by id (code review R4). /app/tasks reads its view and filters from the address (`useSearchParams`), so links into it work while it stays mounted (code review R1) |
+| 2026-11-04 | Events list: upcoming (including events still running) in date order, past most recent first, archived only on request. Times show in the wedding's time zone, named on the page |
 
 ## 5. Change log
 
@@ -197,3 +229,9 @@ monitoring.
 | 2026-10-29 | Code-review fixes: invitation resend endpoint (old link survives a failed email), stored time zone always offered in the picker, rate limit on the `/join/[token]` page lookup, no 403 flash when leaving a wedding (and creating a wedding drops the old wedding's cached data), "already has a wedding" shown right after signing up on the join page, focus kept inside dialogs, one shared wedding-date rule |
 | 2026-10-29 | Testing fixes: join page offers "Sign out and continue" before "already in a wedding"; Wedding Details save bar is compact, sticky only with unsaved changes and clear of the phone "+"; Revoke asks first and every member action replaces the last message; the invitation email says "as an Admin"; managers are told how to leave |
 | 2026-11-03 | QA hand-off fixes: Atlas database name and blank Resend key in `.env.local`; honest home page badges; 5-year wedding-date limit; `?next=` after sign-in; replaced sessions end on sign-up and sign-in; preview never shows "Married" for a rejected date; "Get started" eyebrow; Wedding Details flags a bad date as soon as it changes; "Reminder:" on resent invitations; long invited emails wrap on the join page |
+| 2026-11-04 | Events API (Phase 2, slice 1): list, create, get, update and archive (API §29–33) with optimistic concurrency, plus `assertActiveEventsInWedding` for tasks; 31 integration tests, schema unit tests and the first critical security test (cross-wedding event fetch → 404) |
+| 2026-11-04 | Events screens (Phase 2, slice 2): `/app/events` list and add form, `/app/events/[id]` detail with edit and archive, shared event row on the dashboard, wall-clock time helpers in `@/lib/dates`; 31 new unit and component tests. Home page Events badge now live. Events feature complete |
+| 2026-11-04 | Tasks API (Phase 2, slice 3): list, create, get, update and delete (API §34–38) with filters, pagination, server-owned `completedAt`, optimistic concurrency and same-wedding reference checks (`membersService.assertMembershipInWedding`); 29 integration tests, schema unit tests and the second critical security test (cross-wedding task edit → 404) |
+| 2026-11-04 | Tasks screen (Phase 2, slice 4): `/app/tasks` views, filters, tick, add/edit/delete dialog; tasks on event pages; shared task details with the dashboard ("Former member", archived events); home page Tasks badge live; 18 new unit and component tests. Phase 2 features complete |
+| 2026-11-04 | Phase 2 code-review fixes R1–R7: task links followed while the screen stays mounted; emptied last page moves back; multi-day events editable (Ends on); edit forms survive background refetches; event changes refresh task lists; task form explains failed member/event lists; events Upcoming/Past kept current. 13 new tests, each failing before its fix. R8/R9 clean-ups listed for the start of Phase 3 |
+| 2026-11-04 | Phase 2 QA (handoffs/qa-report-phase-2.md): 256 of 257 checks pass, no P1/P2, no cross-wedding leaks. Fixed P3-1 (event rows now say "(next day)" or the end date, as the event page does) and the filter-label polish (labels linked by id); added the D8 test QA couldn't run (50-task cap and "All tasks for this event" link). Phase 2 QA-verified |

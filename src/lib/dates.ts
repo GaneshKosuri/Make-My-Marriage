@@ -112,3 +112,70 @@ export function daysUntil(date: DateOnly, timeZone: string, now: Date = new Date
   const today = dateOnlyToUtcDate(dateOnlyInTimeZone(now, timeZone));
   return Math.round((dateOnlyToUtcDate(date).getTime() - today.getTime()) / MS_PER_DAY);
 }
+
+/** A wall-clock time of day, `HH:mm` (24-hour), as `<input type="time">` gives it. */
+export const TIME_OF_DAY_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+export function isValidTimeOfDay(value: unknown): value is string {
+  return typeof value === "string" && TIME_OF_DAY_PATTERN.test(value);
+}
+
+/** `date` moved by whole calendar days ("2027-02-28" + 1 → "2027-03-01"). */
+export function addDays(date: DateOnly, days: number): DateOnly {
+  return utcDateToDateOnly(new Date(dateOnlyToUtcDate(date).getTime() + days * MS_PER_DAY));
+}
+
+/** How far `timeZone`'s wall clock is ahead of UTC at `instant`, in ms. */
+function timeZoneOffsetMs(instant: number, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(new Date(instant));
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)?.value);
+  const wallClock = Date.UTC(
+    get("year"),
+    get("month") - 1,
+    get("day"),
+    get("hour"),
+    get("minute"),
+    get("second"),
+  );
+  return wallClock - (instant - (((instant % 1000) + 1000) % 1000));
+}
+
+/**
+ * The UTC instant at which the wall clock in `timeZone` reads `date` `time`
+ * (event start and end times, DATABASE_DESIGN §33). A time skipped by a
+ * daylight-saving change resolves to the instant just after the gap.
+ */
+export function zonedDateTimeToInstant(date: DateOnly, time: string, timeZone: string): Date {
+  const { year, month, day } = parseDateOnly(date);
+  const match = TIME_OF_DAY_PATTERN.exec(time);
+  if (!match) throw new RangeError(`Expected an HH:mm time, got "${time}"`);
+  const wallClock = Date.UTC(year, month - 1, day, Number(match[1]), Number(match[2]));
+  let instant = wallClock - timeZoneOffsetMs(wallClock, timeZone);
+  // The offset at the result can differ near a daylight-saving change.
+  const offset = timeZoneOffsetMs(instant, timeZone);
+  if (wallClock - offset !== instant) instant = wallClock - offset;
+  return new Date(instant);
+}
+
+/** The wall-clock time (`HH:mm`, 24-hour) an instant shows in `timeZone`. */
+export function timeOfDayInTimeZone(instant: Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).formatToParts(instant);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return `${get("hour")}:${get("minute")}`;
+}

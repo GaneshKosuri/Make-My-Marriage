@@ -3,7 +3,7 @@ import "server-only";
 import type { ClientSession } from "mongoose";
 
 import type { IdentityMembership, MemberContext } from "@/server/auth";
-import { AppError, notImplemented } from "@/server/errors";
+import { AppError } from "@/server/errors";
 import { logger } from "@/server/logging/logger";
 
 import type { MemberRole } from "./member.constants";
@@ -98,7 +98,7 @@ export const membersService = {
       await membershipRepository.restore(ctx.weddingId, membership);
       throw new AppError("LAST_ADMIN");
     }
-    // TODO(Phase 2): unassign the removed member's tasks (Task.assignedMembershipId).
+    // Their tasks keep the assignment and show "Former member" (API_DESIGN §35 notes).
     logger.info("Member removed", {
       requestId: ctx.requestId,
       weddingId: ctx.weddingId,
@@ -123,9 +123,20 @@ export const membersService = {
     await membershipRepository.create(weddingId, { userId, role: "ADMIN" }, session);
   },
 
-  /** Tasks/expenses: a referenced membership must belong to this wedding (DATABASE_DESIGN §38). */
-  async assertMembershipInWedding(weddingId: string, membershipId: string): Promise<void> {
-    return notImplemented("DATABASE_DESIGN §38, §57 (Phase 2: Planning)");
+  /**
+   * Tasks/expenses: a referenced membership must be a current member of this
+   * wedding (DATABASE_DESIGN §38). Otherwise VALIDATION_ERROR with `field` in the details.
+   */
+  async assertMembershipInWedding(
+    weddingId: string,
+    membershipId: string,
+    field = "assignedMembershipId",
+  ): Promise<void> {
+    if (!(await membershipRepository.findById(weddingId, membershipId))) {
+      throw new AppError("VALIDATION_ERROR", undefined, {
+        details: { [field]: "Choose a current member of this wedding" },
+      });
+    }
   },
 
   /** Display summaries for task assignees (API_DESIGN §34 notes: name + role, no email). */

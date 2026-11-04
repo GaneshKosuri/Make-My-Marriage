@@ -1,12 +1,12 @@
 /**
  * Task DTOs and inputs (API_DESIGN §34–38). Isomorphic.
- * TODO(Phase 2): derive inputs from ./task.schemas.ts with z.infer.
  */
-import type { PageQuery } from "@/lib/pagination";
+import type { z } from "zod";
 
 import type { MemberRole } from "@/modules/members/member.constants";
 
 import type { TaskPriority, TaskStatus } from "./task.constants";
+import type { createTaskSchema, listTasksQuerySchema, updateTaskSchema } from "./task.schemas";
 
 export interface TaskDto {
   id: string;
@@ -16,7 +16,12 @@ export interface TaskDto {
   status: TaskStatus;
   dueDate: string | null;
   completedAt: string | null;
-  /** null when unassigned; the UI shows "Former member" for a removed assignee. */
+  /**
+   * Who the task is assigned to, kept when that member leaves (API_DESIGN §35
+   * notes). Null when unassigned.
+   */
+  assignedMembershipId: string | null;
+  /** The assignee's name and role; null when unassigned or a former member ("Former member"). */
   assignee: { membershipId: string; name: string; role: MemberRole } | null;
   event: { id: string; name: string; archivedAt: string | null } | null;
   version: number;
@@ -24,24 +29,6 @@ export interface TaskDto {
   updatedAt: string;
 }
 
-export interface ListTasksQuery extends PageQuery {
-  status?: TaskStatus;
-  priority?: TaskPriority;
-  /** An event id or "none". */
-  eventId?: string;
-  /** A membership id or "none". */
-  assignedMembershipId?: string;
-  mine?: boolean;
-}
-
-export interface CreateTaskInput {
-  title: string;
-  description?: string | null;
-  assignedMembershipId?: string | null;
-  eventId?: string | null;
-  dueDate?: string | null;
-  priority?: TaskPriority;
-  status?: TaskStatus;
-}
-
-export type UpdateTaskInput = Partial<CreateTaskInput> & { version: number };
+export type ListTasksQuery = z.output<typeof listTasksQuerySchema>;
+export type CreateTaskInput = z.output<typeof createTaskSchema>;
+export type UpdateTaskInput = z.output<typeof updateTaskSchema>;
