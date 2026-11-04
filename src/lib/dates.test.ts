@@ -1,15 +1,19 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  addDays,
   dateOnlyInTimeZone,
   dateOnlyToUtcDate,
   daysUntil,
   formatDateOnly,
   formatInstant,
   isValidDateOnly,
+  isValidTimeOfDay,
   isValidTimeZone,
   parseDateOnly,
+  timeOfDayInTimeZone,
   utcDateToDateOnly,
+  zonedDateTimeToInstant,
 } from "./dates";
 
 describe("date-only values (DATABASE_DESIGN §14)", () => {
@@ -76,5 +80,48 @@ describe("daysUntil (dashboard countdown)", () => {
   it("goes negative after the date", () => {
     const now = new Date("2027-02-20T06:00:00.000Z");
     expect(daysUntil("2027-02-14", "Asia/Kolkata", now)).toBe(-6);
+  });
+});
+
+describe("wall-clock times in the wedding's time zone (DATABASE_DESIGN §33)", () => {
+  it("converts a local date and time to the UTC instant", () => {
+    expect(zonedDateTimeToInstant("2027-02-12", "16:00", "Asia/Kolkata").toISOString()).toBe(
+      "2027-02-12T10:30:00.000Z",
+    );
+    expect(zonedDateTimeToInstant("2027-02-12", "00:15", "Asia/Kolkata").toISOString()).toBe(
+      "2027-02-11T18:45:00.000Z",
+    );
+    expect(zonedDateTimeToInstant("2027-07-01", "18:00", "Europe/London").toISOString()).toBe(
+      "2027-07-01T17:00:00.000Z",
+    );
+    expect(zonedDateTimeToInstant("2027-01-01", "18:00", "America/New_York").toISOString()).toBe(
+      "2027-01-01T23:00:00.000Z",
+    );
+  });
+
+  it("handles daylight-saving changes", () => {
+    // London: 01:00–02:00 is skipped on 28 March 2027.
+    expect(zonedDateTimeToInstant("2027-03-28", "01:30", "Europe/London").toISOString()).toBe(
+      "2027-03-28T01:30:00.000Z",
+    );
+    expect(zonedDateTimeToInstant("2027-03-28", "03:00", "Europe/London").toISOString()).toBe(
+      "2027-03-28T02:00:00.000Z",
+    );
+  });
+
+  it("reads the wall-clock time back", () => {
+    const instant = new Date("2027-02-11T18:45:00.000Z");
+    expect(timeOfDayInTimeZone(instant, "Asia/Kolkata")).toBe("00:15");
+    expect(dateOnlyInTimeZone(instant, "Asia/Kolkata")).toBe("2027-02-12");
+    expect(timeOfDayInTimeZone(instant, "UTC")).toBe("18:45");
+  });
+
+  it("rejects malformed times and moves dates by days", () => {
+    expect(() => zonedDateTimeToInstant("2027-02-12", "4pm", "Asia/Kolkata")).toThrow(RangeError);
+    expect(isValidTimeOfDay("23:59")).toBe(true);
+    expect(isValidTimeOfDay("24:00")).toBe(false);
+    expect(addDays("2027-02-28", 1)).toBe("2027-03-01");
+    expect(addDays("2028-02-28", 1)).toBe("2028-02-29");
+    expect(addDays("2027-01-01", -1)).toBe("2026-12-31");
   });
 });

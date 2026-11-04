@@ -29,7 +29,7 @@ export const QUICK_ADD_ITEMS: readonly {
   {
     label: "Add event",
     hint: "Mehendi, Haldi, Sangeet or your own",
-    href: "/app/events",
+    href: "/app/events?new=1",
     icon: CalendarDays,
   },
   {

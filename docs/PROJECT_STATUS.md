@@ -1,8 +1,8 @@
 # Project Status — Make My Marriage
 
 **Last updated:** 2026-11-04
-**Current phase:** Phase 2 — Planning (PRD §16): Events API done; Phase 1 complete and QA-verified (3 Nov)
-**Next up:** Events screen (slice 2, dashboard style), then Tasks API (API §34–38) and the Tasks screen
+**Current phase:** Phase 2 — Planning (PRD §16): Events done (API and screens); Phase 1 complete and QA-verified (3 Nov)
+**Next up:** Tasks API (API §34–38, slice 3), then the Tasks screen (slice 4) and the Phase 2 QA hand-off
 
 This file tracks what has been built and what comes next. Update it whenever a feature lands or new
 work starts: move items between the tables, add a row to the change log and refresh the header.
@@ -45,7 +45,7 @@ Status key: ✅ Done · 🚧 In progress · ⏳ Not started (scaffold stub only)
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| Events | 🚧 | API done (2026-11-04): list (start-time order, archived hidden unless asked, `from`/`to` window), create, get, partial edit with version check, archive. Screen next (dashboard style). Cover images wait for Phase 5 uploads |
+| Events | ✅ | API (2026-11-04): list (start-time order, archived hidden unless asked, `from`/`to` window), create, get, partial edit with version check, archive. Screens (dashboard style, desktop + mobile): `/app/events` with upcoming, past and archived-on-request lists, an add/edit dialog with occasion shortcuts and wall-clock times in the wedding's time zone (an end before the start is the next day); `/app/events/[id]` with when and where, Google Maps link, dress code, notes, edit (reload on conflict) and archive with confirmation. Dashboard and "+" links open the add form (`?new=1`). Cover images wait for Phase 5 uploads |
 | Tasks | ⏳ | |
 
 ### Phase 3 — Guests ⏳
@@ -89,8 +89,8 @@ monitoring.
 
 ## 3. Open items
 
-- **Home page badges follow what is built.** Only family members is `live`; flip `events` and `tasks`
-  to `live` in `feature-availability.ts` (and its test) when Phase 2 ships, and so on per phase.
+- **Home page badges follow what is built.** Family members and events are `live`; flip `tasks` to
+  `live` in `feature-availability.ts` (and its test) when it ships, and so on per phase.
 - **Privacy wording.** Confirm the home page line "Your data stays yours: used only to run your
   wedding".
 - **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** still lists the six auth endpoints as
@@ -112,8 +112,12 @@ monitoring.
 - **Restart `next dev` after this change.** The identity ports are registered once at startup, so a
   running dev server keeps showing the header without the wedding's place until it restarts.
 - **Dashboard links lead to placeholders.** Every card, "+ Add" item and checklist step links to the
-  page where that record is added (events, tasks, guests, …). Those pages are placeholders until their
-  phase lands.
+  page where that record is added (tasks, guests, …). Those pages are placeholders until their phase
+  lands; events are real since 2026-11-04.
+- **Event pages: related tasks.** PRD §9.5's event page should list the event's tasks; add that section
+  with the Tasks screen (slice 4).
+- **Archiving an event cannot be undone yet.** There is no unarchive endpoint in API_DESIGN; the
+  confirmation says so. Add one if families ask for it.
 - **RSVP reminder and WhatsApp buttons** from the dashboard design are left out until Phase 3 (guest
   invitations), so the RSVP overview shows counts and a link to RSVP status only.
 - **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** also still lists `GET /api/wedding` and
@@ -183,6 +187,8 @@ monitoring.
 | 2026-11-04 | Event edits: `version` (from the event DTO) is optional on `PATCH /api/events/:id`. When sent and stale, the edit is refused with `CONFLICT`; without it the service still checks the version atomically between its read and write (matching the task notes, API §37). A PATCH must change at least one field |
 | 2026-11-04 | Archived events are read-only: editing one answers `CONFLICT` ("This event is archived…"). Archiving bumps the version and archiving again still succeeds. `GET /api/events/:id` returns archived events |
 | 2026-11-04 | `GET /api/events?from&to` keeps events that start in [from, to) (ISO instants with an offset); `to` must be after `from` |
+| 2026-11-04 | Event form: date plus wall-clock start and optional end time in the wedding's time zone; an end earlier than the start means the next day (a Sangeet from 8 PM to 1 AM). New events default to the wedding day (or today once it has passed) at 6 PM. Picking an occasion fills the name unless the person typed their own |
+| 2026-11-04 | Events list: upcoming (including events still running) in date order, past most recent first, archived only on request. Times show in the wedding's time zone, named on the page |
 
 ## 5. Change log
 
@@ -205,3 +211,4 @@ monitoring.
 | 2026-10-29 | Testing fixes: join page offers "Sign out and continue" before "already in a wedding"; Wedding Details save bar is compact, sticky only with unsaved changes and clear of the phone "+"; Revoke asks first and every member action replaces the last message; the invitation email says "as an Admin"; managers are told how to leave |
 | 2026-11-03 | QA hand-off fixes: Atlas database name and blank Resend key in `.env.local`; honest home page badges; 5-year wedding-date limit; `?next=` after sign-in; replaced sessions end on sign-up and sign-in; preview never shows "Married" for a rejected date; "Get started" eyebrow; Wedding Details flags a bad date as soon as it changes; "Reminder:" on resent invitations; long invited emails wrap on the join page |
 | 2026-11-04 | Events API (Phase 2, slice 1): list, create, get, update and archive (API §29–33) with optimistic concurrency, plus `assertActiveEventsInWedding` for tasks; 31 integration tests, schema unit tests and the first critical security test (cross-wedding event fetch → 404) |
+| 2026-11-04 | Events screens (Phase 2, slice 2): `/app/events` list and add form, `/app/events/[id]` detail with edit and archive, shared event row on the dashboard, wall-clock time helpers in `@/lib/dates`; 31 new unit and component tests. Home page Events badge now live. Events feature complete |

@@ -177,9 +177,10 @@ describe("<DashboardScreen />", () => {
     expect(await screen.findByText("Welcome, Akshay & Princi!")).toBeInTheDocument();
     const checklist = region(DASHBOARD.checklist.title);
     expect(checklist.getByText("0 of 5 done")).toBeInTheDocument();
+    // Opens the add form straight away.
     expect(checklist.getByRole("link", { name: "Add your first event" })).toHaveAttribute(
       "href",
-      "/app/events",
+      "/app/events?new=1",
     );
     expect(checklist.getByRole("link", { name: "Invite a family member" })).toHaveAttribute(
       "href",

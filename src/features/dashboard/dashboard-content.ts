@@ -5,6 +5,8 @@
 
 export const DASHBOARD_ROUTES = {
   events: "/app/events",
+  /** Opens the add form straight away (see features/events/events-content.ts). */
+  addEvent: "/app/events?new=1",
   event: (eventId: string) => `/app/events/${eventId}`,
   tasks: "/app/tasks",
   myTasks: "/app/tasks?mine=true",
@@ -49,7 +51,6 @@ export const DASHBOARD = {
     title: "Upcoming events",
     add: "Add event",
     all: "All events",
-    dressCode: "Dress code",
     empty: {
       title: "No events yet",
       description: "Add your ceremonies, such as Mehendi, Haldi, Sangeet and the Wedding.",

@@ -40,10 +40,10 @@ describe("feature availability", () => {
     expect(upcomingFeaturesSentence(availability())).toBeNull();
   });
 
-  it("matches what is built today: only Phase 1 (family members) is live", () => {
+  it("matches what is built today: family members and events are live", () => {
     expect(isComingSoon("familyMembers")).toBe(false);
+    expect(isComingSoon("events")).toBe(false);
     for (const feature of [
-      "events",
       "tasks",
       "guests",
       "organiserGallery",

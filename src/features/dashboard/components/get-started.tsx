@@ -25,7 +25,7 @@ export function gettingStartedSteps(summary: DashboardDto["summary"], role: Memb
       key: "event",
       ...steps.event,
       done: summary.events > 0,
-      action: { label: steps.event.action, href: DASHBOARD_ROUTES.events },
+      action: { label: steps.event.action, href: DASHBOARD_ROUTES.addEvent },
     },
     {
       key: "task",
