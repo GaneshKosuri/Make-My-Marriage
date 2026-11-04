@@ -97,6 +97,8 @@ export const TASKS = {
       status: { label: "Status" },
     },
     dueDateHint: (zone: string) => `In ${zone}.`,
+    optionsError: "We couldn't load the wedding's members and events for this form.",
+    optionsRetry: "Try again",
     unassigned: "Unassigned",
     noEvent: "General (no event)",
     cancel: "Cancel",

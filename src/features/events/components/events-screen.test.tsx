@@ -215,4 +215,30 @@ describe("<EventsScreen />", () => {
     fireEvent.click(screen.getByRole("button", { name: EVENTS.loadError.retry }));
     expect(await screen.findByRole("link", { name: /Mehendi/ })).toBeInTheDocument();
   });
+
+  it("moves an event that ends while the page is open to Past (review R7)", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-04T06:30:00.000Z"));
+    // Ends five minutes after the page was rendered.
+    const brunch = event("e8", "Family brunch", "2026-11-04T05:00:00.000Z", {
+      endsAt: "2026-11-04T06:35:00.000Z",
+    });
+    routes[LIST] = () => data([brunch, wedding]);
+    try {
+      renderScreen();
+      const upcoming = await screen.findByRole("region", { name: EVENTS.upcoming });
+      expect(within(upcoming).getByText("Family brunch")).toBeInTheDocument();
+
+      vi.setSystemTime(new Date("2026-11-04T06:40:00.000Z"));
+      fireEvent.focus(window);
+
+      const past = await screen.findByRole("region", { name: EVENTS.past });
+      expect(within(past).getByText("Family brunch")).toBeInTheDocument();
+      expect(
+        within(screen.getByRole("region", { name: EVENTS.upcoming })).queryByText("Family brunch"),
+      ).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

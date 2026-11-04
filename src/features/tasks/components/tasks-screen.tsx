@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, CheckCircle2, ListChecks, Plus, RefreshCw } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState, type ComponentProps } from "react";
 
 import { focusRing, primaryButton } from "@/features/dashboard/components/dashboard-card";
@@ -31,11 +31,11 @@ import {
   toggledStatus,
   type TaskView,
 } from "../tasks-content";
+import { readTasksUrl } from "../url-state";
 import { TaskFormDialog } from "./task-form-dialog";
 import { OverdueChip, PriorityChip, TaskMeta } from "./task-meta";
 
 const PAGE_SIZE = 20;
-const NO_FILTERS: TaskFilters = {};
 
 const secondaryButton = cn(
   "inline-flex h-10 items-center justify-center gap-2 rounded-full border border-sand bg-white px-4 text-label-md text-graphite hover:bg-sand disabled:opacity-50",
@@ -55,10 +55,6 @@ export interface TasksScreenProps {
   timeZone: string;
   /** Today in the wedding's time zone (overdue tasks). */
   today: DateOnly;
-  initialView?: TaskView;
-  initialFilters?: TaskFilters;
-  /** Open the add form straight away (`/app/tasks?new=1`). */
-  startAdding?: boolean;
 }
 
 /** The API query for a view: My tasks are the caller's, Completed is a status. */
@@ -84,39 +80,57 @@ function urlFor(view: TaskView, filters: TaskFilters): string {
 /** What the form is showing: a new task (maybe for an event) or an existing one. */
 type Editing = { kind: "new"; eventId?: string } | { kind: "edit"; task: TaskDto } | null;
 
+/** The address's view, filters and `?new=1` flag. */
+function useTasksUrl() {
+  const searchParams = useSearchParams();
+  const search = searchParams.toString();
+  return { search, ...readTasksUrl(Object.fromEntries(searchParams)) };
+}
+
 /**
  * /app/tasks (PRD §9.6, API_DESIGN §34–38): All / My / Completed views,
  * filters by status, event, assignee and priority, a quick tick to complete,
- * and the add/edit form.
+ * and the add/edit form. The view and filters live in the address.
  */
-export function TasksScreen({
-  timeZone,
-  today,
-  initialView = "all",
-  initialFilters = NO_FILTERS,
-  startAdding = false,
-}: Readonly<TasksScreenProps>) {
-  const router = useRouter();
-  const [view, setView] = useState<TaskView>(initialView);
-  const [filters, setFilters] = useState<TaskFilters>(initialFilters);
+export function TasksScreen({ timeZone, today }: Readonly<TasksScreenProps>) {
+  const url = useTasksUrl();
+  const [view, setView] = useState<TaskView>(url.view);
+  const [filters, setFilters] = useState<TaskFilters>(url.filters);
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<Editing>(
-    startAdding ? { kind: "new", eventId: initialFilters.eventId } : null,
+    url.startAdding ? { kind: "new", eventId: url.filters.eventId } : null,
   );
   const [notice, setNotice] = useState<string | null>(null);
   const tasks = useTasks(toQuery(view, filters, page));
 
-  // "+ Add task" links land here with ?new=1, also from this page (the "+"
-  // sheet): open the form each time the flag turns on.
-  const [lastStartAdding, setLastStartAdding] = useState(startAdding);
-  if (startAdding !== lastStartAdding) {
-    setLastStartAdding(startAdding);
-    if (startAdding) setEditing({ kind: "new", eventId: initialFilters.eventId });
+  // The screen stays mounted between visits, so links into it (the dashboard's
+  // "My tasks", an event's "All tasks for this event", the "+" sheet's ?new=1)
+  // arrive as a new address. Follow it unless it is the one this screen just
+  // wrote itself (see `show`).
+  const [lastSearch, setLastSearch] = useState(url.search);
+  if (url.search !== lastSearch) {
+    setLastSearch(url.search);
+    if (urlFor(url.view, url.filters) !== urlFor(view, filters)) {
+      setView(url.view);
+      setFilters(url.filters);
+      setPage(1);
+      setNotice(null);
+    }
+    if (url.startAdding) setEditing({ kind: "new", eventId: url.filters.eventId });
   }
-  // Then drop the flag, so a reload or Back doesn't open the form again.
+  // Then drop ?new=1, so a reload or Back doesn't open the form again.
+  const { startAdding } = url;
+  const cleanUrl = urlFor(url.view, url.filters);
   useEffect(() => {
-    if (startAdding) router.replace(urlFor(initialView, initialFilters), { scroll: false });
-  }, [startAdding, router, initialView, initialFilters]);
+    if (startAdding) window.history.replaceState(null, "", cleanUrl);
+  }, [startAdding, cleanUrl]);
+
+  // A page emptied by a delete or a tick (or shrunk by someone else) moves
+  // back to the last page that still has tasks.
+  const lastPage = tasks.data?.pagination.totalPages ?? 0;
+  if (tasks.data && !tasks.isPlaceholderData && page > Math.max(lastPage, 1)) {
+    setPage(Math.max(lastPage, 1));
+  }
 
   const show = (nextView: TaskView, nextFilters: TaskFilters) => {
     setView(nextView);
@@ -398,6 +412,9 @@ function TaskList({
       </div>
     );
   }
+
+  // A page past the end (its last task just went): the screen is moving back a page.
+  if (tasks.length === 0) return <ListSkeleton />;
 
   const from = (pagination.page - 1) * pagination.limit + 1;
   const to = from + tasks.length - 1;

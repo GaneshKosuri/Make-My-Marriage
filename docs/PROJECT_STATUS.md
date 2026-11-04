@@ -146,6 +146,15 @@ monitoring.
   after creating a wedding; the integration suite failed once on a cold first run. Capture the stack
   trace / check the in-memory MongoDB start-up timeout if either recurs. Close stray `localhost:3000`
   tabs when testing: one reloading /login twice a second flooded the dev log on 3 Nov.
+- **Phase 3 start: shared form pieces (code review R8).** `SaveProblem` (event and task forms), the
+  list skeletons and the `secondaryButton` / `dangerButton` class strings are copied across the events
+  and tasks screens. Move the buttons next to `primaryButton` in `dashboard-card.tsx` (or a shared
+  button module), make one `SaveProblem` that takes its copy as props and one list skeleton, before
+  guests copies them again.
+- **Phase 3 start: shared UI in other features (code review R9).** Events and tasks import `Dialog` from
+  `features/members` and `isOverdue`, `eventTimeRange`, `formatShortDate`, `taskDueDay` from
+  `features/dashboard/format.ts`. Move `Dialog` (and its test) to `src/components/` and the formatters
+  to `src/lib/`; no behaviour change.
 - **Legal pages.** Privacy policy and terms are needed before production. Until they exist, the home
   footer, the auth footer and the sign-up form leave out the "Privacy · Terms" links and the
   "By continuing you agree…" line shown in the designs.
@@ -187,6 +196,8 @@ monitoring.
 | 2026-11-04 | Removing a member keeps their tasks assigned to them (API_DESIGN §35 notes: removed-member references "remain visible and can be retained or cleared on edit"); the DTO carries `assignedMembershipId` with a null `assignee`, which the UI shows as "Former member". This replaces the earlier plan to unassign them |
 | 2026-11-04 | Task references: a new assignee must be a current member and a new event an active event of the wedding (`VALIDATION_ERROR` with `assignedMembershipId` / `eventId` details, both reported together); a reference the task already has is kept even if that member left or the event was archived. Tasks follow the event rules for `version` (optional, stale → `CONFLICT`) and need at least one field per PATCH. `DELETE /api/tasks/:id` answers `{ success: true }` |
 | 2026-11-04 | Tasks screen: "All tasks" is every task (any status), "My tasks" the caller's, "Completed" the completed ones; the other filters apply within a view and stay in the address (`?view=`, `?status=`, `?eventId=`, `?assignedMembershipId=`, `?priority=`). A due date is a day in the wedding's time zone, stored as midnight there. The tick toggles Completed ↔ To Do; In Progress is set in the form. An event page shows up to 50 of its tasks |
+| 2026-11-04 | Event form: an optional **Ends on** date covers events longer than a day; it is filled from the stored end when the same-day / next-day rule doesn't give it, and moving the start date moves it too (code review R3) |
+| 2026-11-04 | Event and task edit forms keep what was typed when a newer copy arrives in the background; saving then answers CONFLICT and **Reload** fetches the latest copy by id (code review R4). /app/tasks reads its view and filters from the address (`useSearchParams`), so links into it work while it stays mounted (code review R1) |
 | 2026-11-04 | Events list: upcoming (including events still running) in date order, past most recent first, archived only on request. Times show in the wedding's time zone, named on the page |
 
 ## 5. Change log
@@ -213,3 +224,4 @@ monitoring.
 | 2026-11-04 | Events screens (Phase 2, slice 2): `/app/events` list and add form, `/app/events/[id]` detail with edit and archive, shared event row on the dashboard, wall-clock time helpers in `@/lib/dates`; 31 new unit and component tests. Home page Events badge now live. Events feature complete |
 | 2026-11-04 | Tasks API (Phase 2, slice 3): list, create, get, update and delete (API §34–38) with filters, pagination, server-owned `completedAt`, optimistic concurrency and same-wedding reference checks (`membersService.assertMembershipInWedding`); 29 integration tests, schema unit tests and the second critical security test (cross-wedding task edit → 404) |
 | 2026-11-04 | Tasks screen (Phase 2, slice 4): `/app/tasks` views, filters, tick, add/edit/delete dialog; tasks on event pages; shared task details with the dashboard ("Former member", archived events); home page Tasks badge live; 18 new unit and component tests. Phase 2 features complete |
+| 2026-11-04 | Phase 2 code-review fixes R1–R7: task links followed while the screen stays mounted; emptied last page moves back; multi-day events editable (Ends on); edit forms survive background refetches; event changes refresh task lists; task form explains failed member/event lists; events Upcoming/Past kept current. 13 new tests, each failing before its fix. R8/R9 clean-ups listed for the start of Phase 3 |

@@ -1,8 +1,8 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQueryClient } from "@tanstack/react-query";
 import { MapPin, RefreshCw, Shirt } from "lucide-react";
+import { useState, type ChangeEvent } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
 import {
@@ -16,23 +16,23 @@ import { Dialog } from "@/features/members/components/dialog";
 import { timeZoneLabel } from "@/features/weddings/create-wedding-content";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
-import type { DateOnly } from "@/lib/dates";
+import { isValidDateOnly, type DateOnly } from "@/lib/dates";
 import { EVENT_TYPE_LABELS, EVENT_TYPES, type EventType } from "@/modules/events/event.constants";
 import type { EventDto } from "@/modules/events/event.types";
 
-import { useCreateEvent, useUpdateEvent } from "../api";
+import { useCreateEvent, useReloadEvent, useUpdateEvent } from "../api";
 import {
   emptyEventForm,
   endsNextDay,
   eventFormSchema,
   eventToForm,
+  moveEndDate,
   SERVER_FIELD_FOR,
   toCreateEventBody,
   toUpdateEventBody,
   type EventFormValues,
 } from "../event-form";
 import { EVENTS } from "../events-content";
-import { eventsKeys } from "../query-keys";
 
 const FORM = EVENTS.form;
 const FIELDS = FORM.fields;
@@ -68,6 +68,10 @@ export interface EventFormDialogProps {
  */
 export function EventFormDialog(props: Readonly<EventFormDialogProps>) {
   const { open, onClose, event, timeZone } = props;
+  const reloadEvent = useReloadEvent();
+  // A copy fetched by "Reload event" after a CONFLICT; `count` starts a fresh form.
+  const [reloaded, setReloaded] = useState<{ event: EventDto; count: number } | null>(null);
+  const current = reloaded && event && reloaded.event.id === event.id ? reloaded.event : event;
   return (
     <Dialog
       open={open}
@@ -75,25 +79,42 @@ export function EventFormDialog(props: Readonly<EventFormDialogProps>) {
       title={event ? FORM.editTitle : FORM.addTitle}
       description={FORM.description(timeZoneLabel(timeZone))}
     >
-      {/* A reloaded event (new version) starts a fresh form. */}
-      <EventForm key={event ? `${event.id}:${event.version}` : "new"} {...props} />
+      {/*
+        Keyed by id only: a newer copy arriving in the background must not wipe
+        what is being typed. Saving then answers CONFLICT, and "Reload event"
+        starts a fresh form from the latest copy.
+      */}
+      <EventForm
+        key={current ? `${current.id}:${reloaded?.count ?? 0}` : "new"}
+        {...props}
+        event={current}
+        onReload={async () => {
+          if (!current) return;
+          const fresh = await reloadEvent(current.id);
+          setReloaded((last) => ({ event: fresh, count: (last?.count ?? 0) + 1 }));
+        }}
+      />
     </Dialog>
   );
 }
 
 function EventForm({
   onClose,
-  event,
+  event: eventProp,
   initialType,
   timeZone,
   weddingDate,
   today,
   onSaved,
-}: Readonly<EventFormDialogProps>) {
-  const queryClient = useQueryClient();
+  onReload,
+}: Readonly<EventFormDialogProps & { onReload: () => Promise<void> }>) {
+  // The copy this form was opened with: its values and version are what an edit
+  // is based on, even if a newer copy arrives meanwhile.
+  const [event] = useState(eventProp);
   const create = useCreateEvent();
   const update = useUpdateEvent();
   const mutation = event ? update : create;
+  const [reloadFailed, setReloadFailed] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(eventFormSchema),
@@ -105,7 +126,10 @@ function EventForm({
         },
   });
   const { errors, dirtyFields, isDirty } = form.formState;
-  const [startTime, endTime] = useWatch({ control: form.control, name: ["startTime", "endTime"] });
+  const [startTime, endDate, endTime] = useWatch({
+    control: form.control,
+    name: ["startTime", "endDate", "endTime"],
+  });
 
   const onError = (error: unknown) => {
     if (!(error instanceof ApiError) || error.code !== "VALIDATION_ERROR" || !error.details) return;
@@ -129,6 +153,18 @@ function EventForm({
     }
   });
 
+  // Moving the start date moves an end date with it, keeping the event's length.
+  const dateField = form.register("date");
+  const onDateChange = (change: ChangeEvent<HTMLInputElement>) => {
+    const previous = form.getValues("date");
+    const next = change.target.value;
+    const end = form.getValues("endDate");
+    void dateField.onChange(change);
+    if (end && isValidDateOnly(previous) && isValidDateOnly(next)) {
+      form.setValue("endDate", moveEndDate(end, previous, next), { shouldDirty: true });
+    }
+  };
+
   const typeField = form.register("type", {
     onChange: (change: { target: { value: string } }) => {
       const name = form.getValues("name").trim();
@@ -141,8 +177,8 @@ function EventForm({
   return (
     <form noValidate onSubmit={onSubmit} className="flex flex-col gap-5">
       <SaveProblem
-        error={mutation.error}
-        onReload={() => void queryClient.invalidateQueries({ queryKey: eventsKeys.all })}
+        error={reloadFailed ? new ApiError(404, "NOT_FOUND", "") : mutation.error}
+        onReload={() => void onReload().catch(() => setReloadFailed(true))}
       />
 
       <fieldset>
@@ -173,13 +209,14 @@ function EventForm({
         {...form.register("name")}
       />
 
-      <TextField
-        label={FIELDS.date.label}
-        type="date"
-        error={errors.date?.message}
-        {...form.register("date")}
-      />
       <div className="grid grid-cols-2 gap-3">
+        <TextField
+          label={FIELDS.date.label}
+          type="date"
+          error={errors.date?.message}
+          {...dateField}
+          onChange={onDateChange}
+        />
         <TextField
           label={FIELDS.startTime.label}
           type="time"
@@ -187,11 +224,20 @@ function EventForm({
           {...form.register("startTime")}
         />
         <TextField
+          label={FIELDS.endDate.label}
+          labelAside={<OptionalTag />}
+          type="date"
+          error={errors.endDate?.message}
+          hint={<p className="text-body-sm text-plum">{FORM.endDateHint}</p>}
+          {...form.register("endDate")}
+        />
+        <TextField
           label={FIELDS.endTime.label}
           labelAside={<OptionalTag />}
           type="time"
           error={errors.endTime?.message}
           hint={
+            !endDate &&
             endsNextDay(startTime, endTime) && (
               <p className="text-body-sm text-plum">{FORM.endsNextDay}</p>
             )

@@ -1,14 +1,16 @@
 /**
  * The add/edit event form (PRD §9.5). People pick a date and wall-clock times in
  * the wedding's time zone; the API takes UTC instants (DATABASE_DESIGN §33), so
- * this file converts between the two. An end time earlier than the start means
- * the next day (a Sangeet from 8 PM to 1 AM).
+ * this file converts between the two. Without an end date, an end time earlier
+ * than the start means the next day (a Sangeet from 8 PM to 1 AM); an end date
+ * covers longer events.
  */
 import { z } from "zod";
 
 import {
   addDays,
   dateOnlyInTimeZone,
+  dateOnlyToUtcDate,
   isValidDateOnly,
   isValidTimeOfDay,
   timeOfDayInTimeZone,
@@ -38,6 +40,10 @@ export const eventFormSchema = z
     name: text(EVENT_NAME_MAX_LENGTH, "Name is too long").min(1, "Enter the event name"),
     date: z.string().refine(isValidDateOnly, "Choose the date"),
     startTime: z.string().refine(isValidTimeOfDay, "Choose the start time"),
+    /** Blank: the start day, or the next day when the end time is earlier. */
+    endDate: z
+      .string()
+      .refine((value) => value === "" || isValidDateOnly(value), "Choose a valid end date"),
     endTime: z
       .string()
       .refine((value) => value === "" || isValidTimeOfDay(value), "Choose a valid end time"),
@@ -48,10 +54,20 @@ export const eventFormSchema = z
   })
   .strict()
   .superRefine((values, ctx) => {
-    if (values.endTime && values.endTime === values.startTime) {
+    const { date, startTime, endDate, endTime } = values;
+    if (endDate && !endTime) {
+      ctx.addIssue({ code: "custom", path: ["endTime"], message: "Choose the end time" });
+      return;
+    }
+    if (!endTime || !isValidDateOnly(date) || !isValidTimeOfDay(startTime)) return;
+    if (endDate && endDate < date) {
+      ctx.addIssue({ code: "custom", path: ["endDate"], message: END_DATE_BEFORE_START_MESSAGE });
+    } else if (endDate === date ? endTime <= startTime : !endDate && endTime === startTime) {
       ctx.addIssue({ code: "custom", path: ["endTime"], message: END_BEFORE_START_MESSAGE });
     }
   });
+
+export const END_DATE_BEFORE_START_MESSAGE = "End on or after the start date";
 
 export type EventFormValues = z.input<typeof eventFormSchema>;
 type ParsedEventForm = z.output<typeof eventFormSchema>;
@@ -59,7 +75,7 @@ export type CreateEventBody = z.input<typeof createEventSchema>;
 export type UpdateEventBody = z.input<typeof updateEventSchema>;
 
 /** The fields that make up the start/end instants. */
-export const TIMING_FIELDS = ["date", "startTime", "endTime"] as const;
+export const TIMING_FIELDS = ["date", "startTime", "endDate", "endTime"] as const;
 /** The API's field names for VALIDATION_ERROR details, as form fields. */
 export const SERVER_FIELD_FOR = {
   name: "name",
@@ -72,9 +88,20 @@ export const SERVER_FIELD_FOR = {
   description: "description",
 } as const satisfies Record<string, keyof EventFormValues>;
 
-/** An end time earlier than the start time is on the following day. */
+/** Without an end date, an end time earlier than the start time is on the following day. */
 export function endsNextDay(startTime: string, endTime: string): boolean {
   return isValidTimeOfDay(startTime) && isValidTimeOfDay(endTime) && endTime < startTime;
+}
+
+/**
+ * The end date after the start date moves from `from` to `to`: it moves by the
+ * same number of days, so a two-day event stays two days long.
+ */
+export function moveEndDate(endDate: DateOnly, from: DateOnly, to: DateOnly): DateOnly {
+  const days = Math.round(
+    (dateOnlyToUtcDate(to).getTime() - dateOnlyToUtcDate(from).getTime()) / 86_400_000,
+  );
+  return addDays(endDate, days);
 }
 
 /**
@@ -87,6 +114,7 @@ export function emptyEventForm(weddingDate: DateOnly, today: DateOnly): EventFor
     name: "",
     date: weddingDate >= today ? weddingDate : today,
     startTime: "18:00",
+    endDate: "",
     endTime: "",
     venueName: "",
     address: "",
@@ -98,12 +126,20 @@ export function emptyEventForm(weddingDate: DateOnly, today: DateOnly): EventFor
 /** A stored event as the form edits it, in the wedding's time zone. */
 export function eventToForm(event: EventDto, timeZone: string): EventFormValues {
   const startsAt = new Date(event.startsAt);
+  const date = dateOnlyInTimeZone(startsAt, timeZone);
+  const startTime = timeOfDayInTimeZone(startsAt, timeZone);
+  const endsAt = event.endsAt ? new Date(event.endsAt) : null;
+  const endTime = endsAt ? timeOfDayInTimeZone(endsAt, timeZone) : "";
+  const endDay = endsAt ? dateOnlyInTimeZone(endsAt, timeZone) : date;
+  // The end date is left blank when the same-day / next-day rule gives it anyway.
+  const implied = endsNextDay(startTime, endTime) ? addDays(date, 1) : date;
   return {
     type: event.type ?? "",
     name: event.name,
-    date: dateOnlyInTimeZone(startsAt, timeZone),
-    startTime: timeOfDayInTimeZone(startsAt, timeZone),
-    endTime: event.endsAt ? timeOfDayInTimeZone(new Date(event.endsAt), timeZone) : "",
+    date,
+    startTime,
+    endDate: endDay === implied ? "" : endDay,
+    endTime,
     venueName: event.venueName ?? "",
     address: event.address ?? "",
     dressCode: event.dressCode ?? "",
@@ -113,14 +149,14 @@ export function eventToForm(event: EventDto, timeZone: string): EventFormValues 
 
 /** UTC instants for the form's date and times. */
 export function formInstants(
-  values: Pick<ParsedEventForm, "date" | "startTime" | "endTime">,
+  values: Pick<ParsedEventForm, "date" | "startTime" | "endDate" | "endTime">,
   timeZone: string,
 ): { startsAt: string; endsAt: string | null } {
   const startsAt = zonedDateTimeToInstant(values.date, values.startTime, timeZone);
   if (!values.endTime) return { startsAt: startsAt.toISOString(), endsAt: null };
-  const endDate = endsNextDay(values.startTime, values.endTime)
-    ? addDays(values.date, 1)
-    : values.date;
+  const endDate =
+    values.endDate ||
+    (endsNextDay(values.startTime, values.endTime) ? addDays(values.date, 1) : values.date);
   return {
     startsAt: startsAt.toISOString(),
     endsAt: zonedDateTimeToInstant(endDate, values.endTime, timeZone).toISOString(),

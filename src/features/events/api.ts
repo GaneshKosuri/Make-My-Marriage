@@ -6,6 +6,7 @@ import { apiAction, apiFetch } from "@/lib/api-client";
 import type { EventDto } from "@/modules/events/event.types";
 
 import { dashboardKeys } from "@/features/dashboard/query-keys";
+import { tasksKeys } from "@/features/tasks/query-keys";
 
 import type { CreateEventBody, UpdateEventBody } from "./event-form";
 import { eventsKeys } from "./query-keys";
@@ -30,14 +31,30 @@ export function useEvent(eventId: string) {
   });
 }
 
-/** Lists, details and the dashboard's upcoming events and count all change together. */
+/**
+ * Lists, details and the dashboard's upcoming events and count all change
+ * together. Tasks too: they show their event's name and archived state.
+ */
 function useInvalidateEvents() {
   const queryClient = useQueryClient();
   return () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: eventsKeys.all }),
+      queryClient.invalidateQueries({ queryKey: tasksKeys.all }),
       queryClient.invalidateQueries({ queryKey: dashboardKeys.all }),
     ]);
+}
+
+/** The latest copy of one event, e.g. to reload an edit form after a CONFLICT. */
+export function useReloadEvent() {
+  const queryClient = useQueryClient();
+  return (eventId: string) =>
+    queryClient.fetchQuery({
+      queryKey: eventsKeys.detail(eventId),
+      queryFn: ({ signal }) =>
+        apiFetch<EventDto>(`/api/events/${encodeURIComponent(eventId)}`, { signal }),
+      staleTime: 0,
+    });
 }
 
 /** POST /api/events (API §30). */

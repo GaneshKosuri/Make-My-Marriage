@@ -33,7 +33,7 @@ export interface EventsScreenProps {
   weddingDate: DateOnly;
   /** Today in the wedding's time zone (the add form's default date). */
   today: DateOnly;
-  /** The request time (ISO): events that ended before it are past. */
+  /** The request time (ISO): events that ended before it are past. Kept current on the client. */
   now: string;
   /** Open the add form straight away (`/app/events?new=1`). */
   startAdding?: boolean;
@@ -50,9 +50,10 @@ export function EventsScreen({
   timeZone,
   weddingDate,
   today,
-  now,
+  now: serverNow,
   startAdding = false,
 }: Readonly<EventsScreenProps>) {
+  const now = useCurrentTime(serverNow);
   const router = useRouter();
   const [showArchived, setShowArchived] = useState(false);
   const [adding, setAdding] = useState<Adding>(startAdding ? {} : null);
@@ -285,4 +286,26 @@ function ListSkeleton() {
       ))}
     </div>
   );
+}
+
+/** Re-check the time every minute while the page is open. */
+const CLOCK_INTERVAL_MS = 60_000;
+
+/**
+ * The current time (ISO), starting from the server's so the first render
+ * matches, then kept current every minute and whenever the window regains
+ * focus, so an event that ends while the page is open moves to Past.
+ */
+function useCurrentTime(serverNow: string): string {
+  const [now, setNow] = useState(serverNow);
+  useEffect(() => {
+    const tick = () => setNow(new Date().toISOString());
+    const timer = window.setInterval(tick, CLOCK_INTERVAL_MS);
+    window.addEventListener("focus", tick);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", tick);
+    };
+  }, []);
+  return now;
 }

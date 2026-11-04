@@ -10,10 +10,12 @@ import type { TaskDto } from "@/modules/tasks/task.types";
 import { TASKS } from "../tasks-content";
 import { TasksScreen, type TasksScreenProps } from "./tasks-screen";
 
-const replace = vi.fn();
+/** The address's query string, as `useSearchParams` reports it. */
+let search = "";
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace, refresh: vi.fn(), push: vi.fn() }),
+  useRouter: () => ({ replace: vi.fn(), refresh: vi.fn(), push: vi.fn() }),
   usePathname: () => "/app/tasks",
+  useSearchParams: () => new URLSearchParams(search),
 }));
 
 const PRINCI = "6aeb2fe60d805e865a620a01";
@@ -104,11 +106,18 @@ function renderScreen(props: Partial<TasksScreenProps> = {}) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  return render(
+  const screenFor = () => (
     <QueryClientProvider client={client}>
       <TasksScreen timeZone="Asia/Kolkata" today="2026-11-04" {...props} />
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
+  const result = render(screenFor());
+  /** A link into /app/tasks while the screen stays mounted. */
+  const navigate = (nextSearch: string) => {
+    search = nextSearch;
+    result.rerender(screenFor());
+  };
+  return { ...result, navigate };
 }
 
 const dialog = () => within(screen.getByRole("dialog"));
@@ -122,7 +131,7 @@ beforeEach(() => {
     "GET /api/events?includeArchived=true": () => data([sangeet]),
   };
   calls.length = 0;
-  replace.mockClear();
+  search = "";
   window.history.replaceState(null, "", "/app/tasks");
   vi.stubGlobal("fetch", fetchMock);
 });
@@ -266,11 +275,61 @@ describe("<TasksScreen />", () => {
 
   it("opens the add form for an event from ?new=1&eventId and drops the flag", async () => {
     routes[`GET /api/tasks?page=1&limit=20&eventId=${SANGEET}`] = () => page([dj]);
-    renderScreen({ startAdding: true, initialFilters: { eventId: SANGEET } });
+    search = `new=1&eventId=${SANGEET}`;
+    renderScreen();
 
     expect(await dialog().findByLabelText("Event")).toHaveValue(SANGEET);
+    await waitFor(() => expect(window.location.search).toBe(`?eventId=${SANGEET}`));
+  });
+
+  it("follows links into the screen while it stays mounted (review R1)", async () => {
+    routes[`GET /api/tasks?page=1&limit=20&eventId=${SANGEET}`] = () => page([dj]);
+    routes["GET /api/tasks?page=1&limit=20&mine=true"] = () => page([flowers]);
+    const { navigate } = renderScreen();
+    await screen.findByRole("button", { name: 'Edit "Order flowers"' });
+
+    // An event's "All tasks for this event".
+    navigate(`eventId=${SANGEET}`);
+    await waitFor(() => expect(screen.getByLabelText(TASKS.filters.event)).toHaveValue(SANGEET));
+    expect(await screen.findByText("1–1 of 1")).toBeInTheDocument();
     await waitFor(() =>
-      expect(replace).toHaveBeenCalledWith(`/app/tasks?eventId=${SANGEET}`, { scroll: false }),
+      expect(calls.at(-1)?.url).toBe(`/api/tasks?page=1&limit=20&eventId=${SANGEET}`),
     );
+
+    // The dashboard's "My tasks".
+    navigate("mine=true");
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: TASKS.views.mine })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      ),
+    );
+    expect(await screen.findByRole("region", { name: TASKS.views.mine })).toBeInTheDocument();
+    expect(calls.some((call) => call.url === "/api/tasks?page=1&limit=20&mine=true")).toBe(true);
+  });
+
+  it("moves back a page when the current one comes back empty (review R2)", async () => {
+    const twenty = Array.from({ length: 20 }, (_, index) => task(`p${index}`, `Task ${index}`));
+    let total = 21;
+    routes[LIST] = () => ({
+      status: 200,
+      body: {
+        data: twenty,
+        pagination: { page: 1, limit: 20, total, totalPages: Math.ceil(total / 20) },
+      },
+    });
+    routes["GET /api/tasks?page=2&limit=20"] = () => ({
+      status: 200,
+      // Its only task was deleted meanwhile.
+      body: { data: [], pagination: { page: 2, limit: 20, total: 20, totalPages: 1 } },
+    });
+    renderScreen();
+
+    expect(await screen.findByText("1–20 of 21")).toBeInTheDocument();
+    total = 20;
+    fireEvent.click(screen.getByRole("button", { name: TASKS.next }));
+
+    expect(await screen.findByText("1–20 of 20")).toBeInTheDocument();
+    expect(screen.queryByText(/21–20/)).not.toBeInTheDocument();
   });
 });

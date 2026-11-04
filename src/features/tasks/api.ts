@@ -73,6 +73,24 @@ export function useDeleteTask() {
   });
 }
 
+/**
+ * GET /api/tasks/:id (API §36): the latest copy of one task, e.g. to reload an
+ * edit form after a CONFLICT. Task lists are refreshed too.
+ */
+export function useReloadTask() {
+  const queryClient = useQueryClient();
+  return async (taskId: string) => {
+    const task = await queryClient.fetchQuery({
+      queryKey: tasksKeys.detail(taskId),
+      queryFn: ({ signal }) =>
+        apiFetch<TaskDto>(`/api/tasks/${encodeURIComponent(taskId)}`, { signal }),
+      staleTime: 0,
+    });
+    void queryClient.invalidateQueries({ queryKey: tasksKeys.all });
+    return task;
+  };
+}
+
 /** Refetches every task list, e.g. after a CONFLICT. */
 export function useRefreshTasks() {
   const queryClient = useQueryClient();

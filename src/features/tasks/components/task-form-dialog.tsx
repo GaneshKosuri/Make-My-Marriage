@@ -29,7 +29,7 @@ import type { EventDto } from "@/modules/events/event.types";
 import type { MemberDto } from "@/modules/members/member.types";
 import type { TaskDto } from "@/modules/tasks/task.types";
 
-import { useCreateTask, useDeleteTask, useRefreshTasks, useUpdateTask } from "../api";
+import { useCreateTask, useDeleteTask, useReloadTask, useUpdateTask } from "../api";
 import {
   emptyTaskForm,
   TASK_SERVER_FIELDS,
@@ -68,46 +68,91 @@ export function TaskFormDialog(props: Readonly<TaskFormDialogProps>) {
   const { open, onClose, task } = props;
   const members = useMembers();
   const events = useEvents();
+  const reloadTask = useReloadTask();
+  // A copy fetched by "Reload task" after a CONFLICT; `count` starts a fresh form.
+  const [reloaded, setReloaded] = useState<{ task: TaskDto; count: number } | null>(null);
+  const current = reloaded && task && reloaded.task.id === task.id ? reloaded.task : task;
+
   // The selects need their options before the form sets their values, or the
   // browser falls back to the first option.
-  const ready = !members.isPending && !events.isPending;
+  let body;
+  if (members.isError || events.isError) {
+    body = (
+      <div role="alert" className="flex flex-col items-start gap-3">
+        <p className="text-body-md text-destructive">{FORM.optionsError}</p>
+        <button
+          type="button"
+          onClick={() => {
+            void members.refetch();
+            void events.refetch();
+          }}
+          className={secondaryButton}
+        >
+          <RefreshCw aria-hidden className="size-4" />
+          {FORM.optionsRetry}
+        </button>
+      </div>
+    );
+  } else if (members.data && events.data) {
+    body = (
+      // Keyed by id only: a newer copy arriving in the background must not wipe
+      // what is being typed. Saving then answers CONFLICT, and "Reload task"
+      // starts a fresh form from the latest copy.
+      <TaskForm
+        key={current ? `${current.id}:${reloaded?.count ?? 0}` : "new"}
+        {...props}
+        task={current}
+        members={members.data}
+        events={events.data}
+        onReload={async () => {
+          if (!current) return;
+          const fresh = await reloadTask(current.id);
+          setReloaded((last) => ({ task: fresh, count: (last?.count ?? 0) + 1 }));
+        }}
+      />
+    );
+  } else {
+    body = (
+      <div aria-busy="true" aria-label="Loading" className="flex animate-pulse flex-col gap-5">
+        <div className="h-12 rounded-xl bg-sand" />
+        <div className="h-12 rounded-xl bg-sand" />
+        <div className="h-12 rounded-xl bg-sand" />
+      </div>
+    );
+  }
   return (
     <Dialog open={open} onClose={onClose} title={task ? FORM.editTitle : FORM.addTitle}>
-      {ready ? (
-        // A reloaded task (new version) starts a fresh form.
-        <TaskForm
-          key={task ? `${task.id}:${task.version}` : "new"}
-          {...props}
-          members={members.data ?? []}
-          events={events.data ?? []}
-        />
-      ) : (
-        <div aria-busy="true" aria-label="Loading" className="flex animate-pulse flex-col gap-5">
-          <div className="h-12 rounded-xl bg-sand" />
-          <div className="h-12 rounded-xl bg-sand" />
-          <div className="h-12 rounded-xl bg-sand" />
-        </div>
-      )}
+      {body}
     </Dialog>
   );
 }
 
 function TaskForm({
   onClose,
-  task,
+  task: taskProp,
   initialEventId,
   timeZone,
   onSaved,
   onDeleted,
   members,
   events,
-}: Readonly<TaskFormDialogProps & { members: readonly MemberDto[]; events: readonly EventDto[] }>) {
+  onReload,
+}: Readonly<
+  TaskFormDialogProps & {
+    members: readonly MemberDto[];
+    events: readonly EventDto[];
+    onReload: () => Promise<void>;
+  }
+>) {
+  // The copy this form was opened with: its values and version are what an edit
+  // is based on, even if a newer copy arrives meanwhile.
+  const [task] = useState(taskProp);
   const create = useCreateTask();
   const update = useUpdateTask();
   const remove = useDeleteTask();
-  const refresh = useRefreshTasks();
   const mutation = task ? update : create;
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [reloadFailed, setReloadFailed] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(taskFormSchema),
@@ -141,7 +186,10 @@ function TaskForm({
 
   return (
     <form noValidate onSubmit={onSubmit} className="flex flex-col gap-5">
-      <SaveProblem error={mutation.error ?? remove.error} onReload={() => void refresh()} />
+      <SaveProblem
+        error={reloadFailed ? new ApiError(404, "NOT_FOUND", "") : (mutation.error ?? remove.error)}
+        onReload={() => void onReload().catch(() => setReloadFailed(true))}
+      />
 
       <TextField
         label={FIELDS.title.label}
