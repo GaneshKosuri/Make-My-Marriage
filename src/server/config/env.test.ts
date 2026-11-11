@@ -80,13 +80,32 @@ describe("parseEnv", () => {
     ]);
   });
 
-  it("requires every integration key in production", () => {
+  it("requires the keys production uses today", () => {
     expect(problemsOf(production)).toEqual([]);
-    const problems = problemsOf({ ...production, RESEND_API_KEY: undefined, R2_BUCKET_NAME: "" });
+    const problems = problemsOf({
+      ...production,
+      RESEND_API_KEY: undefined,
+      CRON_SECRET: "",
+      EMAIL_FROM: undefined,
+    });
     expect(problems).toEqual([
       "RESEND_API_KEY is required in production",
-      "R2_BUCKET_NAME is required in production",
+      "CRON_SECRET is required in production",
+      "EMAIL_FROM is required in production",
     ]);
+  });
+
+  it("doesn't require storage or vendor-search keys before their features ship", () => {
+    expect(
+      problemsOf({
+        ...production,
+        R2_ACCOUNT_ID: undefined,
+        R2_ACCESS_KEY_ID: undefined,
+        R2_SECRET_ACCESS_KEY: undefined,
+        R2_BUCKET_NAME: undefined,
+        GOOGLE_PLACES_API_KEY: undefined,
+      }),
+    ).toEqual([]);
   });
 
   it("requires https in production", () => {

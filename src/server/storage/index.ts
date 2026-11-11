@@ -37,6 +37,12 @@ export function getStorageService(): StorageService {
       bucket: R2_BUCKET_NAME,
     });
   } else {
+    // Fake storage keeps nothing: production must fail loudly instead.
+    if (env.NODE_ENV === "production") {
+      throw new Error(
+        "Storage is not configured: set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY and R2_BUCKET_NAME.",
+      );
+    }
     if (env.NODE_ENV === "development") {
       logger.warn("R2 is not configured: using in-memory fake storage (uploads will not persist)");
     }
