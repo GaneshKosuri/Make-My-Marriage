@@ -33,7 +33,7 @@ export function WeddingHero({
           <p className="hidden text-eyebrow text-gold-light uppercase md:block">
             {DASHBOARD.hero.eyebrow}
           </p>
-          <h1 className="font-serif text-headline-md break-words md:mt-3 md:text-display">
+          <h1 className="font-serif text-headline-md wrap-anywhere md:mt-3 md:text-display">
             {coupleDisplayName(wedding)}
           </h1>
           <p className="mt-2 flex flex-col gap-1 text-body-md text-ivory/85 md:flex-row md:items-center md:gap-3 md:text-body-lg">
@@ -57,7 +57,8 @@ export function WeddingHero({
         <Countdown days={daysRemaining} label={label} />
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3 md:mt-7 md:flex md:flex-wrap">
+      {/* Stacked full width below 400 px, where the two labels would wrap (QA M14). */}
+      <div className="mt-5 grid grid-cols-1 gap-3 min-[400px]:grid-cols-2 md:mt-7 md:flex md:flex-wrap">
         <Link
           href={DASHBOARD_ROUTES.weddingDetails}
           className={cn(

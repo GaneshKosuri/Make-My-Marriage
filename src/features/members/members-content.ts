@@ -71,9 +71,12 @@ export const MEMBERS = {
     demoteSelfTitle: "Become a Manager?",
     demoteSelfDescription:
       "You will no longer be able to invite, change roles or remove members. Another Admin can make you an Admin again.",
-    revokeTitle: (email: string) => `Revoke the invitation to ${email}?`,
-    revokeDescription:
-      "The link in their email stops working straight away. You can invite them again later.",
+    // A short title; the variable email goes in the description, where it can wrap (QA M2).
+    revokeTitle: "Revoke this invitation?",
+    revokeDescription: [
+      "",
+      " won't be able to use the link in their email any more. You can invite them again later.",
+    ] as const,
     cancel: "Cancel",
   },
 

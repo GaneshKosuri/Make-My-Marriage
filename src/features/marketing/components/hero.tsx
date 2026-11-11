@@ -10,8 +10,9 @@ export function Hero() {
   return (
     <section aria-labelledby="hero-title" className="relative overflow-hidden bg-ivory">
       <div className={`${CONTAINER} pt-4 pb-10 md:py-16 xl:py-24`}>
-        <div className="grid items-center gap-6 md:gap-12 xl:grid-cols-12">
-          <div className="flex flex-col items-start xl:col-span-6">
+        {/* An explicit single column: an auto column would grow to the preview's width (QA M5). */}
+        <div className="grid grid-cols-1 items-center gap-6 md:gap-12 xl:grid-cols-12">
+          <div className="flex min-w-0 flex-col items-start xl:col-span-6">
             <Eyebrow icon={HERO.icon}>{HERO.eyebrow}</Eyebrow>
             <h1
               id="hero-title"
@@ -38,13 +39,13 @@ export function Hero() {
               </a>
             </div>
 
-            <p className="mt-3 flex w-full items-center justify-center gap-2 text-[11px] text-plum sm:justify-start lg:mt-8 lg:text-body-sm">
+            <p className="mt-3 flex w-full items-center justify-center gap-2 text-body-sm text-plum sm:justify-start lg:mt-8">
               <span className="size-1.5 shrink-0 rounded-full bg-gold lg:size-2" />
               {HERO.note}
             </p>
           </div>
 
-          <div className="xl:col-span-6">
+          <div className="min-w-0 xl:col-span-6">
             <WorkspacePreviewCompact className="md:hidden" />
             <WorkspacePreview className="mx-auto hidden max-w-2xl md:block xl:max-w-none" />
           </div>

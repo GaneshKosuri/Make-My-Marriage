@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useId } from "react";
 
 import { cn } from "@/lib/cn";
@@ -75,6 +76,11 @@ export function QuickAdd({
   const panelId = useId();
   const titleId = useId();
   const sheet = variant === "fab";
+  const pathname = usePathname();
+
+  // Settings pages have their own save bar and fields at the bottom of the screen;
+  // the floating "+" would cover them (QA M9).
+  if (sheet && pathname.startsWith("/app/settings")) return null;
 
   return (
     <div className={cn(sheet ? "md:hidden" : "relative hidden md:block")}>
@@ -119,7 +125,7 @@ export function QuickAdd({
             className={cn(
               "z-50 bg-ivory outline-none",
               sheet
-                ? "fixed inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-[28px] px-4 pt-3 pb-[calc(16px+env(safe-area-inset-bottom))]"
+                ? "fixed inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-[28px] px-4 pt-3 pb-[calc(16px+env(safe-area-inset-bottom))] pointer-coarse:[scrollbar-width:none] pointer-coarse:[&::-webkit-scrollbar]:hidden"
                 : "absolute top-full right-0 mt-2 w-[400px] rounded-3xl border border-sand p-3 shadow-xl",
             )}
           >

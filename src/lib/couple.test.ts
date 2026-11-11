@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { coupleDisplayName, initialsOf, weddingCountdownLabel, weddingPlace } from "./couple";
+import {
+  coupleDisplayName,
+  coupleShortName,
+  initialsOf,
+  weddingCountdownLabel,
+  weddingPlace,
+} from "./couple";
 
 describe("coupleDisplayName", () => {
   it("puts the groom first when there is no title", () => {
@@ -14,6 +20,25 @@ describe("coupleDisplayName", () => {
     expect(
       coupleDisplayName({ brideName: "Princi", groomName: "Akshay", title: "Akshay ❤️ Princi" }),
     ).toBe("Akshay ❤️ Princi");
+  });
+});
+
+describe("coupleShortName", () => {
+  it("uses first names, groom first, so both fit on a phone (QA M15)", () => {
+    expect(
+      coupleShortName({
+        groomName: "Sai Krishna Chaitanya",
+        brideName: " Venkata Lakshmi Priyanka ",
+        title: null,
+      }),
+    ).toBe("Sai & Venkata");
+    expect(coupleShortName({ groomName: "Akshay", brideName: "Princi" })).toBe("Akshay & Princi");
+  });
+
+  it("keeps the couple's own title", () => {
+    expect(coupleShortName({ groomName: "A B", brideName: "C D", title: "Our big day" })).toBe(
+      "Our big day",
+    );
   });
 });
 

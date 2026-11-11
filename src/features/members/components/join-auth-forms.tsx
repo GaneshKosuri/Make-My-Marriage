@@ -55,7 +55,7 @@ export function JoinAuthForms({
             aria-selected={tab === value}
             onClick={() => setTab(value)}
             className={cn(
-              "h-10 rounded-full text-label-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burgundy",
+              "h-11 min-w-0 rounded-full px-2 text-label-md leading-tight transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burgundy",
               tab === value ? "bg-white text-graphite shadow-sm" : "text-plum hover:text-graphite",
             )}
           >
@@ -218,7 +218,7 @@ function JoinLoginForm({
         <PasswordField
           label="Password"
           autoComplete="current-password"
-          placeholder="Enter your password"
+          placeholder="Password"
           icon={<Lock aria-hidden />}
           error={errors.password?.message}
           {...form.register("password")}

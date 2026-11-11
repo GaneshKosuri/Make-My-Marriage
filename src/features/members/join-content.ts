@@ -17,8 +17,8 @@ export const JOIN = {
   } satisfies Record<MemberRole, string>,
   invitedEmail: "Invitation for",
 
-  createAccountTab: "Create an account",
-  signInTab: "I have an account",
+  createAccountTab: "New account",
+  signInTab: "Sign in",
   signUpIntro: "New to Make My Marriage? Create your account to join.",
   signInIntro: "Sign in with the invited email address to join.",
   createAndJoin: "Create account and join",

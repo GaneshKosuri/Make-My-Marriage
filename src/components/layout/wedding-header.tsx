@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import {
   coupleDisplayName,
+  coupleShortName,
   weddingCountdownLabel,
   weddingPlace,
   type CoupleWedding,
@@ -51,7 +52,9 @@ export function WeddingHeader({ wedding, userName }: Readonly<WeddingHeaderProps
           <Image src="/brand/logo-mark.svg" alt="" width={40} height={40} className="size-10" />
           <span className="min-w-0">
             <span className="block text-eyebrow text-gold-deep uppercase">Make My Marriage</span>
-            <span className="block truncate font-serif text-title-lg text-graphite">{couple}</span>
+            <span className="block truncate font-serif text-title-lg text-graphite">
+              {coupleShortName(wedding)}
+            </span>
           </span>
         </Link>
         <span className="flex items-center gap-2">

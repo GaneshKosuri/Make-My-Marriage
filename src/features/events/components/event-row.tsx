@@ -36,13 +36,13 @@ export function EventRow({ event, timeZone }: Readonly<{ event: EventDto; timeZo
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span
             className={cn(
-              "font-serif text-title-lg text-graphite group-hover:text-burgundy",
+              "min-w-0 font-serif text-title-lg wrap-anywhere text-graphite group-hover:text-burgundy",
               archived && "text-plum",
             )}
           >
             {event.name}
           </span>
-          <span className="rounded-full border border-sand px-2.5 py-0.5 text-body-sm text-plum">
+          <span className="rounded-lg border border-sand px-2.5 py-0.5 text-body-sm text-plum">
             {/* Same wording as the event page: "(next day)", or the end date when later. */}
             {eventSchedule(event, timeZone).time}
           </span>
@@ -54,13 +54,16 @@ export function EventRow({ event, timeZone }: Readonly<{ event: EventDto; timeZo
         </span>
         <span className="sr-only">{date.label}</span>
         {(event.venueName || event.address) && (
-          <span className="mt-1 flex items-center gap-1.5 text-body-md text-plum">
-            <MapPin aria-hidden className="size-4 shrink-0 text-gold-deep" />
-            <span className="truncate">{event.venueName ?? event.address}</span>
+          <span className="mt-1 flex items-start gap-1.5 text-body-md text-plum">
+            <MapPin aria-hidden className="mt-0.5 size-4 shrink-0 text-gold-deep" />
+            {/* Up to two lines, so a long venue still reads (QA M18). */}
+            <span className="line-clamp-2 min-w-0 wrap-anywhere">
+              {event.venueName ?? event.address}
+            </span>
           </span>
         )}
         {event.dressCode && (
-          <span className="mt-1 block text-body-sm text-plum">
+          <span className="mt-1 block text-body-sm wrap-anywhere text-plum">
             {EVENTS.dressCode}: {event.dressCode}
           </span>
         )}

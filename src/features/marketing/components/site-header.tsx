@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { cn } from "@/lib/cn";
+
 import { NAV_LINKS, ROUTES } from "../home-content";
 import { BrandLogo } from "./brand-logo";
 import { ctaVariants } from "./cta";
@@ -36,7 +38,12 @@ export function SiteHeader() {
             signIn={{ label: "Sign in", href: ROUTES.signIn }}
             className="lg:hidden"
           />
-          <Link href={ROUTES.signUp} className={ctaVariants({ size: "compact" })}>
+          {/* Below 400 px there's no room next to the logo and menu; the hero right under
+              the header has the same button (QA M5). */}
+          <Link
+            href={ROUTES.signUp}
+            className={cn(ctaVariants({ size: "compact" }), "hidden min-[400px]:inline-flex")}
+          >
             Start planning
           </Link>
         </div>

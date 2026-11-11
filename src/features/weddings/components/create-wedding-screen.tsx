@@ -31,7 +31,7 @@ import { TimeZoneSelect } from "./time-zone-select";
 import { WeddingPreview } from "./wedding-preview";
 
 const linkClass =
-  "rounded font-semibold text-burgundy underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burgundy";
+  "tap-target rounded font-semibold text-burgundy underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burgundy";
 
 const SERVER_FIELDS = [
   "brideName",

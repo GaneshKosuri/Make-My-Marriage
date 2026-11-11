@@ -14,7 +14,7 @@ import { AuthCard, AuthNote } from "./auth-shell";
 import { FormAlert, SubmitButton, TextField, secondaryButtonClass } from "./form-controls";
 
 const linkClass =
-  "rounded font-semibold text-burgundy underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burgundy";
+  "tap-target rounded font-semibold text-burgundy underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burgundy";
 
 /**
  * /forgot-password — request a reset link (API_DESIGN §15). The confirmation

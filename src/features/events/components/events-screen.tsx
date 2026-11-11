@@ -143,7 +143,7 @@ export function EventsScreen({
             aria-pressed={showArchived}
             onClick={() => setShowArchived((current) => !current)}
             className={cn(
-              "rounded text-label-md text-burgundy underline-offset-4 hover:underline",
+              "tap-target rounded text-label-md text-burgundy underline-offset-4 hover:underline",
               focusRing,
             )}
           >

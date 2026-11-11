@@ -27,7 +27,9 @@ export function AppShell({ role, user, wedding, children }: Readonly<AppShellPro
       <Sidebar items={items} userName={user.name} role={role} />
       <div className="flex min-w-0 flex-1 flex-col">
         <WeddingHeader wedding={wedding} userName={user.name} />
-        <main className="flex-1 px-4 pt-4 pb-32 md:px-8 md:pt-8 md:pb-12">{children}</main>
+        <main className="flex-1 px-4 pt-4 pb-[calc(152px+env(safe-area-inset-bottom))] md:px-8 md:pt-8 md:pb-12">
+          {children}
+        </main>
       </div>
       <MobileNav items={items} userName={user.name} userEmail={user.email} role={role} />
       <QuickAdd variant="fab" subtitle={quickAddSubtitle(wedding)} />

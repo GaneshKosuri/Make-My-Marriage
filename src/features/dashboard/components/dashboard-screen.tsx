@@ -114,7 +114,7 @@ function DashboardBody({
 
       <SummaryCards summary={data.summary} />
 
-      <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-2">
         <UpcomingEvents events={data.upcomingEvents} timeZone={wedding.timeZone} />
         <UpcomingTasks tasks={data.upcomingTasks} timeZone={wedding.timeZone} today={today} />
       </div>
@@ -141,7 +141,7 @@ export function DashboardSkeleton() {
           </div>
         ))}
       </div>
-      <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-2">
         {[0, 1].map((index) => (
           <div
             key={index}

@@ -31,7 +31,7 @@ export function Faq() {
             open={index === 0}
             className="group rounded-xl border border-sand bg-white p-3.5 shadow-sm lg:rounded-2xl lg:p-6"
           >
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-burgundy [&::-webkit-details-marker]:hidden">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-burgundy [&::-webkit-details-marker]:hidden">
               <h3 className="font-serif text-[15px] font-semibold text-burgundy lg:font-sans lg:text-title-md">
                 {item.question}
               </h3>

@@ -236,7 +236,7 @@ function InvitationPanel({ invitation }: Readonly<{ invitation: PublicMemberInvi
         {formatDateOnly(invitation.wedding.weddingDate)}
       </p>
       <hr className="my-6 border-graphite/10" />
-      <p className="text-body-sm text-plum">
+      <p className="text-body-sm wrap-anywhere text-plum">
         {JOIN.invitedEmail} <span className="font-semibold text-graphite">{invitation.email}</span>
       </p>
     </>

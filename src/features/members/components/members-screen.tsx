@@ -34,7 +34,7 @@ import { InviteMemberDialog } from "./invite-member-dialog";
 const SHORT_DATE: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric" };
 
 const smallButton = cn(
-  "inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-sand bg-white px-3.5 text-label-md text-graphite hover:bg-sand disabled:opacity-60",
+  "inline-flex h-11 items-center justify-center gap-1.5 rounded-full border border-sand bg-white px-4 text-label-md text-graphite hover:bg-sand disabled:opacity-60",
   focusRing,
 );
 const dangerButton = cn(
@@ -403,20 +403,22 @@ function PendingInvitations({
         {invitations.data.map((invitation: MemberInvitationDto) => {
           const resending = resend.isPending && resend.variables?.id === invitation.id;
           return (
+            // Phones: email (full width, wrapping), then role · expiry, then the actions,
+            // so invitations stay tell-apart-able (QA M6).
             <li
               key={invitation.id}
-              className="flex flex-wrap items-center gap-3 py-4 first:pt-0 last:pb-0"
+              className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center"
             >
               <div className="min-w-0 flex-1">
-                <p className="flex flex-wrap items-center gap-2 text-label-md text-graphite">
-                  <span className="truncate">{invitation.email}</span>
+                <p className="text-label-md wrap-anywhere text-graphite">{invitation.email}</p>
+                <p className="mt-1 flex flex-wrap items-center gap-2 text-body-sm text-plum">
                   <RolePill role={invitation.role} />
-                </p>
-                <p className="text-body-sm text-plum">
-                  {MEMBERS.expires(formatInstant(invitation.expiresAt, timeZone, SHORT_DATE))}
+                  <span>
+                    {MEMBERS.expires(formatInstant(invitation.expiresAt, timeZone, SHORT_DATE))}
+                  </span>
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 self-end sm:self-auto">
                 <button
                   type="button"
                   disabled={busy}
@@ -456,8 +458,16 @@ function PendingInvitations({
       <Dialog
         open={revoking !== null}
         onClose={() => setRevoking(null)}
-        title={revoking ? MEMBERS.confirm.revokeTitle(revoking.email) : ""}
-        description={MEMBERS.confirm.revokeDescription}
+        title={MEMBERS.confirm.revokeTitle}
+        description={
+          revoking && (
+            <>
+              {MEMBERS.confirm.revokeDescription[0]}
+              <strong className="text-graphite">{revoking.email}</strong>
+              {MEMBERS.confirm.revokeDescription[1]}
+            </>
+          )
+        }
       >
         <div className="flex flex-col-reverse gap-3 md:flex-row md:justify-end">
           <button type="button" onClick={() => setRevoking(null)} className={smallButton}>

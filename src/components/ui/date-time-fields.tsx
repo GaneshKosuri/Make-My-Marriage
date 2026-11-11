@@ -94,7 +94,7 @@ const fromTime = (time: Time | null): string =>
 // ── Shared look ──────────────────────────────────────────────────────────────
 
 const groupClass = cn(
-  "flex h-12 w-full items-center gap-2 rounded-xl border border-sand bg-white pr-1.5 pl-4 text-body-lg text-graphite shadow-[0_1px_2px_rgba(43,35,38,0.04)] transition-[border-color,box-shadow] sm:text-body-md",
+  "flex h-12 w-full items-center gap-2 rounded-xl border border-sand bg-white pr-0.5 pl-4 text-body-lg text-graphite shadow-[0_1px_2px_rgba(43,35,38,0.04)] transition-[border-color,box-shadow] sm:text-body-md",
   "data-[focus-within]:border-burgundy data-[focus-within]:ring-[3px] data-[focus-within]:ring-burgundy/10",
   "data-[invalid]:border-destructive data-[invalid]:data-[focus-within]:ring-destructive/10",
   "data-[disabled]:cursor-not-allowed data-[disabled]:opacity-60",
@@ -106,8 +106,9 @@ const segmentClass = cn(
   "focus:bg-burgundy focus:text-ivory data-[placeholder]:focus:text-ivory",
 );
 
+// 44 px: the minimum touch target (QA M12); it still fits the 48 px field.
 const navButtonClass = cn(
-  "inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-plum outline-none transition-colors",
+  "inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-plum outline-none transition-colors",
   "hover:bg-sand hover:text-burgundy data-[pressed]:bg-sand data-[focus-visible]:ring-2 data-[focus-visible]:ring-burgundy",
   "data-[disabled]:cursor-default data-[disabled]:opacity-40 data-[disabled]:hover:bg-transparent",
 );
@@ -115,7 +116,10 @@ const navButtonClass = cn(
 /** The calendar / clock button at the end of a field. */
 const iconButtonClass = cn("ml-auto", navButtonClass);
 
-const popoverClass = "rounded-2xl border border-sand bg-white p-3 shadow-xl outline-none";
+// React Aria caps the popover's height to the space on screen; scroll within it
+// so a calendar near the bottom of a small phone keeps its last week reachable (QA M10).
+const popoverClass =
+  "overflow-y-auto overscroll-contain rounded-2xl border border-sand bg-white p-3 shadow-xl outline-none";
 
 const footerButtonClass = cn(
   "rounded-full px-3 py-1.5 text-label-md text-burgundy outline-none hover:bg-sand",

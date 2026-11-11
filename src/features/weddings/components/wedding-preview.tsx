@@ -52,7 +52,7 @@ export function WeddingPreview({
       <p className="text-eyebrow text-gold-deep uppercase">{preview.eyebrow}</p>
       <p
         className={cn(
-          "mt-2 font-serif break-words",
+          "mt-2 font-serif wrap-anywhere",
           compact ? "text-headline-sm" : "text-headline-md",
           couple ? "text-graphite" : "text-plum italic",
         )}

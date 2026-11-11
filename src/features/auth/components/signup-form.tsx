@@ -15,7 +15,7 @@ import { FormAlert, PasswordField, SubmitButton, TextField } from "./form-contro
 import { PasswordStrengthMeter } from "./password-strength-meter";
 
 const linkClass =
-  "rounded font-semibold text-burgundy underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burgundy";
+  "tap-target rounded font-semibold text-burgundy underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burgundy";
 
 /** /signup — name, email, password; signs the user in (PRD §9.1, API_DESIGN §11). */
 export function SignupForm() {
