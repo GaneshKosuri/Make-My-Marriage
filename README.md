@@ -83,6 +83,9 @@ changing any email setting.
 | `gmail`   | `GMAIL_USER`, `GMAIL_APP_PASSWORD` | No domain needed. Turn on 2-Step Verification and create an app password at myaccount.google.com/apppasswords (spaces are fine). Sends from the Gmail address (keeping `EMAIL_FROM`'s display name), about 500 recipients a day. |
 | `resend`  | `RESEND_API_KEY`, `EMAIL_FROM`     | Needs a domain verified in Resend and an `EMAIL_FROM` on it. `onboarding@resend.dev` only delivers to the Resend account's own address. Use this in production.                                                                  |
 
+Every email shares one branded layout (`src/server/email/templates/layout.ts`): table layout and
+inline styles so Gmail and Outlook render it, no images or web fonts, and a plain-text version.
+
 ### 3. Run
 
 ```bash

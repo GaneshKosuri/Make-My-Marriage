@@ -2,7 +2,7 @@ import "server-only";
 
 import type { RenderedEmail } from "../types";
 
-import { escapeHtml, renderButton, renderLayout, safeUrl } from "./layout";
+import { escapeHtml, renderButton, renderLayout, renderParagraph, safeUrl } from "./layout";
 
 export interface RsvpReminderEmailProps {
   guestName: string;
@@ -11,7 +11,7 @@ export interface RsvpReminderEmailProps {
   invitationUrl: string;
 }
 
-/** PRD §9.13. Placeholder copy. */
+/** PRD §9.13. Phase 3 refines the copy. */
 export function renderRsvpReminderEmail(props: RsvpReminderEmailProps): RenderedEmail {
   const url = safeUrl(props.invitationUrl);
   const subject = `Reminder: please RSVP for ${props.coupleNames}'s wedding`;
@@ -22,10 +22,13 @@ export function renderRsvpReminderEmail(props: RsvpReminderEmailProps): Rendered
     url,
   ].join("\n");
   const html = renderLayout({
-    preheader: "Please RSVP",
-    bodyHtml: `<p>Dear ${escapeHtml(props.guestName)},</p>
-      <p><strong>${escapeHtml(props.coupleNames)}</strong> are looking forward to celebrating with you on ${escapeHtml(props.weddingDate)}. Please let them know if you can attend.</p>
+    preheader: `Please RSVP for ${props.coupleNames}'s wedding`,
+    eyebrow: "Reminder",
+    title: "Will you be there?",
+    bodyHtml: `${renderParagraph(`Dear ${escapeHtml(props.guestName)},`)}
+      ${renderParagraph(`<strong>${escapeHtml(props.coupleNames)}</strong> are looking forward to celebrating with you on ${escapeHtml(props.weddingDate)}. Please let them know if you can attend.`)}
       ${renderButton(url, "RSVP now")}`,
+    footnote: "This invitation link is personal to you. Please don't forward it.",
   });
   return { subject, html, text };
 }
