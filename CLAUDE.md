@@ -73,6 +73,9 @@ src/features, src/components, src/themes, src/lib  client/isomorphic → only *.
 - Services: `async op(ctx, …)`, throw `AppError("CODE")`, return DTOs from the mapper (strip secrets).
 - Updates to events, tasks and guests are conditional on `__v` (mismatch → `CONFLICT`).
 - Use `withTransaction` only for create-wedding + ADMIN membership and accepting a member invitation.
+- Dates and times in forms: `DateField`, `DateRangeField`, `TimeField` from
+  `@/components/ui/date-time-fields` (values "YYYY-MM-DD" / "HH:mm"), never native `type="date"`/`"time"`.
+  Tests type into them with `@/components/ui/date-time-fields.test-helpers`.
 
 ## Next.js 16 specifics (read node_modules/next/dist/docs before changing patterns)
 

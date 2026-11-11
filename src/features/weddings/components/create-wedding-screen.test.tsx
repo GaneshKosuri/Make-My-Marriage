@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { typeDate } from "@/components/ui/date-time-fields.test-helpers";
 import { SIGN_OUT } from "@/features/auth/auth-content";
 
 import { CREATE_WEDDING } from "../create-wedding-content";
@@ -32,10 +33,10 @@ function renderScreen() {
 const type = (label: string, value: string) =>
   fireEvent.change(screen.getByLabelText(label), { target: { value } });
 const submit = () => fireEvent.click(screen.getByRole("button", { name: CREATE_WEDDING.submit }));
-const fill = () => {
+const fill = async () => {
   type("Bride's name", "Juliet");
   type("Groom's name", "Romeo");
-  type("Wedding date", "2027-02-14");
+  await typeDate("Wedding date", "2027-02-14");
   type("City", "Dehradun");
   type("State", "Uttarakhand");
 };
@@ -56,12 +57,12 @@ afterEach(() => {
 });
 
 describe("<CreateWeddingScreen />", () => {
-  it("shows placeholders until details are entered, then a live preview", () => {
+  it("shows placeholders until details are entered, then a live preview", async () => {
     renderScreen();
     expect(preview().getByText(CREATE_WEDDING.preview.placeholderCouple)).toBeInTheDocument();
     expect(preview().getByText(CREATE_WEDDING.preview.countdownPending)).toBeInTheDocument();
 
-    fill();
+    await fill();
     expect(preview().getByText("Romeo & Juliet")).toBeInTheDocument();
     expect(preview().getByText("14 February 2027")).toBeInTheDocument();
     expect(preview().getByText("Dehradun, Uttarakhand")).toBeInTheDocument();
@@ -71,13 +72,13 @@ describe("<CreateWeddingScreen />", () => {
     expect(preview().getByText("Akshay ❤️ Princi")).toBeInTheDocument();
   });
 
-  it("never celebrates a date the form rejects", () => {
+  it("never celebrates a date the form rejects", async () => {
     renderScreen();
-    fill();
-    type("Wedding date", "2026-01-01");
+    await fill();
+    await typeDate("Wedding date", "2026-01-01");
     expect(preview().getByText(CREATE_WEDDING.preview.countdownPending)).toBeInTheDocument();
     expect(preview().queryByText("Married")).toBeNull();
-    type("Wedding date", "2040-01-01");
+    await typeDate("Wedding date", "2040-01-01");
     expect(preview().getByText(CREATE_WEDDING.preview.countdownPending)).toBeInTheDocument();
   });
 
@@ -94,7 +95,7 @@ describe("<CreateWeddingScreen />", () => {
   it("creates the wedding and goes to the dashboard", async () => {
     reply(201, { data: { id: "w1", website: { slug: "romeo-juliet-14022027" } } });
     renderScreen();
-    fill();
+    await fill();
     submit();
 
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/app"));
@@ -114,7 +115,7 @@ describe("<CreateWeddingScreen />", () => {
   it("offers the dashboard when the user already has a wedding", async () => {
     reply(409, { error: { code: "ALREADY_HAS_WEDDING", message: "x" } });
     renderScreen();
-    fill();
+    await fill();
     submit();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(

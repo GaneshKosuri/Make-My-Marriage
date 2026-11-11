@@ -3,7 +3,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { RefreshCw, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
+
+import { DateField } from "@/components/ui/date-time-fields";
 
 import {
   FormAlert,
@@ -19,6 +21,7 @@ import { Dialog } from "@/features/members/components/dialog";
 import { timeZoneLabel } from "@/features/weddings/create-wedding-content";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
+import type { DateOnly } from "@/lib/dates";
 import {
   TASK_PRIORITIES,
   TASK_PRIORITY_LABELS,
@@ -56,6 +59,8 @@ export interface TaskFormDialogProps {
   /** Pre-selected event for a new task (from an event's page). */
   initialEventId?: string;
   timeZone: string;
+  /** Today in the wedding's time zone (the due date's "Today" shortcut). */
+  today: DateOnly;
   onSaved: (task: TaskDto) => void;
   onDeleted?: (task: TaskDto) => void;
 }
@@ -132,6 +137,7 @@ function TaskForm({
   task: taskProp,
   initialEventId,
   timeZone,
+  today,
   onSaved,
   onDeleted,
   members,
@@ -231,15 +237,28 @@ function TaskForm({
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <TextField
-          label={FIELDS.dueDate.label}
-          labelAside={<OptionalTag />}
-          type="date"
-          error={errors.dueDate?.message}
-          hint={
-            <p className="text-body-sm text-plum">{FORM.dueDateHint(timeZoneLabel(timeZone))}</p>
-          }
-          {...form.register("dueDate")}
+        <Controller
+          control={form.control}
+          name="dueDate"
+          render={({ field }) => (
+            <DateField
+              label={FIELDS.dueDate.label}
+              labelAside={<OptionalTag />}
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              name={field.name}
+              fieldRef={field.ref}
+              clearable
+              today={today}
+              error={errors.dueDate?.message}
+              hint={
+                <p className="text-body-sm text-plum">
+                  {FORM.dueDateHint(timeZoneLabel(timeZone))}
+                </p>
+              }
+            />
+          )}
         />
         <SelectField
           label={FIELDS.status.label}

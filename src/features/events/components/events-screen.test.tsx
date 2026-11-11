@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EventDto } from "@/modules/events/event.types";
 
+import { fieldValue, typeDate, typeTime } from "@/components/ui/date-time-fields.test-helpers";
+
 import { EVENTS } from "../events-content";
 import { EventsScreen } from "./events-screen";
 
@@ -145,9 +147,9 @@ describe("<EventsScreen />", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: EVENTS.add }));
     fireEvent.click(dialog().getByRole("radio", { name: "Haldi" }));
-    fireEvent.change(dialog().getByLabelText("Date"), { target: { value: "2027-02-13" } });
-    fireEvent.change(dialog().getByLabelText("Starts at"), { target: { value: "20:00" } });
-    fireEvent.change(dialog().getByLabelText("Ends at"), { target: { value: "00:30" } });
+    await typeDate("Date", "2027-02-13", dialog());
+    await typeTime("Starts at", "20:00", dialog());
+    await typeTime("Ends at", "00:30", dialog());
     expect(dialog().getByText(EVENTS.form.endsNextDay)).toBeInTheDocument();
     fireEvent.change(dialog().getByLabelText("Venue"), { target: { value: " Courtyard " } });
     fireEvent.click(dialog().getByRole("button", { name: EVENTS.form.save }));
@@ -199,7 +201,7 @@ describe("<EventsScreen />", () => {
   it("opens the add form from ?new=1 and drops the parameter", async () => {
     renderScreen(true);
     expect(screen.getByRole("dialog", { name: EVENTS.form.addTitle })).toBeInTheDocument();
-    expect(dialog().getByLabelText("Date")).toHaveValue("2027-02-14");
+    expect(fieldValue("date")).toBe("2027-02-14");
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/app/events", { scroll: false }));
   });
 

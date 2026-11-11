@@ -97,6 +97,7 @@ export function EventTasks({
         onClose={() => setEditing(null)}
         task={editingTask}
         timeZone={timeZone}
+        today={today}
         onSaved={(task) => {
           setNotice(TASKS.form.updated(task.title));
           setEditing(null);

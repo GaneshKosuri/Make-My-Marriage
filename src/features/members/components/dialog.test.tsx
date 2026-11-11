@@ -1,6 +1,9 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { DateField } from "@/components/ui/date-time-fields";
 
 import { Dialog } from "./dialog";
 
@@ -47,5 +50,23 @@ describe("<Dialog />", () => {
     const onClose = renderDialog();
     fireEvent.keyDown(window, { key: "Escape" });
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("lets a calendar popover inside keep Tab to itself (review D2)", async () => {
+    const user = userEvent.setup();
+    render(
+      <Dialog open onClose={vi.fn()} title="Add event">
+        <DateField label="Date" value="2027-02-14" onChange={vi.fn()} today="2026-11-11" />
+      </Dialog>,
+    );
+    await user.click(screen.getByRole("button", { name: /Open calendar/ }));
+    const calendar = await screen.findByRole("grid");
+    const popover = calendar.closest("[data-trigger]")!;
+    await waitFor(() => expect(popover.contains(document.activeElement)).toBe(true));
+
+    await user.tab();
+    expect(popover.contains(document.activeElement)).toBe(true);
+    await user.tab({ shift: true });
+    expect(popover.contains(document.activeElement)).toBe(true);
   });
 });

@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EventDto } from "@/modules/events/event.types";
+
+import { fieldValue, typeDate } from "@/components/ui/date-time-fields.test-helpers";
 
 import { EVENTS } from "../events-content";
 import { EventFormDialog } from "./event-form-dialog";
@@ -101,12 +104,22 @@ describe("<EventFormDialog />", () => {
     expect(dialog().queryByText(FORM.conflict.title)).not.toBeInTheDocument();
   });
 
-  it("moves the end date with the start date (review R3)", () => {
+  it("moves the end date with the start date (review R3)", async () => {
     // 12 Feb 4 PM to 14 Feb 1 AM.
     renderDialog({ ...mehendi, endsAt: "2027-02-13T19:30:00.000Z" });
-    expect(dialog().getByLabelText("Ends on")).toHaveValue("2027-02-14");
+    expect(fieldValue("endDate")).toBe("2027-02-14");
 
-    fireEvent.change(dialog().getByLabelText("Date"), { target: { value: "2027-02-13" } });
-    expect(dialog().getByLabelText("Ends on")).toHaveValue("2027-02-15");
+    await typeDate("Date", "2027-02-13", dialog());
+    expect(fieldValue("endDate")).toBe("2027-02-15");
+  });
+
+  it("uses the wedding's today for Today on Ends on (review D6)", async () => {
+    const user = userEvent.setup();
+    // Started 1 November; the dialog is told today is 4 November in the wedding's zone.
+    renderDialog({ ...mehendi, startsAt: "2026-11-01T10:30:00.000Z", endsAt: null });
+    const endsOn = dialog().getAllByRole("group", { name: "Ends on" })[0]!;
+    await user.click(within(endsOn).getByRole("button", { name: /Open calendar/ }));
+    await user.click(await screen.findByRole("button", { name: "Today" }));
+    expect(fieldValue("endDate")).toBe("2026-11-04");
   });
 });

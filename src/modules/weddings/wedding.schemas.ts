@@ -63,6 +63,14 @@ const weddingDate = z
  * forms: today or later, and at most WEDDING_DATE_MAX_YEARS_AHEAD years ahead, judged
  * in the wedding's time zone. Returns the field message, or null when the date is fine.
  */
+/**
+ * The last day a wedding may be set to: WEDDING_DATE_MAX_YEARS_AHEAD years from
+ * `today` ("YYYY-MM-DD"). Strings compare in date order; 29 Feb simply compares as a string.
+ */
+export function latestWeddingDate(today: string): string {
+  return `${Number(today.slice(0, 4)) + WEDDING_DATE_MAX_YEARS_AHEAD}${today.slice(4)}`;
+}
+
 export function weddingDateProblem(
   date: string,
   timeZone: string,
@@ -71,9 +79,7 @@ export function weddingDateProblem(
   if (!isValidDateOnly(date) || !isValidTimeZone(timeZone)) return null;
   const today = dateOnlyInTimeZone(now, timeZone);
   if (date < today) return "Choose today or a later date";
-  // "YYYY-MM-DD" strings compare in date order; 29 Feb simply compares as a string.
-  const latest = `${Number(today.slice(0, 4)) + WEDDING_DATE_MAX_YEARS_AHEAD}${today.slice(4)}`;
-  if (date > latest) {
+  if (date > latestWeddingDate(today)) {
     return `Choose a date within the next ${WEDDING_DATE_MAX_YEARS_AHEAD} years`;
   }
   return null;

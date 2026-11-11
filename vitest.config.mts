@@ -25,6 +25,9 @@ export default defineConfig({
           include: ["src/**/*.test.{ts,tsx}", "tests/architecture/**/*.test.ts"],
           environment: "node",
           setupFiles: ["./tests/setup/unit.setup.ts"],
+          // Component tests type into the React Aria date/time fields key by key and
+          // load React Aria cold; under a full parallel run they can pass 5 s.
+          testTimeout: 15_000,
         },
       },
       {

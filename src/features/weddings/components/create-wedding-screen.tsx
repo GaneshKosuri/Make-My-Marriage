@@ -5,7 +5,9 @@ import { ArrowRight, Clock, Heart, MapPin, ShieldCheck, UserRound } from "lucide
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
+
+import { DateField } from "@/components/ui/date-time-fields";
 
 import { applyFieldErrors, errorCode } from "@/features/auth/api";
 import { AUTH_ROUTES, GENERIC_ERROR } from "@/features/auth/auth-content";
@@ -21,7 +23,7 @@ import {
 import { coupleDisplayName } from "@/lib/couple";
 import { dateOnlyInTimeZone } from "@/lib/dates";
 import { DEFAULT_COUNTRY, DEFAULT_TIME_ZONE } from "@/modules/weddings/wedding.constants";
-import { createWeddingSchema } from "@/modules/weddings/wedding.schemas";
+import { createWeddingSchema, latestWeddingDate } from "@/modules/weddings/wedding.schemas";
 
 import { useCreateWedding } from "../api";
 import { CREATE_WEDDING, timeZoneLabel } from "../create-wedding-content";
@@ -78,6 +80,7 @@ export function CreateWeddingScreen({ userName }: Readonly<{ userName: string }>
     ],
   });
   const zone = timeZone ?? DEFAULT_TIME_ZONE;
+  const today = dateOnlyInTimeZone(new Date(), zone);
   const preview = {
     brideName,
     groomName,
@@ -149,12 +152,23 @@ export function CreateWeddingScreen({ userName }: Readonly<{ userName: string }>
             />
           </div>
 
-          <TextField
-            label={CREATE_WEDDING.fields.weddingDate.label}
-            type="date"
-            min={dateOnlyInTimeZone(new Date(), zone)}
-            error={errors.weddingDate?.message}
-            {...form.register("weddingDate")}
+          <Controller
+            control={form.control}
+            name="weddingDate"
+            render={({ field }) => (
+              <DateField
+                label={CREATE_WEDDING.fields.weddingDate.label}
+                value={field.value ?? ""}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                name={field.name}
+                fieldRef={field.ref}
+                min={today}
+                max={latestWeddingDate(today)}
+                today={today}
+                error={errors.weddingDate?.message}
+              />
+            )}
           />
 
           <div className="grid gap-5 sm:grid-cols-2">

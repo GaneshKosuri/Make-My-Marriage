@@ -19,6 +19,16 @@ export interface DateParts {
   day: number;
 }
 
+/**
+ * Midnight UTC of a calendar day. `Date.UTC` reads years 0–99 as 1900–1999, so
+ * the year is set separately (a year typed digit by digit passes through 2, 20, 202).
+ */
+function utcMidnight(year: number, month: number, day: number): Date {
+  const date = new Date(Date.UTC(2000, month - 1, day));
+  date.setUTCFullYear(year, month - 1, day);
+  return date;
+}
+
 /** Parses `YYYY-MM-DD`, rejecting impossible calendar dates such as 2027-02-30. */
 export function parseDateOnly(value: string): DateParts {
   const match = DATE_ONLY_PATTERN.exec(value);
@@ -27,7 +37,7 @@ export function parseDateOnly(value: string): DateParts {
   const year = Number(match[1]);
   const month = Number(match[2]);
   const day = Number(match[3]);
-  const probe = new Date(Date.UTC(year, month - 1, day));
+  const probe = utcMidnight(year, month, day);
   if (
     probe.getUTCFullYear() !== year ||
     probe.getUTCMonth() !== month - 1 ||
@@ -51,7 +61,7 @@ export function isValidDateOnly(value: unknown): value is DateOnly {
 /** Midnight UTC of a date-only value — a timezone-free storage/comparison form. */
 export function dateOnlyToUtcDate(value: DateOnly): Date {
   const { year, month, day } = parseDateOnly(value);
-  return new Date(Date.UTC(year, month - 1, day));
+  return utcMidnight(year, month, day);
 }
 
 /** Inverse of `dateOnlyToUtcDate`. */

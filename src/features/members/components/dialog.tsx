@@ -39,6 +39,9 @@ export function Dialog({
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     panelRef.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
+      // A popover inside the dialog (React Aria's calendar or time list, portaled
+      // to <body>) traps its own focus and has already handled this key.
+      if (event.defaultPrevented) return;
       if (event.key === "Escape") onCloseRef.current();
       if (event.key === "Tab" && panelRef.current) keepFocusInside(panelRef.current, event);
     };
