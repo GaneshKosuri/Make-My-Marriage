@@ -2,7 +2,14 @@ import "server-only";
 
 import type { RenderedEmail } from "../types";
 
-import { escapeHtml, renderButton, renderLayout, safeUrl } from "./layout";
+import {
+  escapeHtml,
+  renderButton,
+  renderLayout,
+  renderNote,
+  renderParagraph,
+  safeUrl,
+} from "./layout";
 
 export interface PasswordResetEmailProps {
   recipientName: string;
@@ -10,7 +17,7 @@ export interface PasswordResetEmailProps {
   expiresInMinutes: number;
 }
 
-/** SYSTEM_DESIGN §12. Placeholder copy. */
+/** SYSTEM_DESIGN §12. */
 export function renderPasswordResetEmail(props: PasswordResetEmailProps): RenderedEmail {
   const url = safeUrl(props.resetUrl);
   const subject = "Reset your Make My Marriage password";
@@ -24,11 +31,15 @@ export function renderPasswordResetEmail(props: PasswordResetEmailProps): Render
     "If you didn't ask for this, you can ignore this email.",
   ].join("\n");
   const html = renderLayout({
-    preheader: "Reset your password",
-    bodyHtml: `<p>Hi ${escapeHtml(props.recipientName)},</p>
-      <p>We received a request to reset your password.</p>
+    preheader: "Choose a new password for Make My Marriage",
+    eyebrow: "Your account",
+    title: "Reset your password",
+    bodyHtml: `${renderParagraph(`Hi ${escapeHtml(props.recipientName)},`)}
+      ${renderParagraph("We received a request to reset your password. Choose a new one with the button below.")}
       ${renderButton(url, "Choose a new password")}
-      <p>The link expires in ${props.expiresInMinutes} minutes and can be used once. If you didn't ask for this, you can ignore this email.</p>`,
+      ${renderNote(`The link expires in ${props.expiresInMinutes} minutes and can be used once.`)}
+      ${renderNote("If you didn't ask for this, you can ignore this email. Your password stays the same.")}`,
+    footnote: "You received this because a password reset was requested for your account.",
   });
   return { subject, html, text };
 }

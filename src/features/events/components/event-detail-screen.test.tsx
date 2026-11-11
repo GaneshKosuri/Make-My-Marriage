@@ -124,7 +124,8 @@ describe("<EventDetailScreen />", () => {
   });
 
   it("links to the full list when the event has more tasks than its page shows (D8)", async () => {
-    const many = Array.from({ length: 50 }, (_, index) => ({
+    // A few shown, more on the full list: the link depends on total > shown.
+    const many = Array.from({ length: 3 }, (_, index) => ({
       id: `t${index}`,
       title: `Task ${index}`,
       description: null,
@@ -146,7 +147,7 @@ describe("<EventDetailScreen />", () => {
     renderScreen();
 
     const card = within(await screen.findByRole("region", { name: TASKS.forEvent.title }));
-    expect(await card.findAllByRole("button", { name: /^Edit "Task/ })).toHaveLength(50);
+    expect(await card.findAllByRole("button", { name: /^Edit "Task/ })).toHaveLength(3);
     expect(card.getByRole("link", { name: TASKS.forEvent.all })).toHaveAttribute(
       "href",
       "/app/tasks?eventId=e1",

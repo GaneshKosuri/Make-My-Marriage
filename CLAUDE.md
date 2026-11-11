@@ -51,7 +51,8 @@ implementation that is NOT in this repo — treat them as requirements, don't lo
    Wedding date is `YYYY-MM-DD` + IANA `timeZone`; instants are UTC (`@/lib/dates`).
 7. **Strict Zod at every boundary:** every request schema is `.strict()`; enums come from `*.constants.ts`.
 8. **Internal services, never provider SDKs:** `getEmailService()`, `getStorageService()`,
-   `getVendorDiscoveryService()`. No `resend` or `@aws-sdk/*` imports outside `src/server`.
+   `getVendorDiscoveryService()`. No `resend`, `nodemailer` or `@aws-sdk/*` imports outside
+   `src/server`. The email sender is chosen by `EMAIL_PROVIDER` (gmail | resend | console).
 9. **Mutations go through REST.** No Server Actions for writes. Server Components may read via services.
 10. **Tokens:** `generateToken()` / `hashToken(purpose, raw)` from `@/server/security/tokens`; never
     `Math.random`. Session, reset and member-invite tokens are stored as HMAC only. Guest invitation and

@@ -7,12 +7,13 @@ import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
 const SERVER_PACKAGES = {
-  regex: "^(mongoose|mongodb|resend|@aws-sdk/.+|@node-rs/argon2|server-only|next/headers)$",
+  regex:
+    "^(mongoose|mongodb|resend|nodemailer|@aws-sdk/.+|@node-rs/argon2|server-only|next/headers)$",
   message: "Server-only package: client code must call the REST API instead.",
 };
 
 const PROVIDER_SDKS = {
-  regex: "^(resend|@aws-sdk/.+)$",
+  regex: "^(resend|nodemailer|@aws-sdk/.+)$",
   message:
     "Business code never touches provider SDKs. Use EmailService / StorageService / VendorDiscoveryService from @/server/*.",
 };
