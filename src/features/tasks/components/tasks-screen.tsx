@@ -242,6 +242,7 @@ export function TasksScreen({ timeZone, today }: Readonly<TasksScreenProps>) {
         task={editingTask}
         initialEventId={editing?.kind === "new" ? editing.eventId : undefined}
         timeZone={timeZone}
+        today={today}
         onSaved={(task) => {
           setNotice(
             editing?.kind === "edit"

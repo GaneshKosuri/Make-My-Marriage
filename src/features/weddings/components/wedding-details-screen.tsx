@@ -4,10 +4,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCircle2, Globe, Heart, MapPin, RefreshCw, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import type { z } from "zod";
 
 import { SettingsTabs } from "@/components/layout/settings-tabs";
+import { DateField } from "@/components/ui/date-time-fields";
 import { applyFieldErrors } from "@/features/auth/api";
 import {
   FormAlert,
@@ -24,7 +25,11 @@ import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { coupleDisplayName } from "@/lib/couple";
 import { dateOnlyInTimeZone } from "@/lib/dates";
-import { updateWeddingSchema, weddingDateProblem } from "@/modules/weddings/wedding.schemas";
+import {
+  latestWeddingDate,
+  updateWeddingSchema,
+  weddingDateProblem,
+} from "@/modules/weddings/wedding.schemas";
 import type { UpdateWeddingInput, WeddingDto } from "@/modules/weddings/wedding.types";
 
 import { useUpdateWedding, useWedding } from "../api";
@@ -132,6 +137,10 @@ function DetailsForm({ wedding }: Readonly<{ wedding: WeddingDto }>) {
   });
   // Same rule as the server, shown as soon as the date is changed. Only a changed
   // date is judged, so details stay editable after the wedding day.
+  const today = dateOnlyInTimeZone(new Date(), timeZone || wedding.timeZone);
+  // A stored date that has passed stays valid (details stay editable after the
+  // wedding, decided 2026-10-29), so the calendar's earliest day never excludes it.
+  const earliest = wedding.weddingDate < today ? undefined : today;
   const dateProblem =
     weddingDate && weddingDate !== wedding.weddingDate
       ? weddingDateProblem(weddingDate, timeZone || wedding.timeZone)
@@ -223,12 +232,23 @@ function DetailsForm({ wedding }: Readonly<{ wedding: WeddingDto }>) {
       <DashboardCard title={WEDDING_DETAILS.dateSection}>
         <div className="flex flex-col gap-5">
           <div className="grid gap-5 sm:grid-cols-2">
-            <TextField
-              label={FIELDS.weddingDate.label}
-              type="date"
-              min={dateOnlyInTimeZone(new Date(), timeZone || wedding.timeZone)}
-              error={errors.weddingDate?.message ?? dateProblem ?? undefined}
-              {...form.register("weddingDate")}
+            <Controller
+              control={form.control}
+              name="weddingDate"
+              render={({ field }) => (
+                <DateField
+                  label={FIELDS.weddingDate.label}
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  fieldRef={field.ref}
+                  min={earliest}
+                  max={latestWeddingDate(today)}
+                  today={today}
+                  error={errors.weddingDate?.message ?? dateProblem ?? undefined}
+                />
+              )}
             />
             <TimeZoneSelect
               error={errors.timeZone?.message}

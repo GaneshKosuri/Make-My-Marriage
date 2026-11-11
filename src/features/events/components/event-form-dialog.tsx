@@ -2,9 +2,10 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { MapPin, RefreshCw, Shirt } from "lucide-react";
-import { useState, type ChangeEvent } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useState } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
 
+import { DateField, TimeField } from "@/components/ui/date-time-fields";
 import {
   FormAlert,
   OptionalTag,
@@ -126,9 +127,9 @@ function EventForm({
         },
   });
   const { errors, dirtyFields, isDirty } = form.formState;
-  const [startTime, endDate, endTime] = useWatch({
+  const [date, startTime, endDate, endTime] = useWatch({
     control: form.control,
-    name: ["startTime", "endDate", "endTime"],
+    name: ["date", "startTime", "endDate", "endTime"],
   });
 
   const onError = (error: unknown) => {
@@ -154,12 +155,10 @@ function EventForm({
   });
 
   // Moving the start date moves an end date with it, keeping the event's length.
-  const dateField = form.register("date");
-  const onDateChange = (change: ChangeEvent<HTMLInputElement>) => {
+  const onDateChange = (next: string, setDate: (value: string) => void) => {
     const previous = form.getValues("date");
-    const next = change.target.value;
     const end = form.getValues("endDate");
-    void dateField.onChange(change);
+    setDate(next);
     if (end && isValidDateOnly(previous) && isValidDateOnly(next)) {
       form.setValue("endDate", moveEndDate(end, previous, next), { shouldDirty: true });
     }
@@ -210,39 +209,79 @@ function EventForm({
       />
 
       <div className="grid grid-cols-2 gap-3">
-        <TextField
-          label={FIELDS.date.label}
-          type="date"
-          error={errors.date?.message}
-          {...dateField}
-          onChange={onDateChange}
+        <Controller
+          control={form.control}
+          name="date"
+          render={({ field }) => (
+            <DateField
+              label={FIELDS.date.label}
+              value={field.value}
+              onChange={(next) => onDateChange(next, field.onChange)}
+              onBlur={field.onBlur}
+              name={field.name}
+              fieldRef={field.ref}
+              today={today}
+              error={errors.date?.message}
+            />
+          )}
         />
-        <TextField
-          label={FIELDS.startTime.label}
-          type="time"
-          error={errors.startTime?.message}
-          {...form.register("startTime")}
+        <Controller
+          control={form.control}
+          name="startTime"
+          render={({ field }) => (
+            <TimeField
+              label={FIELDS.startTime.label}
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              name={field.name}
+              fieldRef={field.ref}
+              error={errors.startTime?.message}
+            />
+          )}
         />
-        <TextField
-          label={FIELDS.endDate.label}
-          labelAside={<OptionalTag />}
-          type="date"
-          error={errors.endDate?.message}
-          hint={<p className="text-body-sm text-plum">{FORM.endDateHint}</p>}
-          {...form.register("endDate")}
+        <Controller
+          control={form.control}
+          name="endDate"
+          render={({ field }) => (
+            <DateField
+              label={FIELDS.endDate.label}
+              labelAside={<OptionalTag />}
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              name={field.name}
+              fieldRef={field.ref}
+              min={date || undefined}
+              today={today}
+              clearable
+              error={errors.endDate?.message}
+              hint={<p className="text-body-sm text-plum">{FORM.endDateHint}</p>}
+            />
+          )}
         />
-        <TextField
-          label={FIELDS.endTime.label}
-          labelAside={<OptionalTag />}
-          type="time"
-          error={errors.endTime?.message}
-          hint={
-            !endDate &&
-            endsNextDay(startTime, endTime) && (
-              <p className="text-body-sm text-plum">{FORM.endsNextDay}</p>
-            )
-          }
-          {...form.register("endTime")}
+        <Controller
+          control={form.control}
+          name="endTime"
+          render={({ field }) => (
+            <TimeField
+              label={FIELDS.endTime.label}
+              labelAside={<OptionalTag />}
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              name={field.name}
+              fieldRef={field.ref}
+              clearable
+              error={errors.endTime?.message}
+              hint={
+                !endDate &&
+                endsNextDay(startTime, endTime) && (
+                  <p className="text-body-sm text-plum">{FORM.endsNextDay}</p>
+                )
+              }
+            />
+          )}
         />
       </div>
 

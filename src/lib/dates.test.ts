@@ -35,6 +35,13 @@ describe("date-only values (DATABASE_DESIGN §14)", () => {
     expect(formatDateOnly("2027-01-01")).toBe("1 January 2027");
   });
 
+  it("handles years below 100 (seen while a year is typed digit by digit)", () => {
+    expect(isValidDateOnly("0002-02-13")).toBe(true);
+    expect(dateOnlyToUtcDate("0020-02-13").getUTCFullYear()).toBe(20);
+    expect(utcDateToDateOnly(dateOnlyToUtcDate("0002-02-13"))).toBe("0002-02-13");
+    expect(addDays("0099-12-31", 1)).toBe("0100-01-01");
+  });
+
   it("round-trips through UTC midnight", () => {
     const date = dateOnlyToUtcDate("2027-02-14");
     expect(date.toISOString()).toBe("2027-02-14T00:00:00.000Z");

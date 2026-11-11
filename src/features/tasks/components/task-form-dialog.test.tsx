@@ -61,6 +61,7 @@ function renderDialog(current: TaskDto) {
         onClose={() => {}}
         task={value}
         timeZone="Asia/Kolkata"
+        today="2026-11-04"
         onSaved={() => {}}
       />
     </QueryClientProvider>

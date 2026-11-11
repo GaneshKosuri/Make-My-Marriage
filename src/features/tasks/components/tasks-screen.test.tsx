@@ -7,6 +7,8 @@ import type { EventDto } from "@/modules/events/event.types";
 import type { MemberDto } from "@/modules/members/member.types";
 import type { TaskDto } from "@/modules/tasks/task.types";
 
+import { typeDate } from "@/components/ui/date-time-fields.test-helpers";
+
 import { TASKS } from "../tasks-content";
 import { TasksScreen, type TasksScreenProps } from "./tasks-screen";
 
@@ -226,7 +228,7 @@ describe("<TasksScreen />", () => {
     fireEvent.change(await form.findByLabelText("Task"), { target: { value: " Book the band " } });
     fireEvent.change(form.getByLabelText("Assigned to"), { target: { value: PRINCI } });
     fireEvent.change(form.getByLabelText("Event"), { target: { value: SANGEET } });
-    fireEvent.change(form.getByLabelText("Due date"), { target: { value: "2027-01-15" } });
+    await typeDate("Due date", "2027-01-15", form);
     fireEvent.click(form.getByRole("radio", { name: "High" }));
     fireEvent.click(form.getByRole("button", { name: TASKS.form.save }));
 

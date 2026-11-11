@@ -19,13 +19,20 @@ test("signed-out /app redirects to /login", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
 });
 
+// Under a full parallel run, `next dev` can take a few seconds to hydrate a page
+// and to compile the next one, so these waits are longer than the default.
+const NAVIGATION = { timeout: 15_000 };
+
 test("auth pages render and link to each other", async ({ page }) => {
-  await page.goto("/login");
+  // Click only once the dev page has finished loading and hydrating.
+  await page.goto("/login", { waitUntil: "networkidle" });
   await page.getByRole("link", { name: "Create an account" }).click();
-  await expect(page.getByRole("heading", { name: "Create your account" })).toBeVisible();
-  await page.goto("/login");
+  await expect(page).toHaveURL(/\/signup$/, NAVIGATION);
+  await expect(page.getByRole("heading", { name: "Create your account" })).toBeVisible(NAVIGATION);
+  await page.goto("/login", { waitUntil: "networkidle" });
   await page.getByRole("link", { name: "Forgot password?" }).click();
-  await expect(page.getByRole("heading", { name: "Reset your password" })).toBeVisible();
+  await expect(page).toHaveURL(/\/forgot-password$/, NAVIGATION);
+  await expect(page.getByRole("heading", { name: "Reset your password" })).toBeVisible(NAVIGATION);
 });
 
 test("guest invitation pages are noindex and leak no referrer", async ({ request }) => {
