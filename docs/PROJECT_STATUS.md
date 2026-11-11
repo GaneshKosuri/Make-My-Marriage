@@ -107,6 +107,15 @@ monitoring.
   `RESEND_API_KEY` (emails print to the console). `.env.local` now leaves `RESEND_API_KEY` blank (the old
   key is kept commented out): it only delivered to the Resend account owner. Use Resend again only with
   a verified domain and a matching `EMAIL_FROM`.
+- **Sending real email without a domain (11 Nov).** `onboarding@resend.dev` only delivers to the Resend
+  account's own address (Resend answers 403 for anyone else, so invites fail with "We couldn't send the
+  email"). Until there is a verified domain, set `GMAIL_USER` and `GMAIL_APP_PASSWORD` (a Google app
+  password; 2-Step Verification on) to send from a personal Gmail, about 500 recipients a day. Gmail is
+  used instead of Resend while both are set; the server logs "Email transport selected" with the
+  adapter on its first email. Not for production or guest invitations at scale (Phase 3): get a
+  domain and verify it in Resend before launch.
+- **Mongoose security advisories (11 Nov).** `npm audit` reports high-severity advisories for
+  mongoose 9.0.0–9.11.3 (fix available via `npm audit fix`). Upgrade and rerun the full suite.
 - **Restart `next dev` after this change.** The identity ports are registered once at startup, so a
   running dev server keeps showing the header without the wedding's place until it restarts.
 - **Dashboard links lead to placeholders.** Every card, "+ Add" item and checklist step links to the
@@ -207,6 +216,7 @@ monitoring.
 | 2026-11-04 | Tasks screen: "All tasks" is every task (any status), "My tasks" the caller's, "Completed" the completed ones; the other filters apply within a view and stay in the address (`?view=`, `?status=`, `?eventId=`, `?assignedMembershipId=`, `?priority=`). A due date is a day in the wedding's time zone, stored as midnight there. The tick toggles Completed ↔ To Do; In Progress is set in the form. An event page shows up to 50 of its tasks |
 | 2026-11-04 | Event form: an optional **Ends on** date covers events longer than a day; it is filled from the stored end when the same-day / next-day rule doesn't give it, and moving the start date moves it too (code review R3) |
 | 2026-11-04 | Event and task edit forms keep what was typed when a newer copy arrives in the background; saving then answers CONFLICT and **Reload** fetches the latest copy by id (code review R4). /app/tasks reads its view and filters from the address (`useSearchParams`), so links into it work while it stays mounted (code review R1) |
+| 2026-11-11 | Email can go out through a personal Gmail (Google app password, nodemailer over Gmail SMTP) when there is no verified domain for Resend. Gmail wins over Resend while configured; the From line uses the Gmail address with EMAIL_FROM's display name. nodemailer 10.2.1 pinned (7.x and ≤10.1.3 have advisories); it is fenced like the Resend SDK (`src/server/email/adapters` only) |
 | 2026-11-04 | Events list: upcoming (including events still running) in date order, past most recent first, archived only on request. Times show in the wedding's time zone, named on the page |
 
 ## 5. Change log
@@ -235,3 +245,4 @@ monitoring.
 | 2026-11-04 | Tasks screen (Phase 2, slice 4): `/app/tasks` views, filters, tick, add/edit/delete dialog; tasks on event pages; shared task details with the dashboard ("Former member", archived events); home page Tasks badge live; 18 new unit and component tests. Phase 2 features complete |
 | 2026-11-04 | Phase 2 code-review fixes R1–R7: task links followed while the screen stays mounted; emptied last page moves back; multi-day events editable (Ends on); edit forms survive background refetches; event changes refresh task lists; task form explains failed member/event lists; events Upcoming/Past kept current. 13 new tests, each failing before its fix. R8/R9 clean-ups listed for the start of Phase 3 |
 | 2026-11-04 | Phase 2 QA (handoffs/qa-report-phase-2.md): 256 of 257 checks pass, no P1/P2, no cross-wedding leaks. Fixed P3-1 (event rows now say "(next day)" or the end date, as the event page does) and the filter-label polish (labels linked by id); added the D8 test QA couldn't run (50-task cap and "All tasks for this event" link). Phase 2 QA-verified |
+| 2026-11-11 | Gmail email sender (`GMAIL_USER` / `GMAIL_APP_PASSWORD`) for sending invitations without a domain; adapter selection logged; env validation for the pair; 10 new unit tests. Investigated missing invitation emails: `onboarding@resend.dev` only delivers to the Resend account owner |

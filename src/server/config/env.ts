@@ -78,6 +78,22 @@ export const envSchema = z
 
     RESEND_API_KEY: optionalString(),
     EMAIL_FROM: optionalString(),
+    /**
+     * Gmail sending (no domain needed): the Gmail address and a Google app
+     * password. Set both or neither; when set, Gmail is used instead of Resend.
+     */
+    GMAIL_USER: z.preprocess(
+      (value) => (typeof value === "string" ? value.trim() || undefined : value),
+      z.email({ error: "must be a Gmail address" }).optional(),
+    ),
+    /** Google shows it as four groups of four letters; the spaces are dropped. */
+    GMAIL_APP_PASSWORD: z.preprocess(
+      (value) => (typeof value === "string" ? value.replace(/\s+/g, "") || undefined : value),
+      z
+        .string()
+        .regex(/^[a-z]{16}$/i, "must be the 16-letter Google app password")
+        .optional(),
+    ),
     EMAIL_BATCH_SIZE: z.preprocess(
       emptyToUndefined,
       z.coerce.number().int().min(1).max(100).default(25),
@@ -91,6 +107,14 @@ export const envSchema = z
     GOOGLE_PLACES_API_KEY: optionalString(),
   })
   .superRefine((env, ctx) => {
+    if (Boolean(env.GMAIL_USER) !== Boolean(env.GMAIL_APP_PASSWORD)) {
+      ctx.addIssue({
+        code: "custom",
+        path: [env.GMAIL_USER ? "GMAIL_APP_PASSWORD" : "GMAIL_USER"],
+        message: "must be set together with the other GMAIL_ setting",
+      });
+    }
+
     if (env.NODE_ENV === "production") {
       for (const key of PRODUCTION_REQUIRED) {
         if (!env[key]) {

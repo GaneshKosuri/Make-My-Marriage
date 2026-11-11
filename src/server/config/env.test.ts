@@ -110,6 +110,46 @@ describe("parseEnv", () => {
   });
 });
 
+describe("Gmail sending settings", () => {
+  it("accepts the address and app password, dropping the spaces Google shows", () => {
+    const env = parseEnv({
+      ...base,
+      GMAIL_USER: " family@gmail.com ",
+      GMAIL_APP_PASSWORD: "abcd efgh ijkl mnop",
+    });
+    expect(env.GMAIL_USER).toBe("family@gmail.com");
+    expect(env.GMAIL_APP_PASSWORD).toBe("abcdefghijklmnop");
+  });
+
+  it("treats blank settings as unset", () => {
+    const env = parseEnv({ ...base, GMAIL_USER: "", GMAIL_APP_PASSWORD: "  " });
+    expect(env.GMAIL_USER).toBeUndefined();
+    expect(env.GMAIL_APP_PASSWORD).toBeUndefined();
+  });
+
+  it("needs both settings together, a real address and a 16-letter app password", () => {
+    expect(problemsOf({ ...base, GMAIL_USER: "family@gmail.com" })).toEqual([
+      "GMAIL_APP_PASSWORD must be set together with the other GMAIL_ setting",
+    ]);
+    expect(problemsOf({ ...base, GMAIL_APP_PASSWORD: "abcdefghijklmnop" })).toEqual([
+      "GMAIL_USER must be set together with the other GMAIL_ setting",
+    ]);
+    expect(
+      problemsOf({ ...base, GMAIL_USER: "family", GMAIL_APP_PASSWORD: "my-real-password" }),
+    ).toEqual(
+      expect.arrayContaining([
+        "GMAIL_USER must be a Gmail address",
+        "GMAIL_APP_PASSWORD must be the 16-letter Google app password",
+      ]),
+    );
+  });
+
+  it("never echoes the app password in errors", () => {
+    const problems = problemsOf({ ...base, GMAIL_APP_PASSWORD: "secretpassword1234" });
+    expect(problems.join(" ")).not.toContain("secretpassword1234");
+  });
+});
+
 describe("databaseNameFromUri", () => {
   it("extracts the database name", () => {
     expect(databaseNameFromUri("mongodb://h:1/db-name?replicaSet=rs0")).toBe("db-name");
