@@ -115,11 +115,13 @@ lint → typecheck → unit tests → integration tests → build.
 
 - Set every variable from `.env.example` in the Vercel project, using separate credentials per
   environment. Preview deployments need their own database and bucket.
-- `vercel.json` schedules `GET /api/internal/jobs/email` every 5 minutes. Vercel sends
-  `Authorization: Bearer $CRON_SECRET`.
-  **The allowed cron frequency depends on your Vercel plan.** Lower plans restrict how often cron
-  jobs may run, so check Vercel's current cron limits before deploying and widen the schedule if
-  needed. Bulk email simply processes more slowly.
+- `vercel.json` schedules `GET /api/internal/jobs/email` once a day (`30 2 * * *`, 02:30 UTC =
+  08:00 IST). Vercel sends `Authorization: Bearer $CRON_SECRET`.
+  **Vercel's Hobby plan only allows daily cron jobs** (a more frequent schedule fails the deploy, and
+  Hobby runs it at some point within the scheduled hour). The worker has nothing to send until
+  Phase 3 (guest invitations). Bulk email then needs a more frequent run: a Pro plan schedule such as
+  `*/5 * * * *`, or an external scheduler calling the same endpoint with the `CRON_SECRET` bearer
+  token.
 - R2: a private bucket, bucket-scoped credentials, and CORS allowing `PUT`/`GET`/`HEAD` with
   `Content-Type` from the app origins.
 
