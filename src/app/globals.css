@@ -169,6 +169,56 @@
     @apply bg-background text-foreground font-sans;
   }
 
+  /*
+   * Scrollbars in the brand palette, everywhere (pages, sidebar, dialogs): a slim
+   * rounded burgundy thumb on no track, no arrow buttons, a little stronger while hovered.
+   * Chromium and Safari use the ::-webkit-scrollbar rules. Firefox gets the
+   * standard properties, which Chromium would otherwise prefer over the rounded
+   * thumb, so they apply only where ::-webkit-scrollbar isn't supported.
+   */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    /* The transparent border insets the thumb, so it reads as 4px with breathing room. */
+    border: 3px solid transparent;
+    border-radius: 9999px;
+    background-color: color-mix(in oklab, var(--burgundy) 60%, transparent);
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover,
+  ::-webkit-scrollbar-thumb:active {
+    background-color: var(--burgundy);
+  }
+
+  ::-webkit-scrollbar-button {
+    display: none;
+  }
+
+  @supports not selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: color-mix(in oklab, var(--burgundy) 60%, transparent) transparent;
+    }
+  }
+
+  /*
+   * Themed scrollbars are classic (always-visible) bars, also where the platform
+   * would overlay them (macOS). Reserve the page's gutter so content doesn't shift
+   * between short and long pages (decided 2026-11-11, review D8).
+   */
+  html {
+    scrollbar-gutter: stable;
+  }
+
   /* In-page anchor links glide to their section; people who ask for less motion still jump. */
   @media (prefers-reduced-motion: no-preference) {
     html {
