@@ -18,7 +18,7 @@ model and the complete API surface are in place. Product features land phase by 
 ## Stack
 
 Next.js 16 (App Router, Cache Components, Turbopack) · React 19 · TypeScript (strict) · MongoDB
-Atlas + Mongoose · Zod · custom sessions (argon2id) · Cloudflare R2 · Resend · Google Places ·
+Atlas + Mongoose · Zod · custom sessions (argon2id) · Cloudflare R2 · Resend or Gmail (email) · Google Places ·
 Tailwind CSS 4 + shadcn/ui · TanStack Query · Vitest · Playwright · Vercel (+ Cron)
 
 ## Getting started
@@ -66,8 +66,22 @@ development you need only:
 
 Without integration keys, development falls back safely. Emails print to the terminal (console
 adapter), storage uses an in-memory fake, and vendor discovery returns sample results. In
-production every integration key is required: environment validation fails, and requests that need
-configuration error, until they are all set.
+production every integration key is required (for email, the chosen sender's): environment
+validation fails, and requests that need configuration error, until they are all set.
+
+### Email
+
+Three senders, picked with `EMAIL_PROVIDER` (`gmail`, `resend` or `console`). Leave it empty to use
+the first one configured: Gmail, then Resend, then the console. If the chosen sender's settings are
+missing, the first request fails and the `next dev` terminal names the missing setting (never its
+value). The first email logs "Email transport selected" with the sender. Restart `next dev` after
+changing any email setting.
+
+| Sender    | Settings                           | Notes                                                                                                                                                                                                                            |
+| --------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `console` | none                               | Development only. Prints each email, with its links (e.g. `/join/...`), in the `next dev` terminal.                                                                                                                              |
+| `gmail`   | `GMAIL_USER`, `GMAIL_APP_PASSWORD` | No domain needed. Turn on 2-Step Verification and create an app password at myaccount.google.com/apppasswords (spaces are fine). Sends from the Gmail address (keeping `EMAIL_FROM`'s display name), about 500 recipients a day. |
+| `resend`  | `RESEND_API_KEY`, `EMAIL_FROM`     | Needs a domain verified in Resend and an `EMAIL_FROM` on it. `onboarding@resend.dev` only delivers to the Resend account's own address. Use this in production.                                                                  |
 
 ### 3. Run
 

@@ -18,10 +18,14 @@ const emptyToUndefined = (value: unknown) =>
 
 const optionalString = () => z.preprocess(emptyToUndefined, z.string().trim().min(1).optional());
 
+/** Email senders `EMAIL_PROVIDER` can pick. */
+export const EMAIL_PROVIDERS = ["gmail", "resend", "console"] as const;
+export type EmailProvider = (typeof EMAIL_PROVIDERS)[number];
+
+/** RESEND_API_KEY is required in production only when Resend is the sender (see below). */
 const PRODUCTION_REQUIRED = [
   "MONGODB_URI",
   "CRON_SECRET",
-  "RESEND_API_KEY",
   "EMAIL_FROM",
   "R2_ACCOUNT_ID",
   "R2_ACCESS_KEY_ID",
@@ -79,8 +83,16 @@ export const envSchema = z
     RESEND_API_KEY: optionalString(),
     EMAIL_FROM: optionalString(),
     /**
+     * Which sender delivers email: gmail, resend or console. Unset: Gmail when
+     * GMAIL_* are set, else Resend when RESEND_API_KEY is set, else console.
+     */
+    EMAIL_PROVIDER: z.preprocess(
+      (value) => (typeof value === "string" ? value.trim().toLowerCase() || undefined : value),
+      z.enum(EMAIL_PROVIDERS, { error: "must be gmail, resend or console" }).optional(),
+    ),
+    /**
      * Gmail sending (no domain needed): the Gmail address and a Google app
-     * password. Set both or neither; when set, Gmail is used instead of Resend.
+     * password. Set both or neither.
      */
     GMAIL_USER: z.preprocess(
       (value) => (typeof value === "string" ? value.trim() || undefined : value),
@@ -115,7 +127,39 @@ export const envSchema = z
       });
     }
 
+    // A sender picked by EMAIL_PROVIDER must have its settings.
+    if (env.EMAIL_PROVIDER === "gmail" && !env.GMAIL_USER && !env.GMAIL_APP_PASSWORD) {
+      for (const key of ["GMAIL_USER", "GMAIL_APP_PASSWORD"] as const) {
+        ctx.addIssue({
+          code: "custom",
+          path: [key],
+          message: "is required when EMAIL_PROVIDER is gmail",
+        });
+      }
+    }
+    if (env.EMAIL_PROVIDER === "resend" && !env.RESEND_API_KEY) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["RESEND_API_KEY"],
+        message: "is required when EMAIL_PROVIDER is resend",
+      });
+    }
+
     if (env.NODE_ENV === "production") {
+      // Production must really send: the console sender only prints.
+      if (env.EMAIL_PROVIDER === "console") {
+        ctx.addIssue({
+          code: "custom",
+          path: ["EMAIL_PROVIDER"],
+          message: "can't be console in production",
+        });
+      } else if (!env.EMAIL_PROVIDER && resolveEmailProvider(env) === "console") {
+        ctx.addIssue({
+          code: "custom",
+          path: ["RESEND_API_KEY"],
+          message: "is required in production",
+        });
+      }
       for (const key of PRODUCTION_REQUIRED) {
         if (!env[key]) {
           ctx.addIssue({ code: "custom", path: [key], message: "is required in production" });
@@ -144,6 +188,18 @@ export const envSchema = z
   });
 
 export type Env = z.output<typeof envSchema>;
+
+/**
+ * The email sender in use: EMAIL_PROVIDER when set, otherwise the first one
+ * configured of Gmail, then Resend, then the console (development only).
+ */
+export function resolveEmailProvider(
+  env: Pick<Env, "EMAIL_PROVIDER" | "GMAIL_USER" | "GMAIL_APP_PASSWORD" | "RESEND_API_KEY">,
+): EmailProvider {
+  if (env.EMAIL_PROVIDER) return env.EMAIL_PROVIDER;
+  if (env.GMAIL_USER && env.GMAIL_APP_PASSWORD) return "gmail";
+  return env.RESEND_API_KEY ? "resend" : "console";
+}
 
 export class EnvValidationError extends Error {
   override readonly name = "EnvValidationError";

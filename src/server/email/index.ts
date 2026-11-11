@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getEnv, type Env } from "@/server/config/env";
+import { getEnv, resolveEmailProvider, type Env } from "@/server/config/env";
 import { logger } from "@/server/logging/logger";
 
 import { createConsoleEmailAdapter } from "./adapters/console.adapter";
@@ -42,24 +42,32 @@ export function gmailFrom(emailFrom: string | undefined, gmailUser: string): str
 }
 
 /**
- * Adapter selection: test → fake; GMAIL_USER + GMAIL_APP_PASSWORD → Gmail;
- * RESEND_API_KEY → Resend; otherwise (dev only — production requires a key)
- * → console. Gmail comes first so it can be tried without removing a Resend key.
+ * Adapter selection: tests always use the fake adapter; otherwise
+ * `EMAIL_PROVIDER` (gmail | resend | console) picks the sender, and when it is
+ * unset the first configured of Gmail, Resend, console is used. The env schema
+ * has already checked that the chosen sender's settings are present.
  */
 export function selectEmailTransport(env: Env): { adapter: EmailAdapter; from: string } {
   if (env.NODE_ENV === "test") {
     return { adapter: createFakeEmailAdapter(), from: env.EMAIL_FROM ?? FALLBACK_FROM };
   }
-  if (env.GMAIL_USER && env.GMAIL_APP_PASSWORD) {
-    return {
-      adapter: createGmailAdapter({ user: env.GMAIL_USER, appPassword: env.GMAIL_APP_PASSWORD }),
-      from: gmailFrom(env.EMAIL_FROM, env.GMAIL_USER),
-    };
+  switch (resolveEmailProvider(env)) {
+    case "gmail":
+      return {
+        adapter: createGmailAdapter({
+          user: env.GMAIL_USER!,
+          appPassword: env.GMAIL_APP_PASSWORD!,
+        }),
+        from: gmailFrom(env.EMAIL_FROM, env.GMAIL_USER!),
+      };
+    case "resend":
+      return {
+        adapter: createResendAdapter(env.RESEND_API_KEY!),
+        from: env.EMAIL_FROM ?? FALLBACK_FROM,
+      };
+    case "console":
+      return { adapter: createConsoleEmailAdapter(), from: env.EMAIL_FROM ?? FALLBACK_FROM };
   }
-  const adapter = env.RESEND_API_KEY
-    ? createResendAdapter(env.RESEND_API_KEY)
-    : createConsoleEmailAdapter();
-  return { adapter, from: env.EMAIL_FROM ?? FALLBACK_FROM };
 }
 
 export function getEmailService(): EmailService {

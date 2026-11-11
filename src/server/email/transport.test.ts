@@ -27,6 +27,26 @@ describe("selectEmailTransport", () => {
     expect(transport.from).toBe("Make My Marriage <family@gmail.com>");
   });
 
+  it("follows EMAIL_PROVIDER when it names a sender", () => {
+    const both = {
+      ...base,
+      ...gmail,
+      RESEND_API_KEY: "re_123",
+      EMAIL_FROM: "Make My Marriage <noreply@mmm.in>",
+    };
+    expect(selectEmailTransport(parseEnv({ ...both, EMAIL_PROVIDER: "resend" }))).toMatchObject({
+      adapter: { name: "resend" },
+      from: "Make My Marriage <noreply@mmm.in>",
+    });
+    expect(
+      selectEmailTransport(parseEnv({ ...both, EMAIL_PROVIDER: "console" })).adapter.name,
+    ).toBe("console");
+    expect(selectEmailTransport(parseEnv({ ...both, EMAIL_PROVIDER: "gmail" }))).toMatchObject({
+      adapter: { name: "gmail" },
+      from: "Make My Marriage <family@gmail.com>",
+    });
+  });
+
   it("uses Resend with a key and no Gmail, and the console with neither", () => {
     const resend = selectEmailTransport(
       parseEnv({ ...base, RESEND_API_KEY: "re_123", EMAIL_FROM: "MMM <noreply@mmm.in>" }),

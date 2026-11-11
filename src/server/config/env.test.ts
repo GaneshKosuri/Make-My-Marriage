@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { databaseNameFromUri, EnvValidationError, parseEnv } from "./env";
+import { databaseNameFromUri, EnvValidationError, parseEnv, resolveEmailProvider } from "./env";
 
 const SECRET = "x".repeat(32);
 
@@ -147,6 +147,54 @@ describe("Gmail sending settings", () => {
   it("never echoes the app password in errors", () => {
     const problems = problemsOf({ ...base, GMAIL_APP_PASSWORD: "secretpassword1234" });
     expect(problems.join(" ")).not.toContain("secretpassword1234");
+  });
+});
+
+describe("EMAIL_PROVIDER", () => {
+  const gmail = { GMAIL_USER: "family@gmail.com", GMAIL_APP_PASSWORD: "abcdefghijklmnop" };
+  const resend = { RESEND_API_KEY: "re_123" };
+
+  it("picks the sender it names, whatever else is configured", () => {
+    expect(
+      resolveEmailProvider(parseEnv({ ...base, ...gmail, ...resend, EMAIL_PROVIDER: "resend" })),
+    ).toBe("resend");
+    expect(
+      resolveEmailProvider(parseEnv({ ...base, ...gmail, ...resend, EMAIL_PROVIDER: " Gmail " })),
+    ).toBe("gmail");
+    expect(
+      resolveEmailProvider(parseEnv({ ...base, ...gmail, ...resend, EMAIL_PROVIDER: "console" })),
+    ).toBe("console");
+  });
+
+  it("falls back to the first configured of Gmail, Resend, console when unset", () => {
+    expect(
+      resolveEmailProvider(parseEnv({ ...base, ...gmail, ...resend, EMAIL_PROVIDER: "" })),
+    ).toBe("gmail");
+    expect(resolveEmailProvider(parseEnv({ ...base, ...resend }))).toBe("resend");
+    expect(resolveEmailProvider(parseEnv(base))).toBe("console");
+  });
+
+  it("needs the chosen sender's settings and a known name", () => {
+    expect(problemsOf({ ...base, EMAIL_PROVIDER: "resend" })).toEqual([
+      "RESEND_API_KEY is required when EMAIL_PROVIDER is resend",
+    ]);
+    expect(problemsOf({ ...base, ...resend, EMAIL_PROVIDER: "gmail" })).toEqual([
+      "GMAIL_USER is required when EMAIL_PROVIDER is gmail",
+      "GMAIL_APP_PASSWORD is required when EMAIL_PROVIDER is gmail",
+    ]);
+    expect(problemsOf({ ...base, EMAIL_PROVIDER: "sendgrid" })).toEqual([
+      "EMAIL_PROVIDER must be gmail, resend or console",
+    ]);
+  });
+
+  it("must really send in production: Gmail instead of a Resend key is fine, console is not", () => {
+    const { RESEND_API_KEY: _resendKey, ...withoutResend } = production;
+    expect(problemsOf({ ...withoutResend, ...gmail, EMAIL_PROVIDER: "gmail" })).toEqual([]);
+    expect(problemsOf({ ...withoutResend, ...gmail })).toEqual([]);
+    expect(problemsOf({ ...production, EMAIL_PROVIDER: "console" })).toEqual([
+      "EMAIL_PROVIDER can't be console in production",
+    ]);
+    expect(problemsOf(withoutResend)).toContain("RESEND_API_KEY is required in production");
   });
 });
 
