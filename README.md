@@ -66,8 +66,11 @@ development you need only:
 
 Without integration keys, development falls back safely. Emails print to the terminal (console
 adapter), storage uses an in-memory fake, and vendor discovery returns sample results. In
-production every integration key is required (for email, the chosen sender's): environment
-validation fails, and requests that need configuration error, until they are all set.
+production the database, `SESSION_SECRET`, `CRON_SECRET`, `EMAIL_FROM` and the chosen email
+sender's settings are required: until they are set, every request fails with a configuration error
+(Vercel's logs list the missing names). R2 and `GOOGLE_PLACES_API_KEY` are needed only once photos,
+covers (Phases 5–6) and vendor discovery (Phase 4) ship; without them those features fail instead of
+silently using the development fakes.
 
 ### Email
 

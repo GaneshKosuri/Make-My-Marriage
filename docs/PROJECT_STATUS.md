@@ -166,6 +166,11 @@ monitoring.
   `db:dev`; switch `MONGODB_URI` before the next QA round, and restart `next dev` (QA stopped it).
 - **PATCH without `version` is last-write-wins for API clients (QA note).** The UI always sends it;
   making `version` required would match binding decision 8 more strictly. Revisit if other clients appear.
+- **Production keys for later phases (11 Nov).** R2 (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
+  `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`) and `GOOGLE_PLACES_API_KEY` are no longer required for
+  production to start; their services throw in production when the keys are missing (instead of
+  silently using the fakes). Add them in Vercel before shipping vendor discovery (Phase 4), covers
+  (Phase 5) and the gallery (Phase 6).
 - **Email job schedule (11 Nov).** Vercel Hobby refused the deploy with the 5-minute cron (`*/5 * * * *`):
   Hobby allows daily cron jobs only. `vercel.json` now runs `/api/internal/jobs/email` daily at
   02:30 UTC (08:00 IST), which is fine while the worker has nothing to send. **Before Phase 3's bulk
@@ -225,6 +230,7 @@ monitoring.
 | 2026-11-04 | Tasks screen: "All tasks" is every task (any status), "My tasks" the caller's, "Completed" the completed ones; the other filters apply within a view and stay in the address (`?view=`, `?status=`, `?eventId=`, `?assignedMembershipId=`, `?priority=`). A due date is a day in the wedding's time zone, stored as midnight there. The tick toggles Completed ↔ To Do; In Progress is set in the form. An event page shows up to 50 of its tasks |
 | 2026-11-04 | Event form: an optional **Ends on** date covers events longer than a day; it is filled from the stored end when the same-day / next-day rule doesn't give it, and moving the start date moves it too (code review R3) |
 | 2026-11-04 | Event and task edit forms keep what was typed when a newer copy arrives in the background; saving then answers CONFLICT and **Reload** fetches the latest copy by id (code review R4). /app/tasks reads its view and filters from the address (`useSearchParams`), so links into it work while it stays mounted (code review R1) |
+| 2026-11-11 | Production requires only what Phases 1–2 use: database, `SESSION_SECRET`, `CRON_SECRET`, `EMAIL_FROM` and the chosen email sender's settings. R2 and Google Places keys become necessary when their features ship; until then storage and vendor discovery refuse to run in production rather than fall back to the fakes. Found on the first Vercel deploy (every request answered 500 because those five keys were missing) |
 | 2026-11-11 | Emails share one branded layout (`src/server/email/templates/layout.ts`) in the app's palette: wordmark header (text, no images: Gmail blocks SVG and a localhost logo can't load), gold-topped card, serif heading, details panel, burgundy table-cell button with the plain link underneath. Table layout and inline styles only, system serif instead of web fonts; every email keeps a plain-text version |
 | 2026-11-11 | `EMAIL_PROVIDER` (gmail, resend or console) switches the email sender; the chosen sender's settings are checked at startup. Unset, Gmail is used when configured, then Resend, then the console. Production may send through Gmail instead of Resend (RESEND_API_KEY is then not required) but never through the console |
 | 2026-11-11 | Email can go out through a personal Gmail (Google app password, nodemailer over Gmail SMTP) when there is no verified domain for Resend. Gmail wins over Resend while configured; the From line uses the Gmail address with EMAIL_FROM's display name. nodemailer 10.2.1 pinned (7.x and ≤10.1.3 have advisories); it is fenced like the Resend SDK (`src/server/email/adapters` only) |
@@ -260,3 +266,4 @@ monitoring.
 | 2026-11-11 | `EMAIL_PROVIDER` switch between Gmail, Resend and the console, validated at startup; 6 new unit tests |
 | 2026-11-11 | Branded email layout for every email (member invitation, password reset, guest invitation, RSVP reminder): ivory background, gold-topped white card, Make My Marriage wordmark, serif heading, details panel, burgundy pill button with a plain-link fallback. Table layout and inline styles for Gmail/Outlook; no images, style blocks or web fonts. 7 new unit tests |
 | 2026-11-11 | Vercel cron for the email worker changed from every 5 minutes to daily (02:30 UTC): the Hobby plan rejects more frequent crons and failed the deploy. Phase 3 needs a more frequent option (open item) |
+| 2026-11-11 | First Vercel deploy fixes: R2 and Google Places keys no longer required at startup (services fail loudly in production without them); 3 new unit tests |

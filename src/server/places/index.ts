@@ -21,6 +21,10 @@ let discoveryService: VendorDiscoveryService | undefined;
 export function getVendorDiscoveryService(): VendorDiscoveryService {
   if (discoveryService) return discoveryService;
   const env = getEnv();
+  // The fake returns sample vendors: production must fail loudly instead.
+  if (env.NODE_ENV === "production" && !env.GOOGLE_PLACES_API_KEY) {
+    throw new Error("Vendor discovery is not configured: set GOOGLE_PLACES_API_KEY.");
+  }
   discoveryService =
     env.NODE_ENV !== "test" && env.GOOGLE_PLACES_API_KEY
       ? createGooglePlacesAdapter(env.GOOGLE_PLACES_API_KEY)

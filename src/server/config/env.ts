@@ -22,17 +22,13 @@ const optionalString = () => z.preprocess(emptyToUndefined, z.string().trim().mi
 export const EMAIL_PROVIDERS = ["gmail", "resend", "console"] as const;
 export type EmailProvider = (typeof EMAIL_PROVIDERS)[number];
 
-/** RESEND_API_KEY is required in production only when Resend is the sender (see below). */
-const PRODUCTION_REQUIRED = [
-  "MONGODB_URI",
-  "CRON_SECRET",
-  "EMAIL_FROM",
-  "R2_ACCOUNT_ID",
-  "R2_ACCESS_KEY_ID",
-  "R2_SECRET_ACCESS_KEY",
-  "R2_BUCKET_NAME",
-  "GOOGLE_PLACES_API_KEY",
-] as const;
+/**
+ * What production needs to start. RESEND_API_KEY is required only when Resend
+ * is the sender (see below). R2 (photos, covers: Phases 5–6) and Google Places
+ * (vendor discovery: Phase 4) are not required until their features ship: their
+ * services refuse to run in production without them instead (decided 2026-11-11).
+ */
+const PRODUCTION_REQUIRED = ["MONGODB_URI", "CRON_SECRET", "EMAIL_FROM"] as const;
 
 /** Database names that look like production must never be used outside production (SYSTEM_DESIGN §78). */
 const PRODUCTION_LIKE_DB_NAME = /(^|[-_.])(prod|production)$/i;
