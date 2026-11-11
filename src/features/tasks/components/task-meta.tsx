@@ -56,23 +56,32 @@ export function TaskMeta({
 }>) {
   const overdue = isOverdue(task, today, timeZone);
   const formerMember = task.assignedMembershipId !== null && task.assignee === null;
+  const eventLabel = task.event
+    ? task.event.archivedAt
+      ? TASKS.archivedEvent(task.event.name)
+      : task.event.name
+    : "";
   return (
-    <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-body-sm text-plum">
+    <p className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-body-sm text-plum">
       {task.assignee && (
-        <span className="inline-flex items-center gap-1.5">
+        <span className="inline-flex min-w-0 items-center gap-1.5">
           <span
             aria-hidden
             className="inline-flex size-6 items-center justify-center rounded-full bg-burgundy text-[10px] font-bold text-ivory"
           >
             {initialsOf(task.assignee.name)}
           </span>
-          <span>{task.assignee.name}</span>
+          <span className="min-w-0 wrap-anywhere">{task.assignee.name}</span>
         </span>
       )}
       {formerMember && <span className="italic">{TASKS.formerMember}</span>}
       {showEvent && task.event && (
-        <span className="rounded-md border border-sand px-2 py-0.5 text-graphite">
-          {task.event.archivedAt ? TASKS.archivedEvent(task.event.name) : task.event.name}
+        // One line, cut short with the full name on hover (QA M11).
+        <span
+          title={eventLabel}
+          className="max-w-full truncate rounded-md border border-sand px-2 py-0.5 text-graphite"
+        >
+          {eventLabel}
         </span>
       )}
       {task.dueDate && (

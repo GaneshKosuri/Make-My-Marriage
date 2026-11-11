@@ -71,18 +71,27 @@ export function Dialog({
         tabIndex={-1}
         className={cn(
           "fixed z-50 bg-ivory outline-none",
-          "inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-[28px] px-4 pt-3 pb-[calc(16px+env(safe-area-inset-bottom))]",
+          // No bottom padding on phones: a sticky action bar would stick above it and
+          // leave a strip of content showing underneath (QA M7). The spacer below
+          // gives the end of the sheet its room instead.
+          "inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-[28px] px-4 pt-3 pb-0",
+          // Phones overlay scrollbars anyway; the themed one only adds noise in a sheet (QA M22).
+          "pointer-coarse:[scrollbar-width:none] pointer-coarse:[&::-webkit-scrollbar]:hidden",
           "md:inset-x-auto md:top-1/2 md:bottom-auto md:left-1/2 md:w-[480px] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-3xl md:border md:border-sand md:p-6 md:shadow-xl",
         )}
       >
         <div aria-hidden className="mx-auto mb-3 h-1 w-12 rounded-full bg-sand md:hidden" />
+        {/* The title column shrinks and wraps, so the close button always stays on screen (QA M2). */}
         <div className="mb-4 flex items-start justify-between gap-3">
-          <div>
-            <h2 id={titleId} className="font-serif text-headline-sm text-graphite">
+          <div className="min-w-0 flex-1">
+            <h2
+              id={titleId}
+              className="font-serif text-title-lg wrap-anywhere text-graphite md:text-headline-sm"
+            >
               {title}
             </h2>
             {description && (
-              <p id={descriptionId} className="mt-1 text-body-md text-plum">
+              <p id={descriptionId} className="mt-1 text-body-md wrap-anywhere text-plum">
                 {description}
               </p>
             )}
@@ -100,6 +109,7 @@ export function Dialog({
           </button>
         </div>
         {children}
+        <div aria-hidden className="h-[calc(16px+env(safe-area-inset-bottom))] md:hidden" />
       </div>
     </>
   );

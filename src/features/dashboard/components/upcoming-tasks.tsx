@@ -76,7 +76,7 @@ function TaskRow({
         )}
       />
       <div className="min-w-0 flex-1">
-        <p className="text-label-md text-graphite">{task.title}</p>
+        <p className="text-label-md wrap-anywhere text-graphite">{task.title}</p>
         <TaskMeta task={task} timeZone={timeZone} today={today} showStatus />
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1.5">

@@ -115,7 +115,7 @@ export function WorkspacePreviewCompact({ className }: Readonly<{ className?: st
     >
       <div className="flex items-center justify-between gap-3 rounded-xl border border-sand bg-ivory p-3">
         <div className="flex min-w-0 flex-col">
-          <span className="text-[10px] font-bold tracking-wider text-gold-deep uppercase">
+          <span className="text-[12px] font-bold tracking-wider text-gold-deep uppercase">
             {WORKSPACE_PREVIEW.label}
           </span>
           <span className="font-serif text-[18px] font-semibold text-burgundy">
@@ -123,7 +123,7 @@ export function WorkspacePreviewCompact({ className }: Readonly<{ className?: st
           </span>
           <span className="text-body-sm text-plum">{SAMPLE_WEDDING.dateAndPlace}</span>
         </div>
-        <span className="shrink-0 rounded-full bg-sand px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap text-burgundy">
+        <span className="shrink-0 rounded-full bg-sand px-2.5 py-1 text-[12px] font-semibold whitespace-nowrap text-burgundy">
           {WORKSPACE_PREVIEW.status}
         </span>
       </div>
@@ -131,7 +131,7 @@ export function WorkspacePreviewCompact({ className }: Readonly<{ className?: st
       <div className="flex flex-col gap-2 rounded-xl border border-sand bg-sand/50 p-3.5">
         <div className="flex items-center justify-between gap-2">
           <span className="text-[16px] font-bold text-burgundy">{SAMPLE_WEDDING.daysToGo}</span>
-          <span className="rounded-full border border-sand bg-white px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap text-plum">
+          <span className="rounded-full border border-sand bg-white px-2 py-0.5 text-[12px] font-semibold whitespace-nowrap text-plum">
             Tasks {tasks.done}/{tasks.total}
           </span>
         </div>
@@ -150,7 +150,7 @@ export function WorkspacePreviewCompact({ className }: Readonly<{ className?: st
             key={stat.label}
             className="flex flex-col rounded-xl border border-sand bg-ivory p-2.5"
           >
-            <span className="text-[10px] font-bold tracking-wider text-plum uppercase">
+            <span className="text-[12px] font-bold tracking-wider text-plum uppercase">
               {stat.label}
             </span>
             <span className="mt-0.5 text-[24px] leading-tight font-bold text-burgundy">
@@ -162,7 +162,7 @@ export function WorkspacePreviewCompact({ className }: Readonly<{ className?: st
       </div>
 
       <div className="flex flex-col gap-2 pt-1">
-        <span className="text-[10px] font-bold tracking-wider text-plum uppercase">
+        <span className="text-[12px] font-bold tracking-wider text-plum uppercase">
           {WORKSPACE_PREVIEW.scheduleLabel}
         </span>
         {schedule.map((item) => (
@@ -180,7 +180,7 @@ export function WorkspacePreviewCompact({ className }: Readonly<{ className?: st
             </span>
             <span
               className={cn(
-                "text-[11px] whitespace-nowrap text-plum",
+                "text-[12px] whitespace-nowrap text-plum",
                 item.done && "rounded-full bg-sand px-2 py-0.5 font-medium",
               )}
             >
@@ -200,7 +200,7 @@ export function WorkspacePreviewCompact({ className }: Readonly<{ className?: st
             <span className="text-body-sm text-plum">{rsvp.summary}</span>
           </span>
         </div>
-        <span className="flex shrink-0 items-center gap-1 rounded-full border border-sand bg-sand px-2.5 py-1 text-[11px] font-semibold text-burgundy">
+        <span className="flex shrink-0 items-center gap-1 rounded-full border border-sand bg-sand px-2.5 py-1 text-[12px] font-semibold text-burgundy">
           <CheckCheck aria-hidden className="size-3.5" />
           Attending
         </span>

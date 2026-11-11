@@ -274,7 +274,8 @@ function FilterBar({
   return (
     <fieldset className="flex flex-col gap-3 rounded-3xl border border-sand bg-white p-4 md:p-5">
       <legend className="sr-only">{copy.label}</legend>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      {/* One column on the narrowest phones, where 16 px "Any priority" no longer fits half the card. */}
+      <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 md:grid-cols-4">
         {view !== "completed" && (
           <FilterSelect
             label={copy.status}
@@ -361,7 +362,8 @@ function FilterSelect({
       <select
         id={id}
         className={cn(
-          "h-10 w-full min-w-0 rounded-xl border border-sand bg-ivory px-3 text-body-md text-graphite",
+          // 16 px on phones: iOS Safari zooms in on focus below that (QA M13).
+          "h-11 w-full min-w-0 rounded-xl border border-sand bg-ivory px-2.5 text-[16px] text-graphite sm:text-body-md",
           "focus-visible:border-burgundy focus-visible:ring-[3px] focus-visible:ring-burgundy/10 focus-visible:outline-none",
         )}
         {...select}
@@ -513,7 +515,7 @@ export function TaskItem({
         aria-label={done ? TASKS.markNotDone(task.title) : TASKS.markDone(task.title)}
         aria-pressed={done}
         className={cn(
-          "mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors disabled:opacity-50",
+          "tap-target mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors disabled:opacity-50",
           focusRing,
           done
             ? "border-burgundy bg-burgundy text-ivory"
@@ -530,7 +532,7 @@ export function TaskItem({
           onClick={() => onEdit(task)}
           aria-label={TASKS.edit(task.title)}
           className={cn(
-            "rounded text-left text-label-md break-words text-graphite hover:text-burgundy",
+            "tap-target block w-full min-w-0 rounded text-left text-label-md wrap-anywhere text-graphite hover:text-burgundy",
             focusRing,
             done && "text-plum line-through",
           )}

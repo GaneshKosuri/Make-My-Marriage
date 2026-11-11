@@ -12,7 +12,7 @@ import {
   OptionalTag,
   SelectField,
   TextAreaField,
-  TextField,
+  TitleField,
 } from "@/features/auth/components/form-controls";
 import { focusRing, primaryButton } from "@/features/dashboard/components/dashboard-card";
 import { useEvents } from "@/features/events/api";
@@ -197,7 +197,7 @@ function TaskForm({
         onReload={() => void onReload().catch(() => setReloadFailed(true))}
       />
 
-      <TextField
+      <TitleField
         label={FIELDS.title.label}
         autoComplete="off"
         placeholder={FIELDS.title.placeholder}
@@ -205,7 +205,7 @@ function TaskForm({
         {...form.register("title")}
       />
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <SelectField
           label={FIELDS.assignee.label}
           error={errors.assignedMembershipId?.message}
@@ -236,7 +236,7 @@ function TaskForm({
         </SelectField>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <Controller
           control={form.control}
           name="dueDate"
@@ -307,61 +307,69 @@ function TaskForm({
         {...form.register("description")}
       />
 
-      {task && onDeleted && (
-        <div className="rounded-2xl border border-sand bg-white p-3">
-          {confirmingDelete ? (
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-body-md text-graphite">{FORM.confirmDelete.prompt}</p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setConfirmingDelete(false)}
-                  className={cn(secondaryButton, "h-9 px-3.5")}
-                >
-                  {FORM.confirmDelete.cancel}
-                </button>
-                <button
-                  type="button"
-                  disabled={remove.isPending}
-                  onClick={() => remove.mutate(task.id, { onSuccess: () => onDeleted(task) })}
-                  className={cn(
-                    secondaryButton,
-                    "h-9 border-transparent bg-destructive px-3.5 text-white hover:bg-destructive/90",
-                  )}
-                >
-                  {FORM.confirmDelete.confirm}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setConfirmingDelete(true)}
-              className={cn(
-                "inline-flex items-center gap-2 rounded text-label-md text-destructive underline-offset-4 hover:underline",
-                focusRing,
-              )}
-            >
-              <Trash2 aria-hidden className="size-4" />
-              {FORM.delete}
-            </button>
+      {task && onDeleted && !confirmingDelete && (
+        <button
+          type="button"
+          onClick={() => setConfirmingDelete(true)}
+          className={cn(
+            "inline-flex min-h-11 items-center gap-2 self-start rounded text-label-md text-destructive underline-offset-4 hover:underline",
+            focusRing,
           )}
-        </div>
+        >
+          <Trash2 aria-hidden className="size-4" />
+          {FORM.delete}
+        </button>
       )}
 
-      <div className="sticky bottom-0 -mx-4 grid grid-cols-2 gap-2 border-t border-sand bg-ivory px-4 pt-3 md:static md:mx-0 md:flex md:justify-end md:border-0 md:px-0 md:pt-1">
-        <button type="button" onClick={onClose} className={secondaryButton}>
-          {FORM.cancel}
-        </button>
-        <button
-          type="submit"
-          disabled={mutation.isPending || (task !== undefined && !isDirty)}
-          aria-busy={mutation.isPending || undefined}
-          className={cn(primaryButton, "disabled:opacity-60")}
+      {/*
+        The pinned action bar. While a delete is being confirmed it becomes the
+        confirmation, so the prompt is always on screen and there's only one set of
+        buttons (QA M8). Like the other confirmations, the destructive button is on top on phones.
+      */}
+      {task && onDeleted && confirmingDelete ? (
+        <div
+          role="group"
+          aria-label={FORM.confirmDelete.prompt}
+          className="sticky bottom-0 -mx-4 flex flex-col gap-3 border-t border-sand bg-ivory px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] md:static md:mx-0 md:border-0 md:px-0 md:pt-1 md:pb-0"
         >
-          {mutation.isPending ? FORM.saving : FORM.save}
-        </button>
-      </div>
+          <p className="text-body-md text-graphite">{FORM.confirmDelete.prompt}</p>
+          <div className="flex flex-col-reverse gap-2 md:flex-row md:justify-end">
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(false)}
+              className={secondaryButton}
+            >
+              {FORM.confirmDelete.cancel}
+            </button>
+            <button
+              type="button"
+              autoFocus
+              disabled={remove.isPending}
+              onClick={() => remove.mutate(task.id, { onSuccess: () => onDeleted(task) })}
+              className={cn(
+                secondaryButton,
+                "border-transparent bg-destructive text-white hover:bg-destructive/90",
+              )}
+            >
+              {FORM.confirmDelete.confirm}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="sticky bottom-0 -mx-4 grid grid-cols-2 gap-2 border-t border-sand bg-ivory px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] md:static md:mx-0 md:flex md:justify-end md:border-0 md:px-0 md:pt-1 md:pb-0">
+          <button type="button" onClick={onClose} className={secondaryButton}>
+            {FORM.cancel}
+          </button>
+          <button
+            type="submit"
+            disabled={mutation.isPending || (task !== undefined && !isDirty)}
+            aria-busy={mutation.isPending || undefined}
+            className={cn(primaryButton, "disabled:opacity-60")}
+          >
+            {mutation.isPending ? FORM.saving : FORM.save}
+          </button>
+        </div>
+      )}
     </form>
   );
 }

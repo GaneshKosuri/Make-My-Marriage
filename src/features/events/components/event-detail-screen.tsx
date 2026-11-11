@@ -136,7 +136,7 @@ function EventDetail({
           <p className="text-eyebrow text-gold-deep uppercase">
             {typeLabel && typeLabel !== event.name ? typeLabel : DETAIL.eyebrow}
           </p>
-          <h1 className="mt-1 font-serif text-headline-md break-words text-graphite md:text-headline-lg">
+          <h1 className="mt-1 font-serif text-headline-md wrap-anywhere text-graphite md:text-headline-lg">
             {event.name}
           </h1>
         </div>
@@ -226,7 +226,7 @@ function EventDetail({
 
       {event.description && (
         <DashboardCard title={DETAIL.notes}>
-          <p className="text-body-md break-words whitespace-pre-line text-graphite">
+          <p className="text-body-md wrap-anywhere whitespace-pre-line text-graphite">
             {event.description}
           </p>
         </DashboardCard>
@@ -260,7 +260,8 @@ function EventDetail({
             {DETAIL.confirmArchive.error}
           </p>
         )}
-        <div className="grid grid-cols-2 gap-2 md:flex md:justify-end">
+        {/* Same as every confirmation: stacked on phones, destructive on top (QA M19). */}
+        <div className="flex flex-col-reverse gap-3 md:flex-row md:justify-end">
           <button type="button" onClick={() => setConfirming(false)} className={secondaryButton}>
             {DETAIL.confirmArchive.cancel}
           </button>
@@ -293,7 +294,7 @@ function Fact({
       <span className="mt-0.5 text-gold-deep [&_svg]:size-5">{icon}</span>
       <div className="min-w-0 flex-1">
         <dt className="sr-only">{label}</dt>
-        <dd className="text-body-lg break-words text-graphite">{children}</dd>
+        <dd className="text-body-lg wrap-anywhere text-graphite">{children}</dd>
       </div>
     </div>
   );

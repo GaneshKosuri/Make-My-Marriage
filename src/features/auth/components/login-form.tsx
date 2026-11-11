@@ -15,7 +15,7 @@ import { AuthCard, AuthNote } from "./auth-shell";
 import { FormAlert, PasswordField, SubmitButton, TextField } from "./form-controls";
 
 const linkClass =
-  "rounded font-semibold text-burgundy underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burgundy";
+  "tap-target rounded font-semibold text-burgundy underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burgundy";
 
 /** /login — email + password (PRD §9.1, API_DESIGN §12). */
 export function LoginForm() {
@@ -60,7 +60,7 @@ export function LoginForm() {
           <PasswordField
             label="Password"
             autoComplete="current-password"
-            placeholder="Enter your password"
+            placeholder="Password"
             icon={<Lock aria-hidden />}
             error={errors.password?.message}
             labelAside={

@@ -254,9 +254,7 @@ describe("<MembersScreen /> invitations", () => {
     fireEvent.click(
       invitationsCard().getByRole("button", { name: `${MEMBERS.revoke}: neha@example.com` }),
     );
-    const dialog = within(
-      screen.getByRole("dialog", { name: MEMBERS.confirm.revokeTitle("neha@example.com") }),
-    );
+    const dialog = within(screen.getByRole("dialog", { name: MEMBERS.confirm.revokeTitle }));
     expect(mutations()).toEqual([]);
     fireEvent.click(dialog.getByRole("button", { name: MEMBERS.revoke }));
 

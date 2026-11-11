@@ -8,7 +8,7 @@ export const focusRing =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burgundy";
 
 export const textLink = cn(
-  "inline-flex items-center gap-1.5 rounded text-label-md text-burgundy underline-offset-4 hover:underline",
+  "tap-target inline-flex items-center gap-1.5 rounded text-label-md text-burgundy underline-offset-4 hover:underline",
   focusRing,
 );
 
@@ -34,7 +34,10 @@ export function DashboardCard({
   return (
     <section
       aria-label={title}
-      className={cn("rounded-3xl border border-sand bg-white p-5 shadow-sm md:p-7", className)}
+      className={cn(
+        "min-w-0 rounded-3xl border border-sand bg-white p-5 shadow-sm md:p-7",
+        className,
+      )}
     >
       <div className="mb-4 flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div>

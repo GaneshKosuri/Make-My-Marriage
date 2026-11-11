@@ -11,6 +11,7 @@ import {
   OptionalTag,
   TextAreaField,
   TextField,
+  TitleField,
 } from "@/features/auth/components/form-controls";
 import { focusRing, primaryButton } from "@/features/dashboard/components/dashboard-card";
 import { Dialog } from "@/features/members/components/dialog";
@@ -200,7 +201,7 @@ function EventForm({
         </div>
       </fieldset>
 
-      <TextField
+      <TitleField
         label={FIELDS.name.label}
         autoComplete="off"
         placeholder={FIELDS.name.placeholder}
@@ -208,7 +209,8 @@ function EventForm({
         {...form.register("name")}
       />
 
-      <div className="grid grid-cols-2 gap-3">
+      {/* One column on phones: a full date plus its 44 px calendar button needs about 190 px, more than half a phone sheet (QA M3). */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Controller
           control={form.control}
           name="date"
@@ -320,7 +322,7 @@ function EventForm({
         {...form.register("description")}
       />
 
-      <div className="sticky bottom-0 -mx-4 grid grid-cols-2 gap-2 border-t border-sand bg-ivory px-4 pt-3 md:static md:mx-0 md:flex md:justify-end md:border-0 md:px-0 md:pt-1">
+      <div className="sticky bottom-0 -mx-4 grid grid-cols-2 gap-2 border-t border-sand bg-ivory px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] md:static md:mx-0 md:flex md:justify-end md:border-0 md:px-0 md:pt-1 md:pb-0">
         <button type="button" onClick={onClose} className={secondaryButton}>
           {FORM.cancel}
         </button>

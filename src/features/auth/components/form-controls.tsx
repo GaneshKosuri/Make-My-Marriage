@@ -1,7 +1,15 @@
 "use client";
 
 import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
-import { useId, useState, type ComponentProps, type ReactNode } from "react";
+import {
+  useCallback,
+  useId,
+  useState,
+  type ChangeEvent,
+  type ComponentProps,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 
 import { cn } from "@/lib/cn";
 
@@ -115,6 +123,71 @@ export function TextAreaField({
   );
 }
 
+/** Grow a one-line textarea to its content where CSS `field-sizing` isn't supported. */
+function fitToContent(node: HTMLTextAreaElement) {
+  if (typeof CSS !== "undefined" && CSS.supports?.("field-sizing", "content")) return;
+  node.style.height = "auto";
+  node.style.height = `${node.scrollHeight + node.offsetHeight - node.clientHeight}px`;
+}
+
+/**
+ * A single-line value (a task or event title) that wraps and grows instead of
+ * scrolling sideways, so a long title stays readable on a phone (QA M20).
+ * Enter submits the form as in a text input, and pasted line breaks become spaces.
+ */
+export function TitleField({
+  label,
+  error,
+  labelAside,
+  hint,
+  className,
+  ref,
+  onChange,
+  onKeyDown,
+  ...textarea
+}: Omit<FieldProps, "icon"> & ComponentProps<"textarea">) {
+  const id = useId();
+  const setRef = useCallback(
+    (node: HTMLTextAreaElement | null) => {
+      if (typeof ref === "function") ref(node);
+      else if (ref) ref.current = node;
+      if (node) fitToContent(node);
+    },
+    [ref],
+  );
+  const change = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    const node = event.currentTarget;
+    if (/[\r\n]/.test(node.value)) node.value = node.value.replace(/\s*[\r\n]+\s*/g, " ");
+    fitToContent(node);
+    onChange?.(event);
+  };
+  const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    onKeyDown?.(event);
+    if (event.defaultPrevented || event.key !== "Enter" || event.nativeEvent.isComposing) return;
+    event.preventDefault();
+    event.currentTarget.form?.requestSubmit();
+  };
+  return (
+    <FieldShell id={id} label={label} error={error} labelAside={labelAside} hint={hint}>
+      <textarea
+        ref={setRef}
+        id={id}
+        rows={1}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
+        className={cn(
+          inputClass,
+          "h-auto min-h-12 resize-none py-[11px] wrap-anywhere field-sizing-content",
+          className,
+        )}
+        onChange={change}
+        onKeyDown={keyDown}
+        {...textarea}
+      />
+    </FieldShell>
+  );
+}
+
 export function SelectField({
   label,
   error,
@@ -173,7 +246,7 @@ export function PasswordField({
           onClick={() => setVisible((current) => !current)}
           aria-label={visible ? "Hide password" : "Show password"}
           aria-pressed={visible}
-          className="absolute top-1/2 right-2 flex size-9 -translate-y-1/2 items-center justify-center rounded-lg text-plum transition-colors hover:text-burgundy focus-visible:outline-2 focus-visible:outline-burgundy"
+          className="absolute top-1/2 right-0.5 flex size-11 -translate-y-1/2 items-center justify-center rounded-lg text-plum transition-colors hover:text-burgundy focus-visible:outline-2 focus-visible:outline-burgundy"
         >
           {visible ? (
             <EyeOff aria-hidden className="size-[18px]" />
@@ -194,7 +267,8 @@ export function FormAlert({ title, children }: Readonly<{ title: string; childre
       className="mb-6 flex gap-3 rounded-xl border border-sand border-l-4 border-l-destructive bg-white p-4 shadow-[0_1px_3px_rgba(43,35,38,0.04)]"
     >
       <AlertCircle aria-hidden className="mt-0.5 size-5 shrink-0 text-destructive" />
-      <div className="text-body-md">
+      {/* Shrinks and wraps, so a long email can't widen the page (QA M4). */}
+      <div className="min-w-0 flex-1 text-body-md wrap-anywhere">
         <p className="font-semibold text-graphite">{title}</p>
         {children && <div className="mt-0.5 text-body-sm text-plum">{children}</div>}
       </div>

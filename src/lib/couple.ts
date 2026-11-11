@@ -22,6 +22,20 @@ export function coupleDisplayName(wedding: {
   return wedding.title?.trim() || `${wedding.groomName} & ${wedding.brideName}`;
 }
 
+/**
+ * The couple on a phone's header, where full names are cut off after the groom
+ * (QA M15): the organisers' own title when set, otherwise first names, groom
+ * first ("Sai & Venkata").
+ */
+export function coupleShortName(wedding: {
+  brideName: string;
+  groomName: string;
+  title?: string | null;
+}): string {
+  const first = (name: string) => name.trim().split(/\s+/)[0] ?? name;
+  return wedding.title?.trim() || `${first(wedding.groomName)} & ${first(wedding.brideName)}`;
+}
+
 /** Countdown wording for a number of days from `daysUntil` (PRD §9.3). */
 export function weddingCountdownLabel(days: number): string {
   if (days > 1) return `${days} days to go`;
