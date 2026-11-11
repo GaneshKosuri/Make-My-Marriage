@@ -166,6 +166,13 @@ monitoring.
   `db:dev`; switch `MONGODB_URI` before the next QA round, and restart `next dev` (QA stopped it).
 - **PATCH without `version` is last-write-wins for API clients (QA note).** The UI always sends it;
   making `version` required would match binding decision 8 more strictly. Revisit if other clients appear.
+- **Email job schedule (11 Nov).** Vercel Hobby refused the deploy with the 5-minute cron (`*/5 * * * *`):
+  Hobby allows daily cron jobs only. `vercel.json` now runs `/api/internal/jobs/email` daily at
+  02:30 UTC (08:00 IST), which is fine while the worker has nothing to send. **Before Phase 3's bulk
+  guest email**, choose how it runs more often: Vercel Pro (restore `*/5 * * * *`), an external
+  scheduler (e.g. GitHub Actions or cron-job.org) calling `GET /api/internal/jobs/email` with
+  `Authorization: Bearer <CRON_SECRET>`, or processing a batch right after jobs are queued (`after()`)
+  with the daily cron as a safety net.
 - **Phase 3 start: shared form pieces (code review R8).** `SaveProblem` (event and task forms), the
   list skeletons and the `secondaryButton` / `dangerButton` class strings are copied across the events
   and tasks screens. Move the buttons next to `primaryButton` in `dashboard-card.tsx` (or a shared
@@ -252,3 +259,4 @@ monitoring.
 | 2026-11-11 | Gmail email sender (`GMAIL_USER` / `GMAIL_APP_PASSWORD`) for sending invitations without a domain; adapter selection logged; env validation for the pair; 10 new unit tests. Investigated missing invitation emails: `onboarding@resend.dev` only delivers to the Resend account owner |
 | 2026-11-11 | `EMAIL_PROVIDER` switch between Gmail, Resend and the console, validated at startup; 6 new unit tests |
 | 2026-11-11 | Branded email layout for every email (member invitation, password reset, guest invitation, RSVP reminder): ivory background, gold-topped white card, Make My Marriage wordmark, serif heading, details panel, burgundy pill button with a plain-link fallback. Table layout and inline styles for Gmail/Outlook; no images, style blocks or web fonts. 7 new unit tests |
+| 2026-11-11 | Vercel cron for the email worker changed from every 5 minutes to daily (02:30 UTC): the Hobby plan rejects more frequent crons and failed the deploy. Phase 3 needs a more frequent option (open item) |
