@@ -1,15 +1,12 @@
-import { notImplemented, route } from "@/server/http";
+import { ok, route } from "@/server/http";
+import { emailJobsService } from "@/modules/email-jobs";
 import { emailBatchIdParams } from "@/modules/email-jobs/email-job.schemas";
 
-/**
- * /api/email-batches/[batchId]/retry-failed — stub (POST API §86).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 3: Guests.
- */
+/** /api/email-batches/[batchId]/retry-failed (POST API §86). */
 
-/** POST — API §86. */
+/** POST — API §86: sends the batch's failed emails again. */
 export const POST = route({
   auth: "member",
   params: emailBatchIdParams,
-  // Phase 3: Guests: ok(await emailJobsService.retryFailed(ctx, params.batchId))
-  handler: () => notImplemented("Phase 3: Guests"),
+  handler: async ({ ctx, params }) => ok(await emailJobsService.retryFailed(ctx, params.batchId)),
 });

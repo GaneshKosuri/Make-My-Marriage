@@ -64,6 +64,19 @@ export const policies = {
     windowMs: 15 * MINUTE,
     scope: "user",
   }, // placeholder
+  // Guest emails (API §46–49): not in API §99; placeholders against accidental floods.
+  guestEmailSend: {
+    name: "guests.email.send",
+    limit: 60,
+    windowMs: 60 * MINUTE,
+    scope: "wedding",
+  }, // placeholder
+  guestEmailBulk: {
+    name: "guests.email.bulk",
+    limit: 10,
+    windowMs: 60 * MINUTE,
+    scope: "wedding",
+  }, // placeholder
   publicInvitationView: {
     name: "public.invitation.view",
     limit: 120,

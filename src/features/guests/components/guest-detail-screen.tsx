@@ -8,7 +8,6 @@ import {
   Pencil,
   Phone,
   RefreshCw,
-  Send,
   Trash2,
   Users,
 } from "lucide-react";
@@ -36,6 +35,7 @@ import { useDeleteGuest, useGuest } from "../api";
 import { GUESTS, GUESTS_ROUTES } from "../guests-content";
 import { GuestFormDialog } from "./guest-form-dialog";
 import { RsvpPill } from "./guest-row";
+import { EmailInvitation } from "./email-invitation";
 import { InvitationShare } from "./invitation-share";
 
 const DETAIL = GUESTS.detail;
@@ -196,18 +196,21 @@ function GuestDetail({
             {!guest.email && !guest.phone && (
               <p className="text-body-md text-plum">{DETAIL.noContact}</p>
             )}
-            <Fact icon={<Send aria-hidden />}>
-              <span className="text-plum">
-                {guest.invitationSentAt
-                  ? DETAIL.sent(when(guest.invitationSentAt))
-                  : DETAIL.notSent}
-              </span>
-            </Fact>
           </div>
         </DashboardCard>
       </div>
 
-      <InvitationShare guestId={guest.id} guestName={guest.name} coupleName={coupleName} />
+      <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-2">
+        <InvitationShare guestId={guest.id} guestName={guest.name} coupleName={coupleName} />
+        <EmailInvitation
+          guest={guest}
+          timeZone={timeZone}
+          onAddEmail={() => {
+            setNotice(null);
+            setEditing(true);
+          }}
+        />
+      </div>
 
       <DashboardCard title={DETAIL.events}>
         {guest.invitedEvents.length === 0 ? (

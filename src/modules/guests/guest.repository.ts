@@ -107,6 +107,63 @@ export const guestRepository = {
     return guest?.invitationToken ?? null;
   },
 
+  /** The guest with its invitation token, for building an email. */
+  async findByIdWithToken(
+    weddingId: string,
+    guestId: string,
+  ): Promise<(GuestRecord & { invitationToken: string }) | null> {
+    await connectToDatabase();
+    return GuestModel.findOne(byId(weddingId, guestId))
+      .select("+invitationToken")
+      .lean<GuestRecord & { invitationToken: string }>()
+      .exec();
+  },
+
+  /**
+   * Guests with an email address that a bulk email would reach: not yet
+   * invited, still awaiting a reply, and/or among `guestIds`. Name order.
+   */
+  async listEmailRecipients(
+    weddingId: string,
+    filter: { invitationSent?: false; rsvpStatus?: RsvpStatus; guestIds?: readonly string[] },
+  ): Promise<{ guestId: string; email: string }[]> {
+    await connectToDatabase();
+    const query: QueryFilter<GuestDoc> = {
+      weddingId: toObjectId(weddingId, "weddingId"),
+      email: { $ne: null },
+    };
+    if (filter.invitationSent === false) query.invitationSentAt = null;
+    if (filter.rsvpStatus) query.rsvpStatus = filter.rsvpStatus;
+    if (filter.guestIds)
+      query._id = { $in: filter.guestIds.map((id) => toObjectId(id, "guestIds")) };
+    const rows = await GuestModel.find(query)
+      .select({ email: 1 })
+      .collation(NAME_COLLATION)
+      .sort({ name: 1, _id: 1 })
+      .lean<{ _id: GuestRecord["_id"]; email: string }[]>()
+      .exec();
+    return rows.map((row) => ({ guestId: row._id.toString(), email: row.email }));
+  },
+
+  /**
+   * Records an emailed invitation or reminder. Delivery fields belong to the
+   * server, so this doesn't change the version an organiser is editing from.
+   */
+  async recordEmailed(
+    weddingId: string,
+    guestId: string,
+    kind: "invitation" | "reminder",
+    at: Date,
+  ): Promise<void> {
+    await connectToDatabase();
+    await GuestModel.updateOne(
+      byId(weddingId, guestId),
+      kind === "invitation"
+        ? { $set: { invitationSentAt: at } }
+        : { $set: { lastReminderSentAt: at }, $inc: { reminderCount: 1 } },
+    ).exec();
+  },
+
   /** A new guest: RSVP pending, nothing sent yet, with its stable invitation token. */
   async create(
     weddingId: string,
@@ -164,6 +221,10 @@ export const guestRepository = {
     byStatus: Record<RsvpStatus, number>;
     totalPeopleAttending: number;
     invitationsSent: number;
+    /** Guests with an email address who haven't been emailed their invitation. */
+    invitationsToEmail: number;
+    /** Guests with an email address still awaiting a reply. */
+    remindersToEmail: number;
   }> {
     await connectToDatabase();
     const isStatus = (status: RsvpStatus) => ({
@@ -176,6 +237,8 @@ export const guestRepository = {
       notAttending: number;
       totalPeopleAttending: number;
       invitationsSent: number;
+      invitationsToEmail: number;
+      remindersToEmail: number;
     }>([
       { $match: { weddingId: toObjectId(weddingId, "weddingId") } },
       {
@@ -197,6 +260,34 @@ export const guestRepository = {
           invitationsSent: {
             $sum: { $cond: [{ $eq: [{ $ifNull: ["$invitationSentAt", null] }, null] }, 0, 1] },
           },
+          invitationsToEmail: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ne: [{ $ifNull: ["$email", null] }, null] },
+                    { $eq: [{ $ifNull: ["$invitationSentAt", null] }, null] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          remindersToEmail: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ne: [{ $ifNull: ["$email", null] }, null] },
+                    { $eq: ["$rsvpStatus", "PENDING"] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
         },
       },
     ]).exec();
@@ -209,6 +300,8 @@ export const guestRepository = {
       },
       totalPeopleAttending: row?.totalPeopleAttending ?? 0,
       invitationsSent: row?.invitationsSent ?? 0,
+      invitationsToEmail: row?.invitationsToEmail ?? 0,
+      remindersToEmail: row?.remindersToEmail ?? 0,
     };
   },
 

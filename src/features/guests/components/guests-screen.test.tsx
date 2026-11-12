@@ -85,6 +85,8 @@ const summary: RsvpSummaryDto = {
   attendingInvitations: 1,
   notAttendingInvitations: 0,
   totalPeopleAttending: 3,
+  invitationsToEmail: 1,
+  remindersToEmail: 1,
 };
 
 type Handler = (body: unknown) => { status: number; body: unknown };
@@ -322,7 +324,7 @@ describe("<GuestDetailScreen />", () => {
       "href",
       `/app/events/${HALDI}`,
     );
-    expect(screen.getByText(GUESTS.detail.notSent)).toBeInTheDocument();
+    expect(screen.getByText(GUESTS.email.notSent)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: GUESTS.detail.delete }));
     fireEvent.click(

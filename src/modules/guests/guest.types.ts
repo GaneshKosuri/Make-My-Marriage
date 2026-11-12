@@ -5,10 +5,12 @@ import type { z } from "zod";
 
 import type { PublicEventDto } from "@/modules/events/event.types";
 
-import type { BulkEmailScope, RsvpStatus } from "./guest.constants";
+import type { RsvpStatus } from "./guest.constants";
 import type {
   createGuestSchema,
   listGuestsQuerySchema,
+  sendInvitationsSchema,
+  sendRemindersSchema,
   submitRsvpSchema,
   updateGuestSchema,
 } from "./guest.schemas";
@@ -42,10 +44,8 @@ export interface InvitationLinkDto {
   url: string;
 }
 
-export interface BulkEmailInput {
-  scope: BulkEmailScope;
-  guestIds?: string[];
-}
+export type SendInvitationsInput = z.output<typeof sendInvitationsSchema>;
+export type SendRemindersInput = z.output<typeof sendRemindersSchema>;
 
 /** POST /api/guests/actions/* (API_DESIGN §47, §49). */
 export interface BulkEmailResultDto {
@@ -60,6 +60,10 @@ export interface RsvpSummaryDto {
   attendingInvitations: number;
   notAttendingInvitations: number;
   totalPeopleAttending: number;
+  /** Guests with an email address not yet emailed their invitation (for "Email invitations"). */
+  invitationsToEmail: number;
+  /** Guests with an email address still awaiting a reply (for "Send reminders"). */
+  remindersToEmail: number;
 }
 
 /** GET /api/public/invitations/:token (API_DESIGN §50). No ids, contacts or notes. */

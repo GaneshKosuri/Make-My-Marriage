@@ -2,33 +2,30 @@ import "server-only";
 
 import type { PageResult } from "@/lib/pagination";
 import type { MemberContext } from "@/server/auth";
-import { getEnv } from "@/server/config/env";
-import { AppError, notImplemented } from "@/server/errors";
+import { AppError } from "@/server/errors";
 import { buildPagePagination } from "@/server/http/pagination";
 import { logger } from "@/server/logging/logger";
+import { getEmailService, isEmailQuotaError } from "@/server/email";
 import { generateToken } from "@/server/security/tokens";
 
 import { emailJobsService } from "@/modules/email-jobs";
 import { eventsService } from "@/modules/events";
 
+import { buildGuestEmail, invitationUrl, type GuestEmailKind } from "./guest-email";
 import { toGuestDto } from "./guest.mapper";
 import type { GuestRecord } from "./guest.model";
 import { guestRepository, type GuestFields } from "./guest.repository";
 import type {
-  BulkEmailInput,
   BulkEmailResultDto,
   CreateGuestInput,
   GuestDto,
   InvitationLinkDto,
   ListGuestsQuery,
   RsvpSummaryDto,
+  SendInvitationsInput,
+  SendRemindersInput,
   UpdateGuestInput,
 } from "./guest.types";
-
-/** /invite/:token on the configured app origin. */
-export function invitationUrl(token: string): string {
-  return new URL(`/invite/${token}`, getEnv().NEXT_PUBLIC_APP_URL).toString();
-}
 
 /** Field key the form shows event problems against. */
 const EVENTS_FIELD = "invitedEventIds";
@@ -183,27 +180,57 @@ export const guestsService = {
     return { url: invitationUrl(token) };
   },
 
-  /** Requires email; sends immediately; sets invitationSentAt. API §46. */
+  /**
+   * Emails this guest their invitation now (a resend when it was sent before)
+   * and records when. Needs an email address. API §46.
+   */
   async sendInvitation(ctx: MemberContext, guestId: string): Promise<void> {
-    return notImplemented("API_DESIGN §46 (Phase 3: Guests)");
+    await sendNow(ctx, guestId, "invitation");
   },
 
-  /** Requires email + PENDING; bumps lastReminderSentAt / reminderCount. API §48. */
+  /**
+   * Emails this guest an RSVP reminder now and counts it. Needs an email
+   * address and a reply still awaited. API §48.
+   */
   async sendReminder(ctx: MemberContext, guestId: string): Promise<void> {
-    return notImplemented("API_DESIGN §48 (Phase 3: Guests)");
+    await sendNow(ctx, guestId, "reminder");
   },
 
-  /** Creates EmailJobs (one per guest) and returns immediately. API §47. */
+  /**
+   * Queues invitations for everyone not yet emailed one, or for the chosen
+   * guests (a resend), and returns at once with the batch to follow. Guests
+   * without an email address are skipped. API §47.
+   */
   async sendBulkInvitations(
     ctx: MemberContext,
-    input: BulkEmailInput,
+    input: SendInvitationsInput,
   ): Promise<BulkEmailResultDto> {
-    return notImplemented("API_DESIGN §47 (Phase 3: Guests)");
+    const recipients = await guestRepository.listEmailRecipients(
+      ctx.weddingId,
+      input.scope === "SELECTED" ? { guestIds: input.guestIds } : { invitationSent: false },
+    );
+    return emailJobsService.enqueueGuestEmails(ctx.weddingId, {
+      type: "GUEST_INVITATION",
+      recipients: recipients.map(({ guestId, email }) => ({ guestId, recipientEmail: email })),
+    });
   },
 
-  /** API §49. */
-  async sendBulkReminders(ctx: MemberContext, input: BulkEmailInput): Promise<BulkEmailResultDto> {
-    return notImplemented("API_DESIGN §49 (Phase 3: Guests)");
+  /**
+   * Queues RSVP reminders for everyone still awaiting a reply, or for the
+   * chosen guests among them, and returns at once. API §49.
+   */
+  async sendBulkReminders(
+    ctx: MemberContext,
+    input: SendRemindersInput,
+  ): Promise<BulkEmailResultDto> {
+    const recipients = await guestRepository.listEmailRecipients(ctx.weddingId, {
+      rsvpStatus: "PENDING",
+      ...(input.scope === "SELECTED" && { guestIds: input.guestIds }),
+    });
+    return emailJobsService.enqueueGuestEmails(ctx.weddingId, {
+      type: "RSVP_REMINDER",
+      recipients: recipients.map(({ guestId, email }) => ({ guestId, recipientEmail: email })),
+    });
   },
 
   /** Invitations (guest records) by RSVP status, and the people coming. API §52. */
@@ -215,6 +242,8 @@ export const guestsService = {
       attendingInvitations: summary.byStatus.ATTENDING,
       notAttendingInvitations: summary.byStatus.NOT_ATTENDING,
       totalPeopleAttending: summary.totalPeopleAttending,
+      invitationsToEmail: summary.invitationsToEmail,
+      remindersToEmail: summary.remindersToEmail,
     };
   },
 
@@ -239,6 +268,49 @@ export const guestsService = {
     };
   },
 };
+
+/**
+ * Sends one guest's invitation or reminder in this request (API §46, §48):
+ * NOT_FOUND for another wedding's guest, a field error when it can't be sent,
+ * EXTERNAL_SERVICE_ERROR when the email provider fails or is at its limit.
+ */
+async function sendNow(ctx: MemberContext, guestId: string, kind: GuestEmailKind): Promise<void> {
+  const guest = await guestRepository.findById(ctx.weddingId, guestId);
+  if (!guest) throw new AppError("NOT_FOUND");
+  if (!guest.email) {
+    throw new AppError("VALIDATION_ERROR", "Add an email address for this guest first.", {
+      details: { email: "Add an email address for this guest first." },
+    });
+  }
+  if (kind === "reminder" && guest.rsvpStatus !== "PENDING") {
+    throw new AppError("VALIDATION_ERROR", "This guest has already replied.", {
+      details: { rsvpStatus: "This guest has already replied." },
+    });
+  }
+  const email = await buildGuestEmail(ctx.weddingId, guestId, kind);
+  if (!email) throw new AppError("NOT_FOUND");
+  try {
+    const service = getEmailService();
+    await (email.template === "guest-invitation"
+      ? service.send({ to: email.to, template: email.template, props: email.props })
+      : service.send({ to: email.to, template: email.template, props: email.props }));
+  } catch (error) {
+    if (isEmailQuotaError(error)) {
+      throw new AppError(
+        "EXTERNAL_SERVICE_ERROR",
+        "Today's email sending limit is reached. Try again later.",
+        { cause: error },
+      );
+    }
+    throw error;
+  }
+  await guestRepository.recordEmailed(ctx.weddingId, guestId, kind, new Date());
+  logger.info(kind === "invitation" ? "Guest invitation emailed" : "RSVP reminder emailed", {
+    requestId: ctx.requestId,
+    weddingId: ctx.weddingId,
+    guestId,
+  });
+}
 
 /** Resolves invited-event summaries (archived ones included) in one batched lookup. */
 async function toGuestDtos(weddingId: string, guests: readonly GuestRecord[]): Promise<GuestDto[]> {

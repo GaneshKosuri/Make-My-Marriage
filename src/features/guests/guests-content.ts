@@ -139,8 +139,6 @@ export const GUESTS = {
     noReply: "No reply yet. Share their invitation link below.",
     events: "Events",
     noEventsInvited: "Not invited to any events yet.",
-    sent: (when: string) => `Invitation emailed ${when}`,
-    notSent: "Invitation not sent yet",
     noContact: "No email or phone number.",
     notFound: {
       title: "Guest not found",
@@ -154,6 +152,56 @@ export const GUESTS = {
       confirm: "Delete guest",
       error: "We couldn't delete the guest. Try again.",
     },
+  },
+  email: {
+    title: "By email",
+    send: "Email invitation",
+    resend: "Email again",
+    remind: "Send RSVP reminder",
+    sending: "Sending…",
+    sent: (when: string) => `Invitation emailed ${when}.`,
+    notSent: "Invitation not emailed yet.",
+    reminded: (count: number, when: string) =>
+      count === 1 ? `Reminder sent ${when}.` : `${count} reminders sent, the last ${when}.`,
+    noEmail: "Add an email address to send the invitation by email.",
+    addEmail: "Add email",
+    done: { invitation: "Invitation emailed.", reminder: "Reminder sent." },
+    error: "We couldn't send the email. Try again.",
+  },
+  bulk: {
+    invitations: {
+      button: (count: number) =>
+        count === 1 ? "Email 1 invitation" : `Email ${count} invitations`,
+      title: "Email invitations?",
+      description: (count: number) =>
+        `${count === 1 ? "1 guest with an email address hasn't" : `${count} guests with an email address haven't`} been sent their invitation yet. Each gets their own link. Guests without an email address are skipped.`,
+      confirm: "Send invitations",
+      progress: (sent: number, total: number) => `Emailing invitations: ${sent} of ${total} sent`,
+      done: (sent: number) =>
+        sent === 1 ? "1 invitation emailed." : `${sent} invitations emailed.`,
+    },
+    reminders: {
+      button: (count: number) => (count === 1 ? "Remind 1 guest" : `Remind ${count} guests`),
+      title: "Send RSVP reminders?",
+      description: (count: number) =>
+        `${count === 1 ? "1 guest with an email address hasn't" : `${count} guests with an email address haven't`} replied yet. Each gets a short reminder with their link.`,
+      confirm: "Send reminders",
+      progress: (sent: number, total: number) => `Sending reminders: ${sent} of ${total} sent`,
+      done: (sent: number) => (sent === 1 ? "1 reminder sent." : `${sent} reminders sent.`),
+    },
+    cancel: "Not now",
+    working: "Starting…",
+    background: "You can leave this page; sending carries on.",
+    skipped: (count: number) =>
+      count === 1
+        ? "1 was skipped (deleted, or already replied)."
+        : `${count} were skipped (deleted, or already replied).`,
+    failed: (count: number) => (count === 1 ? "1 couldn't be sent." : `${count} couldn't be sent.`),
+    retry: "Try again",
+    waiting:
+      "Some emails are waiting: the email account may have reached its daily limit. They'll go out later.",
+    error: "We couldn't start sending. Try again.",
+    dismiss: "Dismiss",
   },
   share: {
     title: "Invitation link",
@@ -193,7 +241,6 @@ export const GUESTS = {
       description: "Add guests, and their replies will show here.",
       action: "Add guests",
     },
-    remindersSoon: "Email reminders for guests who haven't replied arrive in the next update.",
   },
 } as const;
 

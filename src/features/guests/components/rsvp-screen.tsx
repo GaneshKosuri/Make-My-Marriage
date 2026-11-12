@@ -13,6 +13,7 @@ import type { RsvpSummaryDto } from "@/modules/guests/guest.types";
 
 import { useGuests, useRsvpSummary } from "../api";
 import { GUESTS, GUESTS_ROUTES, RSVP_LABELS } from "../guests-content";
+import { BulkEmailButton, BulkEmailProgress } from "./bulk-email";
 import { GuestRow } from "./guest-row";
 
 const COPY = GUESTS.rsvp;
@@ -39,6 +40,8 @@ export function RsvpScreen() {
   }
   const [page, setPage] = useState(1);
   const summary = useRsvpSummary();
+  // The bulk reminder email in progress, if any.
+  const [batch, setBatch] = useState<string | null>(null);
 
   const choose = (next: RsvpStatus) => {
     setStatus(next);
@@ -94,8 +97,23 @@ export function RsvpScreen() {
                 </button>
               ))}
             </div>
+            {status === "PENDING" && (summary.data.remindersToEmail > 0 || batch) && (
+              <div className="flex flex-col gap-3 sm:items-start">
+                <BulkEmailButton
+                  kind="reminders"
+                  count={summary.data.remindersToEmail}
+                  onStarted={setBatch}
+                />
+                {batch && (
+                  <BulkEmailProgress
+                    kind="reminders"
+                    batchId={batch}
+                    onDismiss={() => setBatch(null)}
+                  />
+                )}
+              </div>
+            )}
             <StatusList status={status} page={page} onPage={setPage} />
-            {status === "PENDING" && <p className="text-body-sm text-plum">{COPY.remindersSoon}</p>}
           </>
         )
       ) : summary.isError ? (

@@ -17,6 +17,12 @@ export const EMAIL_JOB_RETRY_DELAYS_MINUTES = [0, 5, 30] as const;
 /** PROCESSING jobs locked longer than this are reclaimed (DATABASE_DESIGN §73: 10–15 min). */
 export const EMAIL_JOB_STALE_LOCK_MINUTES = 15;
 
+/**
+ * When the provider says a sending limit is reached (Gmail's ~500 a day), the
+ * job waits this long and keeps its attempts (decided 2026-11-12).
+ */
+export const EMAIL_JOB_QUOTA_RETRY_MINUTES = 60;
+
 /** Batch ids are 16 random bytes, base64url (22 chars). */
 export const EMAIL_BATCH_ID_PATTERN = /^[A-Za-z0-9_-]{22}$/;
 

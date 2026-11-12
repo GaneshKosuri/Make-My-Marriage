@@ -1,11 +1,29 @@
 import "server-only";
 
 import { connectToDatabase } from "@/server/db/connection";
+import { isDuplicateKeyError } from "@/server/db/errors";
 import { toObjectId } from "@/server/db/object-id";
-import { notImplemented } from "@/server/errors";
 
-import type { EmailJobStatus } from "./email-job.constants";
+import {
+  EMAIL_JOB_MAX_ATTEMPTS,
+  type EmailJobStatus,
+  type EmailJobType,
+} from "./email-job.constants";
 import { EmailJobModel, type EmailJobDoc, type EmailJobRecord } from "./email-job.model";
+
+/** The worker's reads and writes cross weddings: the documented tenant-guard opt-out. */
+const ACROSS_WEDDINGS = { tenantScoped: false } as const;
+
+/** Jobs that will still be sent: a guest with one of these isn't queued again. */
+const ACTIVE: readonly EmailJobStatus[] = ["PENDING", "PROCESSING"];
+
+/** A lock held by one worker run; other runs can't touch the job meanwhile. */
+const locked = (jobId: string, lockId: string) => ({
+  _id: toObjectId(jobId, "jobId"),
+  lockId,
+  status: "PROCESSING" as const,
+});
+const unlock = { lockId: null, lockedAt: null };
 
 /**
  * Data access for `email_jobs`. `weddingId` first for organiser operations;
@@ -13,23 +31,67 @@ import { EmailJobModel, type EmailJobDoc, type EmailJobRecord } from "./email-jo
  * opt-out from the tenant guard.
  */
 export const emailJobRepository = {
-  /** insertMany with idempotency-key uniqueness; no giant transaction (DATABASE_DESIGN §87). */
+  /**
+   * Inserts what it can (DATABASE_DESIGN §87: no giant transaction). A job
+   * whose idempotency key already exists is skipped, not an error.
+   */
   async insertMany(
     weddingId: string,
     jobs: Omit<EmailJobDoc, "weddingId" | "createdAt" | "updatedAt">[],
   ): Promise<number> {
-    return notImplemented("DATABASE_DESIGN §87 (Phase 3: Guests)");
+    if (jobs.length === 0) return 0;
+    await connectToDatabase();
+    const wedding = toObjectId(weddingId, "weddingId");
+    try {
+      const inserted = await EmailJobModel.insertMany(
+        jobs.map((job) => ({ ...job, weddingId: wedding })),
+        { ordered: false },
+      );
+      return inserted.length;
+    } catch (error) {
+      if (!isDuplicateKeyError(error)) throw error;
+      const { insertedDocs } = error as { insertedDocs?: unknown[] };
+      return insertedDocs?.length ?? 0;
+    }
+  },
+
+  /** Guests among `guestIds` that already have a job of `type` waiting or being sent. */
+  async findGuestsWithActiveJobs(
+    weddingId: string,
+    type: EmailJobType,
+    guestIds: readonly string[],
+  ): Promise<Set<string>> {
+    if (guestIds.length === 0) return new Set();
+    await connectToDatabase();
+    const ids = await EmailJobModel.distinct("guestId", {
+      weddingId: toObjectId(weddingId, "weddingId"),
+      type,
+      status: { $in: ACTIVE },
+      guestId: { $in: guestIds.map((id) => toObjectId(id, "guestId")) },
+    }).exec();
+    return new Set(ids.map((id) => id.toString()));
   },
 
   async countByStatusForBatch(
     weddingId: string,
     batchId: string,
   ): Promise<Partial<Record<EmailJobStatus, number>>> {
-    return notImplemented("API_DESIGN §85 (Phase 3: Guests)");
+    await connectToDatabase();
+    const rows = await EmailJobModel.aggregate<{ _id: EmailJobStatus; count: number }>([
+      { $match: { weddingId: toObjectId(weddingId, "weddingId"), batchId } },
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+    ]).exec();
+    return Object.fromEntries(rows.map((row) => [row._id, row.count]));
   },
 
+  /** FAILED jobs of the batch start again with a fresh set of attempts (API_DESIGN §86). */
   async requeueFailed(weddingId: string, batchId: string, now: Date): Promise<number> {
-    return notImplemented("API_DESIGN §86 (Phase 3: Guests)");
+    await connectToDatabase();
+    const result = await EmailJobModel.updateMany(
+      { weddingId: toObjectId(weddingId, "weddingId"), batchId, status: "FAILED" },
+      { $set: { status: "PENDING", attempts: 0, nextAttemptAt: now, lastError: null, ...unlock } },
+    ).exec();
+    return result.modifiedCount;
   },
 
   /** Jobs not yet picked up become CANCELLED; one already being sent is left to finish. */
@@ -48,27 +110,103 @@ export const emailJobRepository = {
 
   // ── Worker (cross-wedding; tenant-guard opt-out) ─────────────────────────
 
-  /** PROCESSING with lockedAt older than the stale threshold → PENDING. */
-  async recoverStale(staleBefore: Date): Promise<number> {
-    return notImplemented("DATABASE_DESIGN §73 (Phase 3: Guests)");
+  /**
+   * PROCESSING jobs whose run stopped before finishing (DATABASE_DESIGN §73).
+   * The interrupted send counts as an attempt; a job out of attempts fails.
+   */
+  async recoverStale(staleBefore: Date, now: Date): Promise<number> {
+    await connectToDatabase();
+    const stale = { status: "PROCESSING" as const, lockedAt: { $lt: staleBefore } };
+    const failed = await EmailJobModel.updateMany(
+      { ...stale, attempts: { $gte: EMAIL_JOB_MAX_ATTEMPTS - 1 } },
+      {
+        $set: { status: "FAILED", lastError: "Interrupted while sending", ...unlock },
+        $inc: { attempts: 1 },
+      },
+    )
+      .setOptions(ACROSS_WEDDINGS)
+      .exec();
+    const retried = await EmailJobModel.updateMany(stale, {
+      $set: { status: "PENDING", nextAttemptAt: now, ...unlock },
+      $inc: { attempts: 1 },
+    })
+      .setOptions(ACROSS_WEDDINGS)
+      .exec();
+    return failed.modifiedCount + retried.modifiedCount;
   },
 
-  /** Atomic findOneAndUpdate PENDING (nextAttemptAt ≤ now) → PROCESSING with lockId. */
+  /**
+   * Atomically takes the oldest due PENDING job (DATABASE_DESIGN §72), so
+   * overlapping runs never send the same email twice.
+   */
   async claimNext(lockId: string, now: Date): Promise<EmailJobRecord | null> {
-    return notImplemented("DATABASE_DESIGN §72 (Phase 3: Guests)");
+    await connectToDatabase();
+    return EmailJobModel.findOneAndUpdate(
+      { status: "PENDING", nextAttemptAt: { $lte: now } },
+      { $set: { status: "PROCESSING", lockedAt: now, lockId } },
+      { sort: { nextAttemptAt: 1, createdAt: 1 }, returnDocument: "after" },
+    )
+      .setOptions(ACROSS_WEDDINGS)
+      .lean<EmailJobRecord>()
+      .exec();
   },
 
-  async markSent(jobId: string, lockId: string, providerMessageId: string | null): Promise<void> {
-    return notImplemented("DATABASE_DESIGN §67 (Phase 3: Guests)");
+  async markSent(
+    jobId: string,
+    lockId: string,
+    providerMessageId: string | null,
+    sentAt: Date,
+  ): Promise<void> {
+    await connectToDatabase();
+    await EmailJobModel.updateOne(locked(jobId, lockId), {
+      $set: { status: "SENT", sentAt, providerMessageId, lastError: null, ...unlock },
+      $inc: { attempts: 1 },
+    })
+      .setOptions(ACROSS_WEDDINGS)
+      .exec();
   },
 
-  /** Schedules the next attempt, or FAILED after the last one. */
+  /**
+   * Counts the attempt and schedules the next one, or marks the job FAILED
+   * when `nextAttemptAt` is null (DATABASE_DESIGN §74).
+   */
   async markAttemptFailed(
     jobId: string,
     lockId: string,
     error: string,
     nextAttemptAt: Date | null,
   ): Promise<void> {
-    return notImplemented("DATABASE_DESIGN §74 (Phase 3: Guests)");
+    await connectToDatabase();
+    await EmailJobModel.updateOne(locked(jobId, lockId), {
+      $set: {
+        status: nextAttemptAt ? "PENDING" : "FAILED",
+        ...(nextAttemptAt && { nextAttemptAt }),
+        lastError: error,
+        ...unlock,
+      },
+      $inc: { attempts: 1 },
+    })
+      .setOptions(ACROSS_WEDDINGS)
+      .exec();
+  },
+
+  /** The provider's sending limit: back to PENDING later, without spending an attempt. */
+  async defer(jobId: string, lockId: string, nextAttemptAt: Date, reason: string): Promise<void> {
+    await connectToDatabase();
+    await EmailJobModel.updateOne(locked(jobId, lockId), {
+      $set: { status: "PENDING", nextAttemptAt, lastError: reason, ...unlock },
+    })
+      .setOptions(ACROSS_WEDDINGS)
+      .exec();
+  },
+
+  /** The email no longer applies (guest deleted, no address, already replied). */
+  async markCancelled(jobId: string, lockId: string, reason: string): Promise<void> {
+    await connectToDatabase();
+    await EmailJobModel.updateOne(locked(jobId, lockId), {
+      $set: { status: "CANCELLED", lastError: reason, ...unlock },
+    })
+      .setOptions(ACROSS_WEDDINGS)
+      .exec();
   },
 };

@@ -17,7 +17,7 @@ const availability = {
   website: "coming-soon",
   livestream: "coming-soon",
   guestPhotoUploads: "coming-soon",
-  emailInvitations: "coming-soon", // Phase 3, slice 4
+  emailInvitations: "live", // Phase 3 (email invitations and RSVP reminders)
 } satisfies Record<string, FeatureAvailability>;
 
 export type ProductFeature = keyof typeof availability;

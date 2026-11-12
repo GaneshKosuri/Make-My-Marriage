@@ -485,6 +485,9 @@ describe("GET /api/guests/rsvp-summary", () => {
           attendingInvitations: 2,
           notAttendingInvitations: 1,
           totalPeopleAttending: 5,
+          // No one has an email address here.
+          invitationsToEmail: 0,
+          remindersToEmail: 0,
         },
       },
     });

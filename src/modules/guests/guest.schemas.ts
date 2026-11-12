@@ -142,7 +142,32 @@ export const submitRsvpSchema = z.discriminatedUnion(
   "Choose whether you'll attend",
 );
 
-/*
- * TODO(Phase 3: Guests, slice 4) — define with `.strict()`:
- *   - bulkSendSchema              API_DESIGN §47  { scope: ALL_UNSENT | ALL_PENDING_RSVP | SELECTED, guestIds? }
+/** One request can name up to every guest a wedding is expected to have. */
+const SELECTED_GUESTS_MAX = 1000;
+
+const selectedGuests = z
+  .array(objectId)
+  .min(1, "Choose at least one guest")
+  .max(SELECTED_GUESTS_MAX, "Choose at most 1,000 guests")
+  .transform((ids) => [...new Set(ids)]);
+
+/**
+ * Bulk emails (API_DESIGN §47, §49): a preset scope, or the chosen guests.
+ * Guests without an email address are skipped.
  */
+function bulkSendSchema<const Scope extends string>(preset: Scope) {
+  return z.discriminatedUnion(
+    "scope",
+    [
+      z.object({ scope: z.literal(preset) }).strict(),
+      z.object({ scope: z.literal("SELECTED"), guestIds: selectedGuests }).strict(),
+    ],
+    "Choose who to email",
+  );
+}
+
+/** API §47: everyone not yet emailed their invitation, or the chosen guests (a resend). */
+export const sendInvitationsSchema = bulkSendSchema("ALL_UNSENT");
+
+/** API §49: everyone still awaiting a reply, or the chosen guests among them. */
+export const sendRemindersSchema = bulkSendSchema("ALL_PENDING_RSVP");

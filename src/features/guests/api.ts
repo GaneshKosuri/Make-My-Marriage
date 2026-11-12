@@ -5,7 +5,15 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { dashboardKeys } from "@/features/dashboard/query-keys";
 import { apiAction, apiFetch, apiFetchPage } from "@/lib/api-client";
 import type { RsvpStatus } from "@/modules/guests/guest.constants";
-import type { GuestDto, InvitationLinkDto, RsvpSummaryDto } from "@/modules/guests/guest.types";
+import type { EmailBatchStatusDto } from "@/modules/email-jobs/email-job.types";
+import type {
+  BulkEmailResultDto,
+  GuestDto,
+  InvitationLinkDto,
+  RsvpSummaryDto,
+  SendInvitationsInput,
+  SendRemindersInput,
+} from "@/modules/guests/guest.types";
 
 import type { CreateGuestBody, UpdateGuestBody } from "./guest-form";
 import { guestsKeys } from "./query-keys";
@@ -123,4 +131,72 @@ export function useReloadGuest() {
     void queryClient.invalidateQueries({ queryKey: guestsKeys.all });
     return guest;
   };
+}
+
+/** POST /api/guests/:id/send-invitation or /send-reminder (API §46, §48): sent now. */
+export function useEmailGuest() {
+  const invalidate = useInvalidateGuests();
+  return useMutation({
+    mutationFn: ({ guestId, kind }: { guestId: string; kind: "invitation" | "reminder" }) =>
+      apiAction(
+        `/api/guests/${encodeURIComponent(guestId)}/${kind === "invitation" ? "send-invitation" : "send-reminder"}`,
+        { method: "POST" },
+      ),
+    onSuccess: invalidate,
+  });
+}
+
+/** POST /api/guests/actions/send-invitations or /send-reminders (API §47, §49): queued. */
+export function useEmailGuestsInBulk() {
+  const invalidate = useInvalidateGuests();
+  return useMutation({
+    mutationFn: (
+      request:
+        | { kind: "invitations"; body: SendInvitationsInput }
+        | { kind: "reminders"; body: SendRemindersInput },
+    ) =>
+      apiFetch<BulkEmailResultDto>(
+        `/api/guests/actions/${request.kind === "invitations" ? "send-invitations" : "send-reminders"}`,
+        { method: "POST", body: request.body },
+      ),
+    onSuccess: invalidate,
+  });
+}
+
+/** How often an open progress panel checks on a bulk send. */
+const BATCH_POLL_MS = 3000;
+
+/**
+ * GET /api/email-batches/:id (API §85), checked every few seconds until the
+ * batch is done. Each check also keeps the sending going. Guest lists and
+ * counts refresh as emails go out and when it finishes.
+ */
+export function useEmailBatch(batchId: string | null) {
+  const invalidate = useInvalidateGuests();
+  return useQuery({
+    queryKey: guestsKeys.emailBatch(batchId ?? ""),
+    queryFn: async ({ signal }) => {
+      const status = await apiFetch<EmailBatchStatusDto>(
+        `/api/email-batches/${encodeURIComponent(batchId!)}`,
+        { signal },
+      );
+      void invalidate();
+      return status;
+    },
+    enabled: batchId !== null,
+    refetchInterval: (query) => (query.state.data?.completed ? false : BATCH_POLL_MS),
+  });
+}
+
+/** POST /api/email-batches/:id/retry-failed (API §86). */
+export function useRetryFailedEmails() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (batchId: string) =>
+      apiFetch<EmailBatchStatusDto>(
+        `/api/email-batches/${encodeURIComponent(batchId)}/retry-failed`,
+        { method: "POST" },
+      ),
+    onSuccess: (status) => queryClient.setQueryData(guestsKeys.emailBatch(status.batchId), status),
+  });
 }

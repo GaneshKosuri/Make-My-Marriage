@@ -15,6 +15,7 @@ import type { GuestDto } from "@/modules/guests/guest.types";
 import { useGuests, useRsvpSummary, type GuestsQuery } from "../api";
 import { GUESTS, GUESTS_ROUTES, RSVP_LABELS } from "../guests-content";
 import { guestsUrlFor, readGuestsUrl, type GuestFilters } from "../url-state";
+import { BulkEmailButton, BulkEmailProgress } from "./bulk-email";
 import { GuestFormDialog } from "./guest-form-dialog";
 import { GuestRow } from "./guest-row";
 
@@ -56,6 +57,9 @@ export function GuestsScreen({ timeZone }: Readonly<GuestsScreenProps>) {
   const [editing, setEditing] = useState<Editing>(url.startAdding ? { kind: "new" } : null);
   const [notice, setNotice] = useState<string | null>(null);
   const guests = useGuests(toQuery(filters, page));
+  const summary = useRsvpSummary();
+  // The bulk invitation email in progress, if any.
+  const [batch, setBatch] = useState<string | null>(null);
 
   // Links into the screen while it stays mounted (the dashboard, the "+" sheet's
   // ?new=1) arrive as a new address: follow it unless this screen wrote it.
@@ -145,11 +149,25 @@ export function GuestsScreen({ timeZone }: Readonly<GuestsScreenProps>) {
           </h1>
           <p className="mt-1 text-body-md text-plum">{GUESTS.description}</p>
         </div>
-        <button type="button" onClick={add} className={primaryButton}>
-          <Plus aria-hidden className="size-4" />
-          {GUESTS.add}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <BulkEmailButton
+            kind="invitations"
+            count={summary.data?.invitationsToEmail ?? 0}
+            onStarted={(batchId) => {
+              setNotice(null);
+              setBatch(batchId);
+            }}
+          />
+          <button type="button" onClick={add} className={primaryButton}>
+            <Plus aria-hidden className="size-4" />
+            {GUESTS.add}
+          </button>
+        </div>
       </header>
+
+      {batch && (
+        <BulkEmailProgress kind="invitations" batchId={batch} onDismiss={() => setBatch(null)} />
+      )}
 
       <SummaryStrip />
 

@@ -16,4 +16,5 @@ export const guestsKeys = {
   detail: (id: string) => [...ROOT, "detail", id] as const,
   rsvpSummary: () => [...ROOT, "rsvp-summary"] as const,
   invitationLink: (id: string) => [...ROOT, "invitation-link", id] as const,
+  emailBatch: (batchId: string) => ["email-batch", batchId] as const,
 };

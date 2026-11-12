@@ -320,6 +320,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "member",
     phase: P3,
     doc: "API §47",
+    implemented: true,
   },
   {
     method: "POST",
@@ -327,6 +328,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "member",
     phase: P3,
     doc: "API §49",
+    implemented: true,
   },
   {
     method: "GET",
@@ -366,6 +368,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "member",
     phase: P3,
     doc: "API §46",
+    implemented: true,
   },
   {
     method: "POST",
@@ -373,6 +376,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "member",
     phase: P3,
     doc: "API §48",
+    implemented: true,
   },
 
   // ── Public guest invitation (API §50–51) ───────────────────────────────────
@@ -400,6 +404,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "member",
     phase: P3,
     doc: "API §85",
+    implemented: true,
   },
   {
     method: "POST",
@@ -407,6 +412,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "member",
     phase: P3,
     doc: "API §86",
+    implemented: true,
   },
   {
     method: "GET",
