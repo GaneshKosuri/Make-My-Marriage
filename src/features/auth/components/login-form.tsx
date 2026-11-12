@@ -12,7 +12,7 @@ import { loginSchema } from "@/modules/auth/auth.schemas";
 import { applyFieldErrors, errorCode, useLogin } from "../api";
 import { AUTH_ROUTES, GENERIC_ERROR, SIGN_IN } from "../auth-content";
 import { AuthCard, AuthNote } from "./auth-shell";
-import { FormAlert, PasswordField, SubmitButton, TextField } from "./form-controls";
+import { FormAlert, PasswordField, SubmitButton, TextField } from "@/components/ui/form-controls";
 
 const linkClass =
   "tap-target rounded font-semibold text-burgundy underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burgundy";

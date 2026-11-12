@@ -4,18 +4,7 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
 
-export const focusRing =
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burgundy";
-
-export const textLink = cn(
-  "tap-target inline-flex items-center gap-1.5 rounded text-label-md text-burgundy underline-offset-4 hover:underline",
-  focusRing,
-);
-
-export const primaryButton = cn(
-  "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-burgundy px-5 text-label-md text-ivory hover:bg-burgundy-deep",
-  focusRing,
-);
+import { primaryButton, textLink } from "./button-styles";
 
 /** White dashboard panel with a serif heading and optional actions on the right. */
 export function DashboardCard({

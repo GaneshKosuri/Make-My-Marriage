@@ -11,7 +11,7 @@ import {
 import { formatDateOnly } from "@/lib/dates";
 
 import { DASHBOARD, DASHBOARD_ROUTES } from "../dashboard-content";
-import { focusRing } from "./dashboard-card";
+import { focusRing } from "@/components/ui/button-styles";
 
 const DAYS_IN_A_YEAR = 365;
 

@@ -4,7 +4,8 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
-import { ArrowLink, DashboardCard, textLink } from "@/features/dashboard/components/dashboard-card";
+import { textLink } from "@/components/ui/button-styles";
+import { ArrowLink, DashboardCard } from "@/components/ui/dashboard-card";
 import type { DateOnly } from "@/lib/dates";
 import type { TaskDto } from "@/modules/tasks/task.types";
 

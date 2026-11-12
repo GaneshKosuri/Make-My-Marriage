@@ -2,7 +2,7 @@ import { cn } from "@/lib/cn";
 import type { DashboardDto } from "@/modules/dashboard/dashboard.types";
 
 import { DASHBOARD, DASHBOARD_ROUTES } from "../dashboard-content";
-import { ArrowLink, DashboardCard, EmptyState } from "./dashboard-card";
+import { ArrowLink, DashboardCard, EmptyState } from "@/components/ui/dashboard-card";
 
 /**
  * Replies by guest entry (one entry can be a whole family) and the number of

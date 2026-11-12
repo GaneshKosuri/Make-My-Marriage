@@ -8,19 +8,11 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 import type { z } from "zod";
 
 import { SettingsTabs } from "@/components/layout/settings-tabs";
+import { focusRing, primaryButton } from "@/components/ui/button-styles";
+import { DashboardCard } from "@/components/ui/dashboard-card";
 import { DateField } from "@/components/ui/date-time-fields";
+import { FormAlert, OptionalTag, TextAreaField, TextField } from "@/components/ui/form-controls";
 import { applyFieldErrors } from "@/features/auth/api";
-import {
-  FormAlert,
-  OptionalTag,
-  TextAreaField,
-  TextField,
-} from "@/features/auth/components/form-controls";
-import {
-  DashboardCard,
-  focusRing,
-  primaryButton,
-} from "@/features/dashboard/components/dashboard-card";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { coupleDisplayName } from "@/lib/couple";

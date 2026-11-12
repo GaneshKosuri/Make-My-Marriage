@@ -5,7 +5,7 @@ import { PagePlaceholder } from "@/components/layout/page-placeholder";
 export const metadata: Metadata = { title: "Your invitation" };
 
 /**
- * /invite/[token] — a guest's personal invitation and RSVP (PRD §9.9–9.11).
+ * /invite/[token] — a guest's personal invitation and RSVP.
  * Phase 3 reads it via invitationService.getPublicInvitation (a read from a Server
  * Component is allowed; the RSVP itself goes through POST /api/public/invitations/:token/rsvp).
  */

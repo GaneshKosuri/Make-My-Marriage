@@ -1,9 +1,9 @@
 import { ChevronRight, MapPin } from "lucide-react";
 import Link from "next/link";
 
-import { focusRing } from "@/features/dashboard/components/dashboard-card";
-import { eventDateTile } from "@/features/dashboard/format";
+import { focusRing } from "@/components/ui/button-styles";
 import { cn } from "@/lib/cn";
+import { eventDateTile } from "@/lib/schedule";
 import type { EventDto } from "@/modules/events/event.types";
 
 import { EVENTS, EVENTS_ROUTES } from "../events-content";

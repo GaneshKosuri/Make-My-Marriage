@@ -4,13 +4,14 @@ import { Check, CheckCircle2, ListChecks, Plus, RefreshCw } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useState, type ComponentProps } from "react";
 
-import { focusRing, primaryButton } from "@/features/dashboard/components/dashboard-card";
-import { isOverdue } from "@/features/dashboard/format";
+import { focusRing, primaryButton, secondaryButton } from "@/components/ui/button-styles";
+import { ListSkeleton } from "@/components/ui/list-skeleton";
 import { useEvents } from "@/features/events/api";
 import { useMembers } from "@/features/members/api";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import type { DateOnly } from "@/lib/dates";
+import { isOverdue } from "@/lib/schedule";
 import {
   TASK_FILTER_NONE,
   TASK_PRIORITIES,
@@ -36,11 +37,6 @@ import { TaskFormDialog } from "./task-form-dialog";
 import { OverdueChip, PriorityChip, TaskMeta } from "./task-meta";
 
 const PAGE_SIZE = 20;
-
-const secondaryButton = cn(
-  "inline-flex h-10 items-center justify-center gap-2 rounded-full border border-sand bg-white px-4 text-label-md text-graphite hover:bg-sand disabled:opacity-50",
-  focusRing,
-);
 
 export interface TaskFilters {
   status?: TaskStatus;
@@ -233,7 +229,7 @@ export function TasksScreen({ timeZone, today }: Readonly<TasksScreenProps>) {
           </button>
         </div>
       ) : (
-        <ListSkeleton />
+        <ListSkeleton rows={4} leading="check" />
       )}
 
       <TaskFormDialog
@@ -422,7 +418,7 @@ function TaskList({
   }
 
   // A page past the end (its last task just went): the screen is moving back a page.
-  if (tasks.length === 0) return <ListSkeleton />;
+  if (tasks.length === 0) return <ListSkeleton rows={4} leading="check" />;
 
   const from = (pagination.page - 1) * pagination.limit + 1;
   const to = from + tasks.length - 1;
@@ -551,26 +547,6 @@ export function TaskItem({
         {overdue && <OverdueChip />}
         <PriorityChip priority={task.priority} />
       </div>
-    </div>
-  );
-}
-
-function ListSkeleton() {
-  return (
-    <div
-      aria-busy="true"
-      aria-label="Loading"
-      className="animate-pulse rounded-3xl border border-sand bg-white p-5 md:p-7"
-    >
-      {[0, 1, 2, 3].map((row) => (
-        <div key={row} className="flex gap-3 py-4">
-          <div className="size-6 rounded-full bg-sand" />
-          <div className="flex-1 space-y-2">
-            <div className="h-4 w-56 rounded bg-sand" />
-            <div className="h-3 w-40 rounded bg-sand" />
-          </div>
-        </div>
-      ))}
     </div>
   );
 }

@@ -9,7 +9,7 @@ export default function RsvpPage() {
     <PagePlaceholder
       title="RSVP"
       phase="Phase 3: Guests"
-      description="RSVP summary and reminders for pending guests (PRD §9.11, §9.13)."
+      description="RSVP summary and reminders for pending guests."
     />
   );
 }

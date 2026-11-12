@@ -17,7 +17,7 @@ import {
   SubmitButton,
   primaryButtonClass,
   secondaryButtonClass,
-} from "./form-controls";
+} from "@/components/ui/form-controls";
 import { PasswordStrengthMeter } from "./password-strength-meter";
 
 /** The API takes { token, password }; the form also asks for a confirmation. */

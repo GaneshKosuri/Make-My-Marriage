@@ -5,14 +5,9 @@ import { ArrowRight, Lock, Mail, UserRound } from "lucide-react";
 import { useId, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
+import { FormAlert, PasswordField, SubmitButton, TextField } from "@/components/ui/form-controls";
 import { applyFieldErrors, errorCode, useLogin, useSignup } from "@/features/auth/api";
 import { GENERIC_ERROR, PASSWORD_HINT, SIGN_UP } from "@/features/auth/auth-content";
-import {
-  FormAlert,
-  PasswordField,
-  SubmitButton,
-  TextField,
-} from "@/features/auth/components/form-controls";
 import { PasswordStrengthMeter } from "@/features/auth/components/password-strength-meter";
 import { cn } from "@/lib/cn";
 import { loginSchema, signupSchema } from "@/modules/auth/auth.schemas";

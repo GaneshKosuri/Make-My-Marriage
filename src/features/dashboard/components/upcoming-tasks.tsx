@@ -7,8 +7,9 @@ import type { DateOnly } from "@/lib/dates";
 import type { TaskDto } from "@/modules/tasks/task.types";
 
 import { DASHBOARD, DASHBOARD_ROUTES } from "../dashboard-content";
-import { isOverdue } from "../format";
-import { ArrowLink, DashboardCard, EmptyState, textLink } from "./dashboard-card";
+import { textLink } from "@/components/ui/button-styles";
+import { ArrowLink, DashboardCard, EmptyState } from "@/components/ui/dashboard-card";
+import { isOverdue } from "@/lib/schedule";
 
 /** PRD §9.3 "Upcoming Tasks": incomplete tasks approaching their due dates. */
 export function UpcomingTasks({

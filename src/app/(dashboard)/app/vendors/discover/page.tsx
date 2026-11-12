@@ -9,7 +9,7 @@ export default function DiscoverVendorsPage() {
     <PagePlaceholder
       title="Discover Vendors"
       phase="Phase 4: Financial & Vendors"
-      description="Find photographers, venues, caterers and more near the wedding (PRD §9.17)."
+      description="Find photographers, venues, caterers and more near the wedding."
     />
   );
 }

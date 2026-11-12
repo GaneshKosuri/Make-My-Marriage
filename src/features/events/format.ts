@@ -1,5 +1,5 @@
-import { eventTimeRange } from "@/features/dashboard/format";
 import { addDays, dateOnlyInTimeZone, formatDateOnly } from "@/lib/dates";
+import { eventTimeRange } from "@/lib/schedule";
 
 import { EVENTS } from "./events-content";
 

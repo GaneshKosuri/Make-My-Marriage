@@ -9,7 +9,7 @@ export default function WebsiteSettingsPage() {
     <PagePlaceholder
       title="Wedding Website"
       phase="Phase 5: Wedding Experience"
-      description="Theme, welcome message and publishing (PRD §9.18–9.19)."
+      description="Theme, welcome message and publishing."
     />
   );
 }

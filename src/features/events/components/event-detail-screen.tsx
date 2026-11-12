@@ -17,12 +17,13 @@ import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
 import {
-  DashboardCard,
-  focusRing,
+  dangerButton,
   primaryButton,
+  secondaryButton,
   textLink,
-} from "@/features/dashboard/components/dashboard-card";
-import { Dialog } from "@/features/members/components/dialog";
+} from "@/components/ui/button-styles";
+import { DashboardCard } from "@/components/ui/dashboard-card";
+import { Dialog } from "@/components/ui/dialog";
 import { EventTasks } from "@/features/tasks/components/event-tasks";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
@@ -37,15 +38,6 @@ import { EventFormDialog } from "./event-form-dialog";
 
 const DETAIL = EVENTS.detail;
 const LONG_DATE: Intl.DateTimeFormatOptions = { day: "numeric", month: "long", year: "numeric" };
-
-const secondaryButton = cn(
-  "inline-flex h-11 items-center justify-center gap-2 rounded-full border border-sand bg-white px-5 text-label-md text-graphite hover:bg-sand disabled:opacity-60",
-  focusRing,
-);
-const dangerButton = cn(
-  secondaryButton,
-  "border-transparent bg-destructive text-white hover:bg-destructive/90",
-);
 
 export interface EventDetailScreenProps {
   eventId: string;

@@ -4,7 +4,7 @@ import { PagePlaceholder } from "@/components/layout/page-placeholder";
 
 export const metadata: Metadata = { title: "Wedding gallery" };
 
-/** /gallery/[token] — view and upload wedding photos via the QR / shared link (PRD §9.20–9.23). */
+/** /gallery/[token] — view and upload wedding photos via the QR / shared link. */
 export default function GalleryPage() {
   return (
     <PagePlaceholder

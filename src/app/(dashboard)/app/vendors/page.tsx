@@ -9,7 +9,7 @@ export default function VendorsPage() {
     <PagePlaceholder
       title="My Vendors"
       phase="Phase 4: Financial & Vendors"
-      description="Vendors selected for the wedding (PRD §9.16)."
+      description="Vendors selected for the wedding."
     />
   );
 }

@@ -9,7 +9,7 @@ import type { MemberRole } from "@/modules/members/member.constants";
 
 import { useDashboard } from "../api";
 import { DASHBOARD } from "../dashboard-content";
-import { focusRing } from "./dashboard-card";
+import { focusRing } from "@/components/ui/button-styles";
 import { GetStarted, gettingStartedSteps } from "./get-started";
 import { RsvpOverview } from "./rsvp-overview";
 import { SummaryCards } from "./summary-cards";

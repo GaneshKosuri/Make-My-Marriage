@@ -10,9 +10,9 @@ import {
   SubmitButton,
   TextField,
   secondaryButtonClass,
-} from "@/features/auth/components/form-controls";
-import { cn } from "@/lib/cn";
+} from "@/components/ui/form-controls";
 import { ApiError } from "@/lib/api-client";
+import { cn } from "@/lib/cn";
 import {
   MEMBER_ROLE_LABELS,
   MEMBER_ROLES,
@@ -23,7 +23,7 @@ import type { InviteMemberInput } from "@/modules/members/member.types";
 
 import { useInviteMember } from "../api";
 import { MEMBERS } from "../members-content";
-import { Dialog } from "./dialog";
+import { Dialog } from "@/components/ui/dialog";
 
 const COPY = MEMBERS.inviteDialog;
 /** Manager first: most invitees help with planning, not member administration. */

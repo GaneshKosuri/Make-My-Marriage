@@ -6,18 +6,13 @@ import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { DateField } from "@/components/ui/date-time-fields";
+import { SaveProblem } from "@/components/ui/save-problem";
 
-import {
-  FormAlert,
-  OptionalTag,
-  SelectField,
-  TextAreaField,
-  TitleField,
-} from "@/features/auth/components/form-controls";
-import { focusRing, primaryButton } from "@/features/dashboard/components/dashboard-card";
+import { OptionalTag, SelectField, TextAreaField, TitleField } from "@/components/ui/form-controls";
+import { focusRing, primaryButton, secondaryButton } from "@/components/ui/button-styles";
+import { Dialog } from "@/components/ui/dialog";
 import { useEvents } from "@/features/events/api";
 import { useMembers } from "@/features/members/api";
-import { Dialog } from "@/features/members/components/dialog";
 import { timeZoneLabel } from "@/features/weddings/create-wedding-content";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
@@ -45,11 +40,6 @@ import { TASKS } from "../tasks-content";
 
 const FORM = TASKS.form;
 const FIELDS = FORM.fields;
-
-const secondaryButton = cn(
-  "inline-flex h-11 items-center justify-center gap-2 rounded-full border border-sand bg-white px-5 text-label-md text-graphite hover:bg-sand disabled:opacity-60",
-  focusRing,
-);
 
 export interface TaskFormDialogProps {
   open: boolean;
@@ -195,6 +185,7 @@ function TaskForm({
       <SaveProblem
         error={reloadFailed ? new ApiError(404, "NOT_FOUND", "") : (mutation.error ?? remove.error)}
         onReload={() => void onReload().catch(() => setReloadFailed(true))}
+        copy={FORM}
       />
 
       <TitleField
@@ -375,31 +366,3 @@ function TaskForm({
 }
 
 /** Field problems show on the fields; everything else gets one banner. */
-function SaveProblem({ error, onReload }: Readonly<{ error: unknown; onReload: () => void }>) {
-  if (!error) return null;
-  if (error instanceof ApiError) {
-    if (error.code === "VALIDATION_ERROR" && error.details) return null;
-    if (error.code === "CONFLICT") {
-      return (
-        <FormAlert title={FORM.conflict.title}>
-          <p>{FORM.conflict.description}</p>
-          <button
-            type="button"
-            onClick={onReload}
-            className={cn(
-              "mt-2 inline-flex items-center gap-1.5 rounded font-semibold text-burgundy underline-offset-4 hover:underline",
-              focusRing,
-            )}
-          >
-            <RefreshCw aria-hidden className="size-4" />
-            {FORM.conflict.action}
-          </button>
-        </FormAlert>
-      );
-    }
-    if (error.code === "NOT_FOUND") {
-      return <FormAlert title={FORM.gone.title}>{FORM.gone.description}</FormAlert>;
-    }
-  }
-  return <FormAlert title={FORM.error.title}>{FORM.error.description}</FormAlert>;
-}

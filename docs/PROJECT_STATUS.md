@@ -1,8 +1,8 @@
 # Project Status — Make My Marriage
 
-**Last updated:** 2026-11-04
-**Current phase:** Phase 2 — Planning (PRD §16): complete and QA-verified (4 Nov, 256/257 checks; the one P3 fixed); Phase 1 complete and QA-verified (3 Nov)
-**Next up:** Phase 3 — Guests (guests, invitations, RSVP, email jobs), starting with the R8/R9 clean-ups. Open decision: D7 (time zone change and event clock times)
+**Last updated:** 2026-11-12
+**Current phase:** Phase 3 — Guests (PRD §16): in progress, slice 0 (clean-ups) done; Phases 1 and 2 complete and QA-verified
+**Next up:** Phase 3 slice 1, the Guests API (API §39–43, §52). Then guest screens, invitation links with the public invitation and RSVP, and email invitations and reminders. Open decision: D7 (time zone change and event clock times)
 
 This file tracks what has been built and what comes next. Update it whenever a feature lands or new
 work starts: move items between the tables, add a row to the change log and refresh the header.
@@ -48,7 +48,7 @@ Status key: ✅ Done · 🚧 In progress · ⏳ Not started (scaffold stub only)
 | Events | ✅ | API (2026-11-04): list (start-time order, archived hidden unless asked, `from`/`to` window), create, get, partial edit with version check, archive. Screens (dashboard style, desktop + mobile): `/app/events` with upcoming, past and archived-on-request lists, an add/edit dialog with occasion shortcuts and wall-clock times in the wedding's time zone (an end before the start is the next day); `/app/events/[id]` with when and where, Google Maps link, dress code, notes, edit (reload on conflict) and archive with confirmation. Dashboard and "+" links open the add form (`?new=1`). Cover images wait for Phase 5 uploads |
 | Tasks | ✅ | API (2026-11-04): paged list (newest first) with status, priority, event, assignee, `none` and `mine` filters; create, get, partial edit with version check, hard delete; assignee and event checked against the wedding; server-owned `completedAt`. Screen (dashboard style, desktop + mobile): `/app/tasks` with All / My / Completed views, filters by status, event, assignee and priority (kept in the address), a tick to complete or reopen, overdue flags, "Former member" and archived-event labels, pages of 20, add/edit dialog (assignee, event, due day in the wedding's time zone, priority, status, notes) with reload on conflict and delete with confirmation. Event pages list their tasks with "Add task" linked to the event. Dashboard, checklist and "+" links open the add form |
 
-### Phase 3 — Guests ⏳
+### Phase 3 — Guests 🚧
 
 | Feature | Status | Notes |
 | --- | --- | --- |
@@ -116,8 +116,6 @@ monitoring.
   Gmail, Resend, console is used. The server logs "Email transport selected" with the adapter on its
   first email. Not for production or guest invitations at scale (Phase 3): get a
   domain and verify it in Resend before launch.
-- **Mongoose security advisories (11 Nov).** `npm audit` reports high-severity advisories for
-  mongoose 9.0.0–9.11.3 (fix available via `npm audit fix`). Upgrade and rerun the full suite.
 - **Restart `next dev` after this change.** The identity ports are registered once at startup, so a
   running dev server keeps showing the header without the wedding's place until it restarts.
 - **Dashboard links lead to placeholders.** Every card, "+ Add" item and checklist step links to the
@@ -171,31 +169,21 @@ monitoring.
   production to start; their services throw in production when the keys are missing (instead of
   silently using the fakes). Add them in Vercel before shipping vendor discovery (Phase 4), covers
   (Phase 5) and the gallery (Phase 6).
-- **Email job schedule (11 Nov).** Vercel Hobby refused the deploy with the 5-minute cron (`*/5 * * * *`):
-  Hobby allows daily cron jobs only. `vercel.json` now runs `/api/internal/jobs/email` daily at
-  02:30 UTC (08:00 IST), which is fine while the worker has nothing to send. **Before Phase 3's bulk
-  guest email**, choose how it runs more often: Vercel Pro (restore `*/5 * * * *`), an external
-  scheduler (e.g. GitHub Actions or cron-job.org) calling `GET /api/internal/jobs/email` with
-  `Authorization: Bearer <CRON_SECRET>`, or processing a batch right after jobs are queued (`after()`)
-  with the daily cron as a safety net.
-- **Phase 3 start: shared form pieces (code review R8).** `SaveProblem` (event and task forms), the
-  list skeletons and the `secondaryButton` / `dangerButton` class strings are copied across the events
-  and tasks screens. Move the buttons next to `primaryButton` in `dashboard-card.tsx` (or a shared
-  button module), make one `SaveProblem` that takes its copy as props and one list skeleton, before
-  guests copies them again.
-- **Phase 3 start: shared UI in other features (code review R9).** Events and tasks import `Dialog` from
-  `features/members` and `isOverdue`, `eventTimeRange`, `formatShortDate`, `taskDueDay` from
-  `features/dashboard/format.ts`. Move `Dialog` (and its test) to `src/components/` and the formatters
-  to `src/lib/`; no behaviour change.
+- **Email job schedule (11 Nov; decided 12 Nov).** Vercel Hobby allows daily crons only, so
+  `vercel.json` runs `/api/internal/jobs/email` daily at 02:30 UTC (08:00 IST). Phase 3 processes a
+  batch right after bulk jobs are queued (`after()`), with the daily cron as the safety net (see
+  Decisions). If batches back up, add a free external scheduler (e.g. GitHub Actions every 10
+  minutes) calling `GET /api/internal/jobs/email` with `Authorization: Bearer <CRON_SECRET>`, or move
+  to Vercel Pro and restore `*/5 * * * *`.
 - **Legal pages.** Privacy policy and terms are needed before production. Until they exist, the home
   footer, the auth footer and the sign-up form leave out the "Privacy · Terms" links and the
   "By continuing you agree…" line shown in the designs.
-
-- **Placeholder pages show developer text** (mobile QA, outside its scope): Guests, Expenses,
-  Vendors, Photos, Website and Livestream read "(PRD §9.7–9.14)" and "Placeholder · Phase 3: Guests".
-  Replace with a plain "Coming soon" message, or as each phase ships.
 - **Signed-in mobile overflow is not in E2E yet.** `tests/e2e/mobile-overflow.spec.ts` covers the
   public pages only; add the app pages once E2E has a seeded test account.
+- **Dev-tool advisories (12 Nov).** After the mongoose upgrade, production dependencies audit clean.
+  `npm audit` still lists `follow-redirects` 1.16.0–1.16.1 (high; `npm audit fix`) and `minimatch`
+  inside `@typescript-eslint` (moderate; the suggested fix downgrades `eslint-config-next` to 15, so
+  wait for a typescript-eslint release). Both are development tooling only.
 
 ## 4. Decisions
 
@@ -243,6 +231,8 @@ monitoring.
 | 2026-11-11 | Emails share one branded layout (`src/server/email/templates/layout.ts`) in the app's palette: wordmark header (text, no images: Gmail blocks SVG and a localhost logo can't load), gold-topped card, serif heading, details panel, burgundy table-cell button with the plain link underneath. Table layout and inline styles only, system serif instead of web fonts; every email keeps a plain-text version |
 | 2026-11-11 | `EMAIL_PROVIDER` (gmail, resend or console) switches the email sender; the chosen sender's settings are checked at startup. Unset, Gmail is used when configured, then Resend, then the console. Production may send through Gmail instead of Resend (RESEND_API_KEY is then not required) but never through the console |
 | 2026-11-11 | Email can go out through a personal Gmail (Google app password, nodemailer over Gmail SMTP) when there is no verified domain for Resend. Gmail wins over Resend while configured; the From line uses the Gmail address with EMAIL_FROM's display name. nodemailer 10.2.1 pinned (7.x and ≤10.1.3 have advisories); it is fenced like the Resend SDK (`src/server/email/adapters` only) |
+| 2026-11-12 | Phase 3 plan (product owner approved): five slices: 0 clean-ups, 1 Guests API, 2 guest screens, 3 invitation link + public invitation + RSVP + WhatsApp, 4 email invitations and reminders. Bulk email jobs are processed right after they are queued (`after()`), with the daily Vercel cron as the safety net. A provider refusing more mail (Gmail's ~500 a day) puts the job back for a later attempt instead of failing it; a verified Resend domain is needed before launch. Guest screens and the invitation page are designed in code in the dashboard style (no Stitch designs exist for them) |
+| 2026-11-12 | Shared UI lives in `src/components/ui`: `button-styles.ts` (`focusRing`, `textLink`, `primaryButton`, `secondaryButton`, `dangerOutlineButton`, `dangerButton`), `dashboard-card.tsx` (`DashboardCard`, `ArrowLink`, `EmptyState`), `dialog.tsx`, `form-controls.tsx`, `save-problem.tsx` (takes its copy as props) and `list-skeleton.tsx`. Schedule formatters (`eventTimeRange`, `eventDateTile`, `taskDueDay`, `formatShortDate`, `isOverdue`) live in `src/lib/schedule.ts`. Features no longer import each other's components (code review R8/R9) |
 | 2026-11-11 | Mobile layout rules (QA hand-off qa-mobile-320-360): pages must not scroll sideways at 320 px. Any user-entered text (names, emails, titles, venues, notes) gets `min-w-0` on its flex/grid chain plus `wrap-anywhere`; grids start from `grid-cols-1`. Small text links and icon buttons reach 44 px with the `tap-target` utility (an invisible hit area) or `size-11`. Confirmations stack on phones with the destructive action on top. Bottom sheets cap at 85dvh, scroll inside and keep their action bar above the home indicator. Task and event titles are auto-growing one-row textareas (`TitleField`): Enter submits and pasted line breaks become spaces. Readable text is at least 12 px; phone selects use 16 px so iOS doesn't zoom |
 | 2026-11-04 | Events list: upcoming (including events still running) in date order, past most recent first, archived only on request. Times show in the wedding's time zone, named on the page |
 
@@ -281,3 +271,4 @@ monitoring.
 | 2026-11-11 | Themed date, date-range and time fields replace every native date/time input (Create Wedding, Wedding Details, event and task forms): calendar popover with Today/Clear and min dates, typed segments, 15-minute time list. Fixed `@/lib/dates` for years below 100 (seen while typing a year). Unit test timeout 15 s for component tests. 10 new tests |
 | 2026-11-11 | Date/time field code review D1–D9: past wedding dates stay valid in Wedding Details; the Dialog's Tab trap leaves keys a popover already handled; re-picking the current time closes the list and an empty list focuses 6 PM; date ranges keep typed years and are all-or-nothing; Today always uses the wedding's day (required `today`, task form gets it from its screens); wedding date calendars cap at 5 years; page scrollbar gutter reserved; the time list scrolls itself (the popover blocks scrollIntoView in browsers). The sign-up/forgot-password smoke test waits for the page to settle before clicking (it failed intermittently under a full parallel run). 7 new tests, each failing before its fix |
 | 2026-11-11 | Mobile QA fixes M1–M22 at 320/360 px (handoffs/qa-mobile-320-360.md): dashboard and home hero no longer overflow; long names, emails and titles wrap (dialogs, alerts, members, events, tasks, join page); one-column event date/time and task filters on the narrowest phones; sheets scroll inside with safe-area action bars; task delete confirmation in the sheet's footer; "+" hidden on Settings and the page leaves room for it; 44 px targets for links, the show-password, calendar and nav buttons; date popover scrolls when cut short; event chips truncate; the revoke dialog is a short title with the email in its text; dashboard hero buttons stack; phone header shows first names ("Sai & Venkata"); settings tabs are two equal columns; join tabs "New account" / "Sign in"; event venues wrap to two lines; one stacked confirmation pattern; 12 px minimum text; scrollbars hidden in sheets on touch screens; auto-growing title fields and a "Password" placeholder. New Playwright guard rail: no sideways scroll on public pages at 320/360 (`tests/e2e/mobile-overflow.spec.ts`); 5 new unit tests |
+| 2026-11-12 | Phase 3 slice 0: shared buttons, card, dialog, form controls, `SaveProblem` and list skeleton moved to `src/components/ui`, schedule formatters to `src/lib/schedule.ts` (R8/R9); secondary buttons are 44 px everywhere; placeholder pages say "Coming soon" without PRD references; mongoose 9.11.1 → 9.11.4 (four high-severity advisories) |

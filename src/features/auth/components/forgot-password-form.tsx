@@ -11,7 +11,12 @@ import { forgotPasswordSchema } from "@/modules/auth/auth.schemas";
 import { applyFieldErrors, errorCode, useForgotPassword } from "../api";
 import { AUTH_ROUTES, FORGOT_PASSWORD, GENERIC_ERROR, RESET_LINK_NOTE } from "../auth-content";
 import { AuthCard, AuthNote } from "./auth-shell";
-import { FormAlert, SubmitButton, TextField, secondaryButtonClass } from "./form-controls";
+import {
+  FormAlert,
+  SubmitButton,
+  TextField,
+  secondaryButtonClass,
+} from "@/components/ui/form-controls";
 
 const linkClass =
   "tap-target rounded font-semibold text-burgundy underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burgundy";

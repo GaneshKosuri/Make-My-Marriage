@@ -9,7 +9,7 @@ export default function GuestsPage() {
     <PagePlaceholder
       title="Guest List"
       phase="Phase 3: Guests"
-      description="Guests, invitations and WhatsApp sharing (PRD §9.7–9.14)."
+      description="Guests, invitations and WhatsApp sharing."
     />
   );
 }
