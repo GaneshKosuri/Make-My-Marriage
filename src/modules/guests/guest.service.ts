@@ -2,6 +2,7 @@ import "server-only";
 
 import type { PageResult } from "@/lib/pagination";
 import type { MemberContext } from "@/server/auth";
+import { getEnv } from "@/server/config/env";
 import { AppError, notImplemented } from "@/server/errors";
 import { buildPagePagination } from "@/server/http/pagination";
 import { logger } from "@/server/logging/logger";
@@ -23,6 +24,11 @@ import type {
   RsvpSummaryDto,
   UpdateGuestInput,
 } from "./guest.types";
+
+/** /invite/:token on the configured app origin. */
+export function invitationUrl(token: string): string {
+  return new URL(`/invite/${token}`, getEnv().NEXT_PUBLIC_APP_URL).toString();
+}
 
 /** Field key the form shows event problems against. */
 const EVENTS_FIELD = "invitedEventIds";
@@ -166,9 +172,15 @@ export const guestsService = {
     });
   },
 
-  /** Stable URL from NEXT_PUBLIC_APP_URL + stored token (never the Host header). API §45. */
+  /**
+   * The guest's stable invitation URL, built from NEXT_PUBLIC_APP_URL (never
+   * the request's Host header) and the stored token, which is never rotated.
+   * Copying or sharing it does not count as sending the invitation. API §45.
+   */
   async getInvitationLink(ctx: MemberContext, guestId: string): Promise<InvitationLinkDto> {
-    return notImplemented("API_DESIGN §45 (Phase 3: Guests)");
+    const token = await guestRepository.findInvitationToken(ctx.weddingId, guestId);
+    if (!token) throw new AppError("NOT_FOUND");
+    return { url: invitationUrl(token) };
   },
 
   /** Requires email; sends immediately; sets invitationSentAt. API §46. */

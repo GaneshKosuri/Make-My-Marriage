@@ -8,7 +8,7 @@ export type FeatureAvailability = "live" | "coming-soon";
 const availability = {
   events: "live", // Phase 2
   tasks: "live", // Phase 2
-  guests: "coming-soon", // Phase 3
+  guests: "live", // Phase 3 (guest list, invitation links and RSVP)
   familyMembers: "live", // Phase 1
   organiserGallery: "coming-soon", // Phase 6
   expenses: "coming-soon",
@@ -17,7 +17,7 @@ const availability = {
   website: "coming-soon",
   livestream: "coming-soon",
   guestPhotoUploads: "coming-soon",
-  emailInvitations: "coming-soon",
+  emailInvitations: "coming-soon", // Phase 3, slice 4
 } satisfies Record<string, FeatureAvailability>;
 
 export type ProductFeature = keyof typeof availability;

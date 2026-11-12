@@ -3,8 +3,15 @@
  */
 import type { z } from "zod";
 
+import type { PublicEventDto } from "@/modules/events/event.types";
+
 import type { BulkEmailScope, RsvpStatus } from "./guest.constants";
-import type { createGuestSchema, listGuestsQuerySchema, updateGuestSchema } from "./guest.schemas";
+import type {
+  createGuestSchema,
+  listGuestsQuerySchema,
+  submitRsvpSchema,
+  updateGuestSchema,
+} from "./guest.schemas";
 
 /** Guest CRUD response. Never contains the invitation token or emailNormalized. */
 export interface GuestDto {
@@ -71,21 +78,10 @@ export interface PublicInvitationDto {
     title: string | null;
     location: string | null;
   };
-  events: {
-    name: string;
-    startsAt: string;
-    endsAt: string | null;
-    venueName: string | null;
-    address: string | null;
-    dressCode: string | null;
-    description: string | null;
-  }[];
+  events: PublicEventDto[];
 }
 
-export interface SubmitRsvpInput {
-  status: Exclude<RsvpStatus, "PENDING">;
-  attendingCount: number;
-}
+export type SubmitRsvpInput = z.output<typeof submitRsvpSchema>;
 
 /** POST /api/public/invitations/:token/rsvp (API_DESIGN §51). */
 export interface RsvpResultDto {

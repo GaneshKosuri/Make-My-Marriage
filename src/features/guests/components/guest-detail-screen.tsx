@@ -36,6 +36,7 @@ import { useDeleteGuest, useGuest } from "../api";
 import { GUESTS, GUESTS_ROUTES } from "../guests-content";
 import { GuestFormDialog } from "./guest-form-dialog";
 import { RsvpPill } from "./guest-row";
+import { InvitationShare } from "./invitation-share";
 
 const DETAIL = GUESTS.detail;
 const DAY: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric" };
@@ -44,18 +45,24 @@ const TIME: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit" };
 export interface GuestDetailScreenProps {
   guestId: string;
   timeZone: string;
+  /** "Akshay & Princi", for the WhatsApp message. */
+  coupleName: string;
 }
 
 /**
  * /app/guests/[guestId] (PRD §9.7–9.11, API_DESIGN §41–43): the guest's reply,
  * party size, invited events and contacts, with edit and delete.
  */
-export function GuestDetailScreen({ guestId, timeZone }: Readonly<GuestDetailScreenProps>) {
+export function GuestDetailScreen({
+  guestId,
+  timeZone,
+  coupleName,
+}: Readonly<GuestDetailScreenProps>) {
   const guest = useGuest(guestId);
 
   let body;
   if (guest.data) {
-    body = <GuestDetail guest={guest.data} timeZone={timeZone} />;
+    body = <GuestDetail guest={guest.data} timeZone={timeZone} coupleName={coupleName} />;
   } else if (guest.isError) {
     const missing =
       guest.error instanceof ApiError &&
@@ -97,7 +104,11 @@ export function GuestDetailScreen({ guestId, timeZone }: Readonly<GuestDetailScr
   );
 }
 
-function GuestDetail({ guest, timeZone }: Readonly<{ guest: GuestDto; timeZone: string }>) {
+function GuestDetail({
+  guest,
+  timeZone,
+  coupleName,
+}: Readonly<{ guest: GuestDto; timeZone: string; coupleName: string }>) {
   const router = useRouter();
   const remove = useDeleteGuest();
   const [editing, setEditing] = useState(false);
@@ -195,6 +206,8 @@ function GuestDetail({ guest, timeZone }: Readonly<{ guest: GuestDto; timeZone: 
           </div>
         </DashboardCard>
       </div>
+
+      <InvitationShare guestId={guest.id} guestName={guest.name} coupleName={coupleName} />
 
       <DashboardCard title={DETAIL.events}>
         {guest.invitedEvents.length === 0 ? (

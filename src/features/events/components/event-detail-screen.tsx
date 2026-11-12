@@ -28,12 +28,12 @@ import { EventTasks } from "@/features/tasks/components/event-tasks";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { formatInstant, type DateOnly } from "@/lib/dates";
+import { eventSchedule, mapsSearchUrl } from "@/lib/schedule";
 import { EVENT_TYPE_LABELS } from "@/modules/events/event.constants";
 import type { EventDto } from "@/modules/events/event.types";
 
 import { useArchiveEvent, useEvent } from "../api";
 import { EVENTS, EVENTS_ROUTES } from "../events-content";
-import { eventSchedule, mapsSearchUrl } from "../format";
 import { EventFormDialog } from "./event-form-dialog";
 
 const DETAIL = EVENTS.detail;

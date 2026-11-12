@@ -15,4 +15,5 @@ export const guestsKeys = {
   list: (query: Record<string, unknown> = {}) => [...ROOT, "list", query] as const,
   detail: (id: string) => [...ROOT, "detail", id] as const,
   rsvpSummary: () => [...ROOT, "rsvp-summary"] as const,
+  invitationLink: (id: string) => [...ROOT, "invitation-link", id] as const,
 };

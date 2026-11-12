@@ -6,7 +6,7 @@ import { logger } from "@/server/logging/logger";
 
 import type { CoverUploadRequestInput, CoverUploadUrlDto } from "@/modules/weddings/wedding.types";
 
-import { toEventDto, toEventSummaryDto } from "./event.mapper";
+import { toEventDto, toEventSummaryDto, toPublicEventDto } from "./event.mapper";
 import type { EventRecord } from "./event.model";
 import { eventRepository, type EventFields } from "./event.repository";
 import { END_BEFORE_START_MESSAGE, endsBeforeStart } from "./event.schemas";
@@ -15,6 +15,7 @@ import type {
   EventDto,
   EventSummaryDto,
   ListEventsQuery,
+  PublicEventDto,
   UpdateEventInput,
 } from "./event.types";
 
@@ -168,6 +169,25 @@ export const eventsService = {
   ): Promise<Map<string, EventSummaryDto>> {
     const events = await eventRepository.findByIds(weddingId, [...new Set(eventIds)]);
     return new Map(events.map((event) => [event._id.toString(), toEventSummaryDto(event)]));
+  },
+
+  /**
+   * A guest's invitation (API_DESIGN §50): only the active events among
+   * `eventIds` that belong to this wedding, in start order. Archived events
+   * disappear from invitations at once.
+   */
+  async listPublicEvents(
+    weddingId: string,
+    eventIds: readonly string[],
+  ): Promise<PublicEventDto[]> {
+    const events = await eventRepository.findActiveByIds(weddingId, [...new Set(eventIds)]);
+    return events
+      .sort(
+        (a, b) =>
+          a.startsAt.getTime() - b.startsAt.getTime() ||
+          (a._id.toString() < b._id.toString() ? -1 : 1),
+      )
+      .map(toPublicEventDto);
   },
 
   /** Dashboard: events that are not archived (DATABASE_DESIGN §88). */

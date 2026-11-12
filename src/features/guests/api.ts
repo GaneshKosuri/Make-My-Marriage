@@ -5,7 +5,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { dashboardKeys } from "@/features/dashboard/query-keys";
 import { apiAction, apiFetch, apiFetchPage } from "@/lib/api-client";
 import type { RsvpStatus } from "@/modules/guests/guest.constants";
-import type { GuestDto, RsvpSummaryDto } from "@/modules/guests/guest.types";
+import type { GuestDto, InvitationLinkDto, RsvpSummaryDto } from "@/modules/guests/guest.types";
 
 import type { CreateGuestBody, UpdateGuestBody } from "./guest-form";
 import { guestsKeys } from "./query-keys";
@@ -44,6 +44,21 @@ export function useRsvpSummary() {
   return useQuery({
     queryKey: guestsKeys.rsvpSummary(),
     queryFn: ({ signal }) => apiFetch<RsvpSummaryDto>("/api/guests/rsvp-summary", { signal }),
+  });
+}
+
+/**
+ * GET /api/guests/:id/invitation-link (API §45). The link never changes, so it
+ * is fetched once per guest.
+ */
+export function useInvitationLink(guestId: string) {
+  return useQuery({
+    queryKey: guestsKeys.invitationLink(guestId),
+    queryFn: ({ signal }) =>
+      apiFetch<InvitationLinkDto>(`/api/guests/${encodeURIComponent(guestId)}/invitation-link`, {
+        signal,
+      }),
+    staleTime: Number.POSITIVE_INFINITY,
   });
 }
 

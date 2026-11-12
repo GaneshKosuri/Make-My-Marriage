@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { GuestDetailScreen } from "@/features/guests/components/guest-detail-screen";
+import { coupleDisplayName } from "@/lib/couple";
 import { getCurrentContext } from "@/server/auth";
 
 export const metadata: Metadata = { title: "Guest" };
@@ -19,5 +20,15 @@ async function GuestDetail({ params }: Pick<PageProps<"/app/guests/[guestId]">, 
   // Memoised per request: the layout's guard made the same call.
   const [current, { guestId }] = await Promise.all([getCurrentContext(), params]);
   if (!current?.wedding) return null;
-  return <GuestDetailScreen guestId={guestId} timeZone={current.wedding.timeZone} />;
+  return (
+    <GuestDetailScreen
+      guestId={guestId}
+      timeZone={current.wedding.timeZone}
+      // Names, never the custom title: the message reads "Akshay & Princi would love for you…".
+      coupleName={coupleDisplayName({
+        brideName: current.wedding.brideName,
+        groomName: current.wedding.groomName,
+      })}
+    />
+  );
 }

@@ -358,6 +358,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "member",
     phase: P3,
     doc: "API §45",
+    implemented: true,
   },
   {
     method: "POST",
@@ -381,6 +382,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "public",
     phase: P3,
     doc: "API §50",
+    implemented: true,
   },
   {
     method: "POST",
@@ -388,6 +390,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "public",
     phase: P3,
     doc: "API §51",
+    implemented: true,
   },
 
   // ── Email batches + internal worker (API §85–87) ───────────────────────────

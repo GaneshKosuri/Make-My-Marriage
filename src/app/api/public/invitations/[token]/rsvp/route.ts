@@ -1,16 +1,18 @@
-import { notImplemented, route, tokenParams } from "@/server/http";
+import { ok, route, tokenParams } from "@/server/http";
+import { invitationService } from "@/modules/guests";
+import { submitRsvpSchema } from "@/modules/guests/guest.schemas";
+
+/** /api/public/invitations/[token]/rsvp (POST API §51). */
 
 /**
- * /api/public/invitations/[token]/rsvp — stub (POST API §51).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 3: Guests.
+ * POST — API §51. Rate limits are consumed inside the service, after the link
+ * and party size are checked: per invitation first, then the shared ceiling.
  */
-
-/** POST — API §51. */
 export const POST = route({
   auth: "public",
   params: tokenParams,
   invalidParams: "NOT_FOUND",
-  // Phase 3: Guests: rate limits are consumed by invitationService.submitRsvp AFTER token + capacity validation: policies.rsvpPerInvitation, then policies.rsvpGlobal (API §51)
-  // Phase 3: Guests: ok(await invitationService.submitRsvp(ctx, params.token, body))
-  handler: () => notImplemented("Phase 3: Guests"),
+  body: submitRsvpSchema,
+  handler: async ({ ctx, params, body }) =>
+    ok(await invitationService.submitRsvp(ctx, params.token, body)),
 });

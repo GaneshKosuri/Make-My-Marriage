@@ -3,11 +3,10 @@ import Link from "next/link";
 
 import { focusRing } from "@/components/ui/button-styles";
 import { cn } from "@/lib/cn";
-import { eventDateTile } from "@/lib/schedule";
+import { eventDateTile, eventSchedule } from "@/lib/schedule";
 import type { EventDto } from "@/modules/events/event.types";
 
 import { EVENTS, EVENTS_ROUTES } from "../events-content";
-import { eventSchedule } from "../format";
 
 /**
  * One event as a link to its page: date tile, name, time range, venue and

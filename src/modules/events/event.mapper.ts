@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { EventRecord } from "./event.model";
-import type { EventDto, EventSummaryDto } from "./event.types";
+import type { EventDto, EventSummaryDto, PublicEventDto } from "./event.types";
 
 /**
  * Event document → DTO (API_DESIGN §29–33): ISO strings for instants, `version`
@@ -20,6 +20,19 @@ export function toEventDto(event: EventRecord): EventDto {
     dressCode: event.dressCode ?? null,
     archivedAt: event.archivedAt?.toISOString() ?? null,
     version: event.__v,
+  };
+}
+
+/** The fields an invitation page may show (API_DESIGN §50). */
+export function toPublicEventDto(event: EventRecord): PublicEventDto {
+  return {
+    name: event.name,
+    startsAt: event.startsAt.toISOString(),
+    endsAt: event.endsAt?.toISOString() ?? null,
+    venueName: event.venueName ?? null,
+    address: event.address ?? null,
+    dressCode: event.dressCode ?? null,
+    description: event.description ?? null,
   };
 }
 

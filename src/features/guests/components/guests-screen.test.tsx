@@ -300,7 +300,13 @@ describe("<GuestDetailScreen />", () => {
   it("shows the reply, events and contacts, and deletes after confirming", async () => {
     routes[`GET /api/guests/${rajesh.id}`] = () => data(rajesh);
     routes[`DELETE /api/guests/${rajesh.id}`] = () => ({ status: 200, body: { success: true } });
-    renderWithClient(<GuestDetailScreen guestId={rajesh.id} timeZone="Asia/Kolkata" />);
+    renderWithClient(
+      <GuestDetailScreen
+        guestId={rajesh.id}
+        timeZone="Asia/Kolkata"
+        coupleName="Akshay & Princi"
+      />,
+    );
 
     expect(
       await screen.findByRole("heading", { name: "Rajesh Sharma" }, { timeout: 5000 }),
@@ -325,9 +331,55 @@ describe("<GuestDetailScreen />", () => {
     await waitFor(() => expect(push).toHaveBeenCalledWith("/app/guests"));
   });
 
+  it("shares the guest's link on WhatsApp, or copies it", async () => {
+    const url = `http://localhost:3000/invite/${"t".repeat(43)}`;
+    routes[`GET /api/guests/${meera.id}`] = () => data(meera);
+    routes[`GET /api/guests/${meera.id}/invitation-link`] = () => data({ url });
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    renderWithClient(
+      <GuestDetailScreen guestId={meera.id} timeZone="Asia/Kolkata" coupleName="Akshay & Princi" />,
+    );
+
+    const whatsApp = await screen.findByRole(
+      "link",
+      { name: GUESTS.share.whatsApp },
+      { timeout: 5000 },
+    );
+    const message = decodeURIComponent(whatsApp.getAttribute("href")!.split("text=")[1]!);
+    expect(message).toContain("Dear Meera,");
+    expect(message).toContain("Akshay & Princi would love for you to celebrate");
+    expect(message).toContain(url);
+    expect(screen.getByRole("link", { name: GUESTS.share.open })).toHaveAttribute("href", url);
+
+    fireEvent.click(screen.getByRole("button", { name: GUESTS.share.copy }));
+    expect(await screen.findByRole("button", { name: GUESTS.share.copied })).toBeInTheDocument();
+    expect(writeText).toHaveBeenCalledWith(url);
+  });
+
+  it("shows the link to copy by hand when the clipboard is unavailable", async () => {
+    const url = `http://localhost:3000/invite/${"t".repeat(43)}`;
+    routes[`GET /api/guests/${meera.id}`] = () => data(meera);
+    routes[`GET /api/guests/${meera.id}/invitation-link`] = () => data({ url });
+    vi.stubGlobal("navigator", {
+      ...navigator,
+      clipboard: { writeText: vi.fn().mockRejectedValue(new Error("denied")) },
+    });
+    renderWithClient(
+      <GuestDetailScreen guestId={meera.id} timeZone="Asia/Kolkata" coupleName="Akshay & Princi" />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: GUESTS.share.copy }, { timeout: 5000 }),
+    );
+    expect(await screen.findByLabelText(GUESTS.share.copyByHand)).toHaveValue(url);
+  });
+
   it("explains a guest that doesn't exist", async () => {
     routes[`GET /api/guests/${meera.id}`] = () => failure(404, "NOT_FOUND");
-    renderWithClient(<GuestDetailScreen guestId={meera.id} timeZone="Asia/Kolkata" />);
+    renderWithClient(
+      <GuestDetailScreen guestId={meera.id} timeZone="Asia/Kolkata" coupleName="Akshay & Princi" />,
+    );
     expect(
       await screen.findByText(GUESTS.detail.notFound.title, undefined, { timeout: 5000 }),
     ).toBeInTheDocument();

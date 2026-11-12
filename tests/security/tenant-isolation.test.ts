@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 
 import { GET as getEvent } from "@/app/api/events/[eventId]/route";
 import { DELETE as deleteGuest } from "@/app/api/guests/[guestId]/route";
+import { POST as submitRsvp } from "@/app/api/public/invitations/[token]/rsvp/route";
+import { GET as publicInvitation } from "@/app/api/public/invitations/[token]/route";
 import { PATCH as updateTask } from "@/app/api/tasks/[taskId]/route";
 import { EventModel } from "@/modules/events/event.model";
 import { GuestModel } from "@/modules/guests/guest.model";
@@ -89,10 +91,55 @@ describe("critical security tests (SYSTEM_DESIGN §91)", () => {
   it.todo(
     "Manager cannot manage Wedding Members (Phase 1: invitations, role changes, removal → 403; route level already covered in tests/integration/auth-levels.test.ts)",
   );
-  it.todo("Guest token cannot expose another guest (Phase 3: GET /api/public/invitations/:token)");
-  it.todo(
-    "Guest cannot exceed allowed attendee count (Phase 3: POST …/rsvp → GUEST_LIMIT_EXCEEDED)",
-  );
+  it("Guest token cannot expose another guest (GET /api/public/invitations/:token)", async () => {
+    const owner = await createUser();
+    const wedding = await createWedding(owner._id);
+    const tokenA = "a".repeat(43);
+    await GuestModel.create([
+      { weddingId: wedding._id, name: "Rajesh Sharma", invitationToken: tokenA, notes: "Uncle" },
+      {
+        weddingId: wedding._id,
+        name: "Meera Iyer",
+        email: "meera@example.com",
+        invitationToken: "b".repeat(43),
+      },
+    ]);
+
+    const response = await publicInvitation(
+      new NextRequest(`${TEST_APP_URL}/api/public/invitations/${tokenA}`),
+      { params: Promise.resolve({ token: tokenA }) },
+    );
+    expect(response.status).toBe(200);
+    const text = await response.text();
+    expect(text).toContain("Rajesh Sharma");
+    for (const leak of ["Meera", "meera@example.com", "b".repeat(43), "Uncle", tokenA]) {
+      expect(text).not.toContain(leak);
+    }
+  });
+  it("Guest cannot exceed allowed attendee count (POST …/rsvp → GUEST_LIMIT_EXCEEDED)", async () => {
+    const owner = await createUser();
+    const wedding = await createWedding(owner._id);
+    const token = "c".repeat(43);
+    const guest = await GuestModel.create({
+      weddingId: wedding._id,
+      name: "Rajesh Sharma",
+      maxGuests: 4,
+      invitationToken: token,
+    });
+
+    const response = await submitRsvp(
+      new NextRequest(`${TEST_APP_URL}/api/public/invitations/${token}/rsvp`, {
+        method: "POST",
+        headers: { origin: TEST_APP_URL, "content-type": "application/json" },
+        body: JSON.stringify({ status: "ATTENDING", attendingCount: 5 }),
+      }),
+      { params: Promise.resolve({ token }) },
+    );
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: { code: "GUEST_LIMIT_EXCEEDED" } });
+    const after = await GuestModel.findOne({ _id: guest._id, weddingId: wedding._id }).lean();
+    expect(after).toMatchObject({ rsvpStatus: "PENDING", attendingCount: null, __v: 0 });
+  });
   it.todo(
     "Invalid gallery token cannot upload (Phase 6: POST /api/public/galleries/:token/upload-url → 404)",
   );

@@ -5,7 +5,6 @@ import type { QueryFilter } from "mongoose";
 import type { PageQuery } from "@/lib/pagination";
 import { connectToDatabase } from "@/server/db/connection";
 import { toObjectId } from "@/server/db/object-id";
-import { notImplemented } from "@/server/errors";
 import { pageSkip } from "@/server/http/pagination";
 
 import type { RsvpStatus } from "./guest.constants";
@@ -100,7 +99,12 @@ export const guestRepository = {
 
   /** Explicit `+invitationToken` projection for the sharing URL (API_DESIGN §45). */
   async findInvitationToken(weddingId: string, guestId: string): Promise<string | null> {
-    return notImplemented("API_DESIGN §45 (Phase 3: Guests)");
+    await connectToDatabase();
+    const guest = await GuestModel.findOne(byId(weddingId, guestId))
+      .select("+invitationToken")
+      .lean<Pick<GuestDoc, "invitationToken">>()
+      .exec();
+    return guest?.invitationToken ?? null;
   },
 
   /** A new guest: RSVP pending, nothing sent yet, with its stable invitation token. */
@@ -208,18 +212,41 @@ export const guestRepository = {
     };
   },
 
-  /** Public token resolution: minimal owner projection (DATABASE_DESIGN §43). */
+  /**
+   * Public token resolution (DATABASE_DESIGN §43): the one sanctioned lookup
+   * without a wedding id, through the unique token index. The token itself is
+   * not returned.
+   */
   async findByInvitationToken(token: string): Promise<GuestRecord | null> {
-    return notImplemented("API_DESIGN §50 (Phase 3: Guests)");
+    await connectToDatabase();
+    return GuestModel.findOne({ invitationToken: token })
+      .setOptions({ tenantScoped: false })
+      .lean<GuestRecord>()
+      .exec();
   },
 
-  /** Atomic RSVP write: guest id + wedding id + token + `__v` + capacity; increments `__v`. */
+  /**
+   * Atomic RSVP write (API_DESIGN §51): only while `__v` is still
+   * `expectedVersion` and the party size still covers the reply; bumps the
+   * version. Null → the caller works out NOT_FOUND, PARTY_SIZE_CHANGED or CONFLICT.
+   */
   async saveRsvp(
     weddingId: string,
     guestId: string,
     expectedVersion: number,
     rsvp: { rsvpStatus: RsvpStatus; attendingCount: number; rsvpUpdatedAt: Date },
   ): Promise<GuestRecord | null> {
-    return notImplemented("API_DESIGN §51, DATABASE_DESIGN §43 (Phase 3: Guests)");
+    await connectToDatabase();
+    return GuestModel.findOneAndUpdate(
+      {
+        ...byId(weddingId, guestId),
+        __v: expectedVersion,
+        maxGuests: { $gte: rsvp.attendingCount },
+      },
+      { $set: rsvp, $inc: { __v: 1 } },
+      { returnDocument: "after", runValidators: true },
+    )
+      .lean<GuestRecord>()
+      .exec();
   },
 };

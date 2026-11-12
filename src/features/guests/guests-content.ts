@@ -136,7 +136,7 @@ export const GUESTS = {
     partySize: (count: number) =>
       count === 1 ? "Invited: 1 person" : `Invited: up to ${count} people`,
     rsvpUpdated: (when: string) => `Replied ${when}`,
-    noReply: "No reply yet. Their invitation link and email arrive in the next update.",
+    noReply: "No reply yet. Share their invitation link below.",
     events: "Events",
     noEventsInvited: "Not invited to any events yet.",
     sent: (when: string) => `Invitation emailed ${when}`,
@@ -154,6 +154,19 @@ export const GUESTS = {
       confirm: "Delete guest",
       error: "We couldn't delete the guest. Try again.",
     },
+  },
+  share: {
+    title: "Invitation link",
+    description:
+      "Their own link: it shows only their events, and they reply there. No account needed.",
+    whatsApp: "Share on WhatsApp",
+    copy: "Copy link",
+    copied: "Copied",
+    copiedStatus: "Invitation link copied.",
+    copyByHand: "Copy the link from here:",
+    open: "Open invitation",
+    hint: "Sharing the link doesn't mark the invitation as emailed.",
+    error: "We couldn't load the invitation link.",
   },
   rsvp: {
     eyebrow: "Guests",

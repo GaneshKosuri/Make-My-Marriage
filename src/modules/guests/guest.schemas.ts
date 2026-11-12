@@ -119,9 +119,30 @@ export const listGuestsQuerySchema = pageQuerySchema
   })
   .strict();
 
+/**
+ * API_DESIGN §51: one reply for the whole invitation. Attending needs at least
+ * one person (the service checks the upper limit, the invitation's party size);
+ * not attending is always 0.
+ */
+export const submitRsvpSchema = z.discriminatedUnion(
+  "status",
+  [
+    z
+      .object({
+        status: z.literal("ATTENDING"),
+        attendingCount: z
+          .number("Choose how many people are coming")
+          .int("Choose how many people are coming")
+          .min(1, "Choose how many people are coming")
+          .max(GUEST_MAX_GUESTS_MAX, "That is more guests than this invitation allows"),
+      })
+      .strict(),
+    z.object({ status: z.literal("NOT_ATTENDING"), attendingCount: z.literal(0) }).strict(),
+  ],
+  "Choose whether you'll attend",
+);
+
 /*
- * TODO(Phase 3: Guests, slices 3–4) — define with `.strict()`:
+ * TODO(Phase 3: Guests, slice 4) — define with `.strict()`:
  *   - bulkSendSchema              API_DESIGN §47  { scope: ALL_UNSENT | ALL_PENDING_RSVP | SELECTED, guestIds? }
- *   - submitRsvpSchema            API_DESIGN §51  ATTENDING: 1 ≤ attendingCount ≤ maxGuests (service-checked);
- *                                                 NOT_ATTENDING: attendingCount = 0
  */
