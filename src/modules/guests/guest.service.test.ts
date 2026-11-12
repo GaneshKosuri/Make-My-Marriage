@@ -5,12 +5,9 @@ import { describe, it } from "vitest";
  * when the behaviour is implemented; DB-backed cases belong in tests/integration.
  */
 describe("guestsService / invitationService", () => {
-  describe("guests (API_DESIGN §39–43)", () => {
-    it.todo("search is literal and case-insensitive (regex escaped)");
-    it.todo("never returns invitationToken or emailNormalized");
-    it.todo("rejects capacity below recorded attendance");
-    it.todo("deleting a guest cancels its pending EmailJobs and invalidates the link");
-  });
+  // Guest CRUD (API_DESIGN §39–43, §52) is covered end to end in tests/integration/guests.test.ts:
+  // literal search, no token or emailNormalized in responses, capacity vs attendance, and
+  // deleting a guest cancelling its pending EmailJobs.
   describe("sharing and email (API_DESIGN §44–49)", () => {
     it.todo("the invitation link is stable across calls");
     it.todo("send-invitation requires an email address");

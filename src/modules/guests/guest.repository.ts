@@ -1,9 +1,12 @@
 import "server-only";
 
+import type { QueryFilter } from "mongoose";
+
 import type { PageQuery } from "@/lib/pagination";
 import { connectToDatabase } from "@/server/db/connection";
 import { toObjectId } from "@/server/db/object-id";
 import { notImplemented } from "@/server/errors";
+import { pageSkip } from "@/server/http/pagination";
 
 import type { RsvpStatus } from "./guest.constants";
 import { GuestModel, type GuestDoc, type GuestRecord } from "./guest.model";
@@ -16,22 +19,83 @@ export interface GuestListFilter {
   invitationSent?: boolean;
 }
 
+/** The fields an organiser sets on create and update (event ids as strings). */
+export interface GuestFields {
+  name: string;
+  email: string | null;
+  phone: string | null;
+  maxGuests: number;
+  invitedEventIds: string[];
+  notes: string | null;
+}
+
+const byId = (weddingId: string, guestId: string) => ({
+  weddingId: toObjectId(weddingId, "weddingId"),
+  _id: toObjectId(guestId, "guestId"),
+});
+
+/** Matches `text` literally: every regex metacharacter is escaped (API_DESIGN §39 notes). */
+function literal(text: string): RegExp {
+  return new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+}
+
+/** Form fields → document fields: event ids as ObjectIds, email also normalised for search. */
+function toDocFields(fields: Partial<GuestFields>): Partial<GuestDoc> {
+  const { invitedEventIds, email, ...rest } = fields;
+  return {
+    ...rest,
+    ...(email !== undefined && { email, emailNormalized: email?.toLowerCase() ?? null }),
+    ...(invitedEventIds !== undefined && {
+      invitedEventIds: invitedEventIds.map((id) => toObjectId(id, "invitedEventIds")),
+    }),
+  };
+}
+
+/** Name order ignoring case ("anita" next to "Anita"). */
+const NAME_COLLATION = { locale: "en", strength: 2 } as const;
+
 /**
  * Data access for `guests`. `weddingId` is ALWAYS the first argument, except
  * public token resolution (a sanctioned tenant-guard opt-out).
  */
 export const guestRepository = {
-  /** Ordered by name, then `_id` (API_DESIGN §39 notes). */
+  /**
+   * Ordered by name (ignoring case), then `_id` (API_DESIGN §39 notes). Filters
+   * combine with AND; search matches name, email or phone literally.
+   */
   async list(
     weddingId: string,
     filter: GuestListFilter,
     page: PageQuery,
   ): Promise<{ items: GuestRecord[]; total: number }> {
-    return notImplemented("API_DESIGN §39 (Phase 3: Guests)");
+    await connectToDatabase();
+    const query: QueryFilter<GuestDoc> = { weddingId: toObjectId(weddingId, "weddingId") };
+    if (filter.rsvpStatus) query.rsvpStatus = filter.rsvpStatus;
+    if (filter.eventId) query.invitedEventIds = toObjectId(filter.eventId, "eventId");
+    if (filter.invitationSent !== undefined) {
+      query.invitationSentAt = filter.invitationSent ? { $ne: null } : null;
+    }
+    if (filter.search) {
+      const pattern = literal(filter.search);
+      query.$or = [{ name: pattern }, { emailNormalized: pattern }, { phone: pattern }];
+    }
+    const [items, total] = await Promise.all([
+      GuestModel.find(query)
+        .collation(NAME_COLLATION)
+        .sort({ name: 1, _id: 1 })
+        .skip(pageSkip(page))
+        .limit(page.limit)
+        .lean<GuestRecord[]>()
+        .exec(),
+      GuestModel.countDocuments(query).exec(),
+    ]);
+    return { items, total };
   },
 
+  /** Without the invitation token (select: false). */
   async findById(weddingId: string, guestId: string): Promise<GuestRecord | null> {
-    return notImplemented("API_DESIGN §41 (Phase 3: Guests)");
+    await connectToDatabase();
+    return GuestModel.findOne(byId(weddingId, guestId)).lean<GuestRecord>().exec();
   },
 
   /** Explicit `+invitationToken` projection for the sharing URL (API_DESIGN §45). */
@@ -39,25 +103,52 @@ export const guestRepository = {
     return notImplemented("API_DESIGN §45 (Phase 3: Guests)");
   },
 
+  /** A new guest: RSVP pending, nothing sent yet, with its stable invitation token. */
   async create(
     weddingId: string,
-    input: Omit<GuestDoc, "weddingId" | "__v" | "createdAt" | "updatedAt">,
+    input: GuestFields & { invitationToken: string },
   ): Promise<GuestRecord> {
-    return notImplemented("API_DESIGN §40 (Phase 3: Guests)");
+    await connectToDatabase();
+    const { invitationToken, ...fields } = input;
+    const doc = await GuestModel.create({
+      ...toDocFields(fields),
+      weddingId: toObjectId(weddingId, "weddingId"),
+      invitationToken,
+    });
+    const { invitationToken: _secret, ...record } = doc.toObject() as GuestRecord;
+    return record as GuestRecord;
   },
 
-  /** Conditional on `__v` and on capacity ≥ recorded attendance. */
+  /**
+   * Applies `changes` when `__v` is still `expectedVersion` and, when the party
+   * size changes, only if it still covers the recorded attendance; bumps the
+   * version. Null → the caller works out NOT_FOUND, CONFLICT or the capacity error.
+   */
   async updateVersioned(
     weddingId: string,
     guestId: string,
     expectedVersion: number,
-    changes: Partial<GuestDoc>,
+    changes: Partial<GuestFields>,
   ): Promise<GuestRecord | null> {
-    return notImplemented("API_DESIGN §42 (Phase 3: Guests)");
+    await connectToDatabase();
+    const filter: QueryFilter<GuestDoc> = { ...byId(weddingId, guestId), __v: expectedVersion };
+    if (changes.maxGuests !== undefined) {
+      filter.$or = [{ attendingCount: null }, { attendingCount: { $lte: changes.maxGuests } }];
+    }
+    return GuestModel.findOneAndUpdate(
+      filter,
+      { $set: toDocFields(changes), $inc: { __v: 1 } },
+      { returnDocument: "after", runValidators: true },
+    )
+      .lean<GuestRecord>()
+      .exec();
   },
 
+  /** Hard delete (DATABASE_DESIGN §48): the invitation link stops working at once. */
   async delete(weddingId: string, guestId: string): Promise<boolean> {
-    return notImplemented("API_DESIGN §43 (Phase 3: Guests)");
+    await connectToDatabase();
+    const result = await GuestModel.deleteOne(byId(weddingId, guestId)).exec();
+    return result.deletedCount === 1;
   },
 
   /**

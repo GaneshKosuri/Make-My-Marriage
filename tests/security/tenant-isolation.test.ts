@@ -2,8 +2,10 @@ import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
 
 import { GET as getEvent } from "@/app/api/events/[eventId]/route";
+import { DELETE as deleteGuest } from "@/app/api/guests/[guestId]/route";
 import { PATCH as updateTask } from "@/app/api/tasks/[taskId]/route";
 import { EventModel } from "@/modules/events/event.model";
+import { GuestModel } from "@/modules/guests/guest.model";
 import { TaskModel } from "@/modules/tasks/task.model";
 
 import { createUser, createWedding, signedInUser } from "../setup/factories";
@@ -60,6 +62,29 @@ describe("critical security tests (SYSTEM_DESIGN §91)", () => {
     expect(await response.json()).toMatchObject({ error: { code: "NOT_FOUND" } });
     const after = await TaskModel.findOne({ _id: taskB._id, weddingId: weddingB._id }).lean();
     expect(after).toMatchObject({ status: "TODO", __v: 0 });
+  });
+  it("Wedding A Manager cannot delete Wedding B guest (DELETE /api/guests/:id → 404)", async () => {
+    const owner = await createUser();
+    const weddingA = await createWedding(owner._id);
+    const weddingB = await createWedding(owner._id);
+    const managerA = await signedInUser({ wedding: weddingA, role: "MANAGER" });
+    const guestB = await GuestModel.create({
+      weddingId: weddingB._id,
+      name: "Rajesh Sharma",
+      invitationToken: "t".repeat(43),
+    });
+    const guestId = guestB._id.toString();
+
+    const response = await deleteGuest(
+      new NextRequest(`${TEST_APP_URL}/api/guests/${guestId}`, {
+        method: "DELETE",
+        headers: { cookie: managerA.cookie, origin: TEST_APP_URL },
+      }),
+      { params: Promise.resolve({ guestId }) },
+    );
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({ error: { code: "NOT_FOUND" } });
+    expect(await GuestModel.countDocuments({ _id: guestB._id, weddingId: weddingB._id })).toBe(1);
   });
   it.todo(
     "Manager cannot manage Wedding Members (Phase 1: invitations, role changes, removal → 403; route level already covered in tests/integration/auth-levels.test.ts)",

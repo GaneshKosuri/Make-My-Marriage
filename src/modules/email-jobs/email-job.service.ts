@@ -3,6 +3,7 @@ import "server-only";
 import type { MemberContext } from "@/server/auth";
 import { notImplemented } from "@/server/errors";
 
+import { emailJobRepository } from "./email-job.repository";
 import type {
   EmailBatchStatusDto,
   EnqueueGuestEmailsInput,
@@ -30,7 +31,7 @@ export const emailJobsService = {
   },
 
   /** Called when a guest is deleted (DATABASE_DESIGN §48). */
-  async cancelPendingForGuest(weddingId: string, guestId: string): Promise<void> {
-    return notImplemented("DATABASE_DESIGN §48 (Phase 3: Guests)");
+  async cancelPendingForGuest(weddingId: string, guestId: string): Promise<number> {
+    return emailJobRepository.cancelPendingForGuest(weddingId, guestId);
   },
 };

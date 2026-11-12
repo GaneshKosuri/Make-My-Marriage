@@ -1,8 +1,8 @@
 # Project Status — Make My Marriage
 
 **Last updated:** 2026-11-12
-**Current phase:** Phase 3 — Guests (PRD §16): in progress, slice 0 (clean-ups) done; Phases 1 and 2 complete and QA-verified
-**Next up:** Phase 3 slice 1, the Guests API (API §39–43, §52). Then guest screens, invitation links with the public invitation and RSVP, and email invitations and reminders. Open decision: D7 (time zone change and event clock times)
+**Current phase:** Phase 3 — Guests (PRD §16): in progress, slices 0 (clean-ups) and 1 (Guests API) done; Phases 1 and 2 complete and QA-verified
+**Next up:** Phase 3 slice 2, the guest screens (`/app/guests`, add/edit sheet, guest page, RSVP page). Then invitation links with the public invitation and RSVP, and email invitations and reminders. Open decision: D7 (time zone change and event clock times)
 
 This file tracks what has been built and what comes next. Update it whenever a feature lands or new
 work starts: move items between the tables, add a row to the change log and refresh the header.
@@ -52,7 +52,7 @@ Status key: ✅ Done · 🚧 In progress · ⏳ Not started (scaffold stub only)
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| Guest management | ⏳ | |
+| Guest management | 🚧 | API (2026-11-12): paged list in name order (ignoring case) with literal search on name, email and phone and RSVP, event and invitation-sent filters; create with a stable 32-byte invitation token that responses never contain; get; partial edit with version check that keeps RSVP and token and refuses a party size below the people already coming; hard delete that cancels the guest's pending emails; RSVP summary (invitations vs people). Screens next (slice 2) |
 | Invitations | ⏳ | |
 | RSVP | ⏳ | |
 | Email (jobs + cron worker) | ⏳ | Cron endpoint is live; sending flows are not |
@@ -141,7 +141,8 @@ monitoring.
   `googlePlaceId`. Harmless today (nothing sets them); merge or resend those fields when the place picker
   is built. Found in the 2026-10-29 code review.
 - **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** also still lists the five event and five task
-  endpoints as "501 stub"; the inventory marks them implemented.
+  endpoints, and the six guest endpoints of 12 Nov (list, create, get, update, delete, RSVP summary), as
+  "501 stub"; the inventory marks them implemented.
 - **Event cover images (Phase 5).** PRD §9.5 lists a cover image; `POST /api/events/:id/cover/upload-url`
   stays a stub until uploads land with the website and covers work.
 - **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** does not list
@@ -152,7 +153,10 @@ monitoring.
 - **Sign-in page flash (accepted).** Signed-in visitors of /login and /signup briefly see the form
   before the redirect (the check runs inside `<Suspense>`). Cosmetic; left as is.
 - **Watch list (seen once, not reproduced):** `POST /api/auth/logout` answered 500 once on 17 Oct right
-  after creating a wedding; the integration suite failed once on a cold first run. Capture the stack
+  after creating a wedding; the integration suite failed once on a cold first run. On 12 Nov "creates exactly one wedding when the same user submits twice at once"
+  (`tests/integration/create-wedding.test.ts`) failed once in a full run while a build and the dev server
+  were busy, then passed 4 runs in a row; if it recurs, log which statuses came back (a transaction
+  write conflict surfacing as 500 instead of 409 is the likely cause). Capture the stack
   trace / check the in-memory MongoDB start-up timeout if either recurs. Close stray `localhost:3000`
   tabs when testing: one reloading /login twice a second flooded the dev log on 3 Nov.
 - **Decision needed: changing the wedding's time zone (QA D7, 4 Nov).** Events and due dates keep their
@@ -231,6 +235,7 @@ monitoring.
 | 2026-11-11 | Emails share one branded layout (`src/server/email/templates/layout.ts`) in the app's palette: wordmark header (text, no images: Gmail blocks SVG and a localhost logo can't load), gold-topped card, serif heading, details panel, burgundy table-cell button with the plain link underneath. Table layout and inline styles only, system serif instead of web fonts; every email keeps a plain-text version |
 | 2026-11-11 | `EMAIL_PROVIDER` (gmail, resend or console) switches the email sender; the chosen sender's settings are checked at startup. Unset, Gmail is used when configured, then Resend, then the console. Production may send through Gmail instead of Resend (RESEND_API_KEY is then not required) but never through the console |
 | 2026-11-11 | Email can go out through a personal Gmail (Google app password, nodemailer over Gmail SMTP) when there is no verified domain for Resend. Gmail wins over Resend while configured; the From line uses the Gmail address with EMAIL_FROM's display name. nodemailer 10.2.1 pinned (7.x and ≤10.1.3 have advisories); it is fenced like the Resend SDK (`src/server/email/adapters` only) |
+| 2026-11-12 | Guest API rules beyond API_DESIGN §39–43: email is stored as typed and lowercased separately for search; blank or null email, phone and notes clear them; duplicate event ids are dropped; the list orders names ignoring case (collation `en`, strength 2). A party size below the people already coming is a `VALIDATION_ERROR` on `maxGuests` ("They said 3 people are coming. Allow at least 3."); an RSVP that lands between an organiser's read and save makes the save a `CONFLICT`, so the form reloads and sees the new attendance. `DELETE /api/guests/:id` answers `{ success: true }` like tasks and cancels the guest's PENDING email jobs; one already being sent is left to finish |
 | 2026-11-12 | Phase 3 plan (product owner approved): five slices: 0 clean-ups, 1 Guests API, 2 guest screens, 3 invitation link + public invitation + RSVP + WhatsApp, 4 email invitations and reminders. Bulk email jobs are processed right after they are queued (`after()`), with the daily Vercel cron as the safety net. A provider refusing more mail (Gmail's ~500 a day) puts the job back for a later attempt instead of failing it; a verified Resend domain is needed before launch. Guest screens and the invitation page are designed in code in the dashboard style (no Stitch designs exist for them) |
 | 2026-11-12 | Shared UI lives in `src/components/ui`: `button-styles.ts` (`focusRing`, `textLink`, `primaryButton`, `secondaryButton`, `dangerOutlineButton`, `dangerButton`), `dashboard-card.tsx` (`DashboardCard`, `ArrowLink`, `EmptyState`), `dialog.tsx`, `form-controls.tsx`, `save-problem.tsx` (takes its copy as props) and `list-skeleton.tsx`. Schedule formatters (`eventTimeRange`, `eventDateTile`, `taskDueDay`, `formatShortDate`, `isOverdue`) live in `src/lib/schedule.ts`. Features no longer import each other's components (code review R8/R9) |
 | 2026-11-11 | Mobile layout rules (QA hand-off qa-mobile-320-360): pages must not scroll sideways at 320 px. Any user-entered text (names, emails, titles, venues, notes) gets `min-w-0` on its flex/grid chain plus `wrap-anywhere`; grids start from `grid-cols-1`. Small text links and icon buttons reach 44 px with the `tap-target` utility (an invisible hit area) or `size-11`. Confirmations stack on phones with the destructive action on top. Bottom sheets cap at 85dvh, scroll inside and keep their action bar above the home indicator. Task and event titles are auto-growing one-row textareas (`TitleField`): Enter submits and pasted line breaks become spaces. Readable text is at least 12 px; phone selects use 16 px so iOS doesn't zoom |
@@ -272,3 +277,4 @@ monitoring.
 | 2026-11-11 | Date/time field code review D1–D9: past wedding dates stay valid in Wedding Details; the Dialog's Tab trap leaves keys a popover already handled; re-picking the current time closes the list and an empty list focuses 6 PM; date ranges keep typed years and are all-or-nothing; Today always uses the wedding's day (required `today`, task form gets it from its screens); wedding date calendars cap at 5 years; page scrollbar gutter reserved; the time list scrolls itself (the popover blocks scrollIntoView in browsers). The sign-up/forgot-password smoke test waits for the page to settle before clicking (it failed intermittently under a full parallel run). 7 new tests, each failing before its fix |
 | 2026-11-11 | Mobile QA fixes M1–M22 at 320/360 px (handoffs/qa-mobile-320-360.md): dashboard and home hero no longer overflow; long names, emails and titles wrap (dialogs, alerts, members, events, tasks, join page); one-column event date/time and task filters on the narrowest phones; sheets scroll inside with safe-area action bars; task delete confirmation in the sheet's footer; "+" hidden on Settings and the page leaves room for it; 44 px targets for links, the show-password, calendar and nav buttons; date popover scrolls when cut short; event chips truncate; the revoke dialog is a short title with the email in its text; dashboard hero buttons stack; phone header shows first names ("Sai & Venkata"); settings tabs are two equal columns; join tabs "New account" / "Sign in"; event venues wrap to two lines; one stacked confirmation pattern; 12 px minimum text; scrollbars hidden in sheets on touch screens; auto-growing title fields and a "Password" placeholder. New Playwright guard rail: no sideways scroll on public pages at 320/360 (`tests/e2e/mobile-overflow.spec.ts`); 5 new unit tests |
 | 2026-11-12 | Phase 3 slice 0: shared buttons, card, dialog, form controls, `SaveProblem` and list skeleton moved to `src/components/ui`, schedule formatters to `src/lib/schedule.ts` (R8/R9); secondary buttons are 44 px everywhere; placeholder pages say "Coming soon" without PRD references; mongoose 9.11.1 → 9.11.4 (four high-severity advisories) |
+| 2026-11-12 | Guests API (Phase 3, slice 1): list, create, get, update and delete (API §39–43) and the RSVP summary (API §52); deleting a guest cancels its pending email jobs. 43 integration tests and a new critical security test (deleting another wedding's guest → 404) |

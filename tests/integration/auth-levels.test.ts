@@ -83,10 +83,10 @@ describe("member routes", () => {
     expect((await call(listGuests, { cookie: deletedWeddingMember.cookie })).status).toBe(403);
   });
 
-  it("passes members through to the (stubbed) handler", async () => {
+  it("passes members through to the handler", async () => {
     expect(await call(listGuests, { cookie: manager.cookie })).toMatchObject({
-      status: 501,
-      body: { error: { code: "NOT_IMPLEMENTED" } },
+      status: 200,
+      body: { data: [] },
     });
   });
 });

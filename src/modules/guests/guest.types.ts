@@ -1,10 +1,10 @@
 /**
  * Guest DTOs and inputs (API_DESIGN §39–52). Isomorphic.
- * TODO(Phase 3): derive inputs from ./guest.schemas.ts with z.infer.
  */
-import type { PageQuery } from "@/lib/pagination";
+import type { z } from "zod";
 
 import type { BulkEmailScope, RsvpStatus } from "./guest.constants";
+import type { createGuestSchema, listGuestsQuerySchema, updateGuestSchema } from "./guest.schemas";
 
 /** Guest CRUD response. Never contains the invitation token or emailNormalized. */
 export interface GuestDto {
@@ -26,23 +26,9 @@ export interface GuestDto {
   updatedAt: string;
 }
 
-export interface ListGuestsQuery extends PageQuery {
-  search?: string;
-  rsvpStatus?: RsvpStatus;
-  eventId?: string;
-  invitationSent?: boolean;
-}
-
-export interface CreateGuestInput {
-  name: string;
-  email?: string;
-  phone?: string;
-  maxGuests?: number;
-  invitedEventIds?: string[];
-  notes?: string;
-}
-
-export type UpdateGuestInput = Partial<CreateGuestInput> & { version: number };
+export type ListGuestsQuery = z.output<typeof listGuestsQuerySchema>;
+export type CreateGuestInput = z.output<typeof createGuestSchema>;
+export type UpdateGuestInput = z.output<typeof updateGuestSchema>;
 
 /** GET /api/guests/:id/invitation-link (API_DESIGN §45). */
 export interface InvitationLinkDto {
