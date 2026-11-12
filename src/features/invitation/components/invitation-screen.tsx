@@ -6,6 +6,7 @@ import { useState, type ReactNode } from "react";
 import { focusRing, primaryButton, secondaryButton } from "@/components/ui/button-styles";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
+import { coupleDisplayName } from "@/lib/couple";
 import { formatDateOnly } from "@/lib/dates";
 import { eventDateTile, eventSchedule, mapsSearchUrl } from "@/lib/schedule";
 import type { PublicEventDto } from "@/modules/events/event.types";
@@ -23,10 +24,6 @@ const COPY = INVITATION.rsvp;
  */
 const plain = (text: string) => text.replace(/[  ]/g, " ");
 
-/** The couple by name, groom first, as on every other page (decided 2026-10-10). */
-const coupleOf = (wedding: PublicInvitationDto["wedding"]) =>
-  `${wedding.groomName} & ${wedding.brideName}`;
-
 /**
  * A guest's own invitation (PRD §9.10–9.11): the couple, their welcome, only
  * the events this guest is invited to, and the RSVP for the whole party. No
@@ -38,7 +35,8 @@ export function InvitationScreen({
 }: Readonly<{ token: string; initial: PublicInvitationDto }>) {
   const { data } = usePublicInvitation(token, initial);
   const { guest, wedding, events } = data;
-  const couple = coupleOf(wedding);
+  // By name, groom first; the organisers' own title shows underneath.
+  const couple = coupleDisplayName({ brideName: wedding.brideName, groomName: wedding.groomName });
   const date = plain(
     formatDateOnly(wedding.weddingDate, {
       weekday: "long",
@@ -164,6 +162,12 @@ function Line({ icon, children }: Readonly<{ icon: ReactNode; children: ReactNod
 
 type Draft = { status: SubmitRsvpInput["status"] | null; count: number };
 
+/** The form as the saved reply has it. */
+const draftOf = (guest: PublicInvitationDto["guest"]): Draft => ({
+  status: guest.rsvpStatus === "PENDING" ? null : guest.rsvpStatus,
+  count: Math.min(Math.max(guest.attendingCount ?? 1, 1), guest.maxGuests),
+});
+
 /**
  * The RSVP for the whole party: yes or no, then how many people. A saved
  * reply shows as a confirmation with "Change reply". The draft survives
@@ -178,12 +182,19 @@ function RsvpCard({
   const refresh = useRefreshInvitation(token);
   const replied = guest.rsvpStatus !== "PENDING";
   const [editing, setEditing] = useState(!replied);
-  const [draft, setDraft] = useState<Draft>(() => ({
-    status: replied ? (guest.rsvpStatus === "ATTENDING" ? "ATTENDING" : "NOT_ATTENDING") : null,
-    count: Math.min(Math.max(guest.attendingCount ?? 1, 1), guest.maxGuests),
-  }));
+  const [draft, setDraft] = useState<Draft>(() => draftOf(guest));
   const [problem, setProblem] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
+
+  // A reply saved elsewhere (another tab, or a refresh): show it rather than
+  // the draft. With a problem on screen the form stays open, the draft reset.
+  const reply = `${guest.rsvpStatus}:${guest.attendingCount ?? ""}`;
+  const [shown, setShown] = useState(reply);
+  if (reply !== shown) {
+    setShown(reply);
+    setDraft(draftOf(guest));
+    if (replied && !problem) setEditing(false);
+  }
 
   // A smaller party size arriving from the organiser keeps the draft within it.
   const count = Math.min(draft.count, guest.maxGuests);

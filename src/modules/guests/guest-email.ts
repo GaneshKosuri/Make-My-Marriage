@@ -1,5 +1,6 @@
 import "server-only";
 
+import { coupleDisplayName } from "@/lib/couple";
 import { formatDateOnly } from "@/lib/dates";
 import { getEnv } from "@/server/config/env";
 
@@ -19,7 +20,8 @@ export function invitationUrl(token: string): string {
  * The invitation or reminder for one guest as things stand now (PRD §9.12–9.13):
  * the guest by name, the couple by name (never the custom title), the wedding
  * date and the guest's own link. Null when it no longer applies: the guest or
- * wedding is gone, there's no email address, or (for a reminder) they replied.
+ * wedding is gone, there's no email address, or (for a reminder) they replied
+ * or were never emailed their invitation (decided 2026-11-12, review P6).
  */
 export async function buildGuestEmail(
   weddingId: string,
@@ -31,10 +33,12 @@ export async function buildGuestEmail(
     weddingsService.findIdentityWedding(weddingId),
   ]);
   if (!guest?.email || !wedding) return null;
-  if (kind === "reminder" && guest.rsvpStatus !== "PENDING") return null;
+  if (kind === "reminder" && (guest.rsvpStatus !== "PENDING" || !guest.invitationSentAt)) {
+    return null;
+  }
   const props = {
     guestName: guest.name,
-    coupleNames: `${wedding.groomName} & ${wedding.brideName}`,
+    coupleNames: coupleDisplayName({ brideName: wedding.brideName, groomName: wedding.groomName }),
     weddingDate: formatDateOnly(wedding.weddingDate),
     invitationUrl: invitationUrl(guest.invitationToken),
   };

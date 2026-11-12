@@ -107,7 +107,7 @@ describe("collections and indexes (DATABASE_DESIGN §91, §112)", () => {
     expect(index(collection, name)).toMatchObject({ key: { expiresAt: 1 }, expireAfterSeconds: 0 });
   });
 
-  it("has partial unique indexes for pending member invitations and Google places", () => {
+  it("has partial unique indexes for pending member invitations, Google places and active email jobs", () => {
     expect(
       index("wedding_member_invitations", "weddingId_emailNormalized_pending_unique"),
     ).toMatchObject({
@@ -117,6 +117,11 @@ describe("collections and indexes (DATABASE_DESIGN §91, §112)", () => {
     expect(index("vendors", "weddingId_googlePlaceId_unique")).toMatchObject({
       unique: true,
       partialFilterExpression: { googlePlaceId: { $type: "string" } },
+    });
+    expect(index("email_jobs", "weddingId_guestId_type_active_unique")).toMatchObject({
+      key: { weddingId: 1, guestId: 1, type: 1 },
+      unique: true,
+      partialFilterExpression: { status: { $in: ["PENDING", "PROCESSING"] } },
     });
   });
 

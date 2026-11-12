@@ -5,6 +5,7 @@ export { emailJobsService } from "./email-job.service";
 export { emailJobWorker } from "./email-job.worker";
 export {
   configureGuestEmails,
+  sendGuestEmail,
   type GuestEmailPort,
   type QueuedGuestEmail,
 } from "./guest-email.port";

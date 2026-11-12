@@ -5,10 +5,10 @@ import type { MemberContext } from "@/server/auth";
 import { AppError } from "@/server/errors";
 import { buildPagePagination } from "@/server/http/pagination";
 import { logger } from "@/server/logging/logger";
-import { getEmailService, isEmailQuotaError } from "@/server/email";
+import { isEmailQuotaError } from "@/server/email";
 import { generateToken } from "@/server/security/tokens";
 
-import { emailJobsService } from "@/modules/email-jobs";
+import { emailJobsService, sendGuestEmail } from "@/modules/email-jobs";
 import { eventsService } from "@/modules/events";
 
 import { buildGuestEmail, invitationUrl, type GuestEmailKind } from "./guest-email";
@@ -190,7 +190,7 @@ export const guestsService = {
 
   /**
    * Emails this guest an RSVP reminder now and counts it. Needs an email
-   * address and a reply still awaited. API §48.
+   * address, an invitation already emailed and a reply still awaited. API §48.
    */
   async sendReminder(ctx: MemberContext, guestId: string): Promise<void> {
     await sendNow(ctx, guestId, "reminder");
@@ -216,8 +216,9 @@ export const guestsService = {
   },
 
   /**
-   * Queues RSVP reminders for everyone still awaiting a reply, or for the
-   * chosen guests among them, and returns at once. API §49.
+   * Queues RSVP reminders for everyone emailed an invitation and still
+   * awaiting a reply, or for the chosen guests among them, and returns at
+   * once. A guest's first email is never a reminder (decided 2026-11-12). API §49.
    */
   async sendBulkReminders(
     ctx: MemberContext,
@@ -225,6 +226,7 @@ export const guestsService = {
   ): Promise<BulkEmailResultDto> {
     const recipients = await guestRepository.listEmailRecipients(ctx.weddingId, {
       rsvpStatus: "PENDING",
+      invitationSent: true,
       ...(input.scope === "SELECTED" && { guestIds: input.guestIds }),
     });
     return emailJobsService.enqueueGuestEmails(ctx.weddingId, {
@@ -233,9 +235,17 @@ export const guestsService = {
     });
   },
 
-  /** Invitations (guest records) by RSVP status, and the people coming. API §52. */
+  /**
+   * Invitations (guest records) by RSVP status, and the people coming. API §52.
+   * The "to email" counts leave out guests whose email is already queued, so
+   * the bulk buttons offer only what would actually be sent.
+   */
   async getRsvpSummary(ctx: MemberContext): Promise<RsvpSummaryDto> {
-    const summary = await guestRepository.rsvpSummary(ctx.weddingId);
+    const queued = await emailJobsService.guestsWithQueuedEmails(ctx.weddingId);
+    const summary = await guestRepository.rsvpSummary(ctx.weddingId, {
+      invitations: queued.GUEST_INVITATION,
+      reminders: queued.RSVP_REMINDER,
+    });
     return {
       totalGuests: summary.totalGuests,
       pendingInvitations: summary.byStatus.PENDING,
@@ -287,13 +297,15 @@ async function sendNow(ctx: MemberContext, guestId: string, kind: GuestEmailKind
       details: { rsvpStatus: "This guest has already replied." },
     });
   }
+  if (kind === "reminder" && !guest.invitationSentAt) {
+    throw new AppError("VALIDATION_ERROR", "Email their invitation first.", {
+      details: { invitationSentAt: "Email their invitation first." },
+    });
+  }
   const email = await buildGuestEmail(ctx.weddingId, guestId, kind);
   if (!email) throw new AppError("NOT_FOUND");
   try {
-    const service = getEmailService();
-    await (email.template === "guest-invitation"
-      ? service.send({ to: email.to, template: email.template, props: email.props })
-      : service.send({ to: email.to, template: email.template, props: email.props }));
+    await sendGuestEmail(email);
   } catch (error) {
     if (isEmailQuotaError(error)) {
       throw new AppError(

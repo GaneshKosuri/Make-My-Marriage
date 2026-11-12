@@ -9,6 +9,7 @@ import {
 /** Clock times read "4:00 PM" as in the designs (en-IN would print "4:00 pm"). */
 const TIME: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit" };
 const TIME_LOCALE = "en-US";
+const SHORT_DAY: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric" };
 
 /** "4:00 PM – 8:00 PM" in the wedding's time zone, or just the start time. */
 export function eventTimeRange(
@@ -35,6 +36,11 @@ export function eventDateTile(startsAt: string, timeZone: string) {
 /** A task's due date as the wedding-local calendar day (API_DESIGN §35). */
 export function taskDueDay(dueDate: string, timeZone: string): DateOnly {
   return dateOnlyInTimeZone(new Date(dueDate), timeZone);
+}
+
+/** "12 Nov 2026, 4:30 PM": when something happened, in the wedding's time zone. */
+export function formatDateTime(iso: string, timeZone: string): string {
+  return `${formatInstant(iso, timeZone, SHORT_DAY)}, ${formatInstant(iso, timeZone, TIME, TIME_LOCALE)}`;
 }
 
 /** "30 Dec 2026". */

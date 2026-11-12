@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { EmailTemplateProps } from "@/server/email";
+import { getEmailService, type EmailTemplateProps } from "@/server/email";
 
 import type { EmailJobRecord } from "./email-job.model";
 
@@ -25,6 +25,18 @@ export interface GuestEmailPort {
   ): Promise<QueuedGuestEmail | null>;
   /** Records the delivery on the guest (invitation sent, or reminder count). */
   delivered(job: Pick<EmailJobRecord, "weddingId" | "guestId" | "type">, at: Date): Promise<void>;
+}
+
+/**
+ * Sends a guest email through the app's email service: now (a single send),
+ * or from the queue with the job's idempotency key.
+ */
+export function sendGuestEmail(email: QueuedGuestEmail, idempotencyKey?: string) {
+  const service = getEmailService();
+  // One call per template keeps each template's props type-checked.
+  return email.template === "guest-invitation"
+    ? service.send({ to: email.to, template: email.template, props: email.props, idempotencyKey })
+    : service.send({ to: email.to, template: email.template, props: email.props, idempotencyKey });
 }
 
 let port: GuestEmailPort | undefined;

@@ -22,6 +22,12 @@ const TAB = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.ran
 
 type ReplySaved = { token: string; from: string };
 
+const isReplySaved = (data: unknown): data is ReplySaved =>
+  typeof data === "object" &&
+  data !== null &&
+  typeof (data as ReplySaved).token === "string" &&
+  typeof (data as ReplySaved).from === "string";
+
 /**
  * GET /api/public/invitations/:token, starting from what the server rendered.
  * Refreshed when the guest comes back to the tab, and when another tab saves a
@@ -33,7 +39,8 @@ export function usePublicInvitation(token: string, initialData: PublicInvitation
     if (typeof BroadcastChannel === "undefined") return;
     const channel = new BroadcastChannel(CHANNEL);
     channel.onmessage = (event: MessageEvent<unknown>) => {
-      if (event.data === token)
+      // Another tab's reply to this invitation; this tab already has its own.
+      if (isReplySaved(event.data) && event.data.token === token && event.data.from !== TAB)
         void queryClient.invalidateQueries({ queryKey: invitationKey(token) });
     };
     return () => channel.close();

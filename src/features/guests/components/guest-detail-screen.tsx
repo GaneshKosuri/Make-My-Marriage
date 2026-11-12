@@ -27,8 +27,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { EVENTS_ROUTES } from "@/features/events/events-content";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
-import { formatInstant } from "@/lib/dates";
-import { eventDateTile, eventTimeRange } from "@/lib/schedule";
+import { eventDateTile, eventTimeRange, formatDateTime } from "@/lib/schedule";
 import type { GuestDto } from "@/modules/guests/guest.types";
 
 import { useDeleteGuest, useGuest } from "../api";
@@ -39,8 +38,6 @@ import { EmailInvitation } from "./email-invitation";
 import { InvitationShare } from "./invitation-share";
 
 const DETAIL = GUESTS.detail;
-const DAY: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric" };
-const TIME: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit" };
 
 export interface GuestDetailScreenProps {
   guestId: string;
@@ -114,9 +111,6 @@ function GuestDetail({
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  // "12 Nov 2026, 4:30 PM" in the wedding's time zone (clock times as in the designs).
-  const when = (iso: string) =>
-    `${formatInstant(iso, timeZone, DAY)}, ${formatInstant(iso, timeZone, TIME, "en-US")}`;
 
   return (
     <>
@@ -172,7 +166,9 @@ function GuestDetail({
             </div>
             <Fact icon={<Users aria-hidden />}>{DETAIL.partySize(guest.maxGuests)}</Fact>
             <p className="text-body-md text-plum">
-              {guest.rsvpUpdatedAt ? DETAIL.rsvpUpdated(when(guest.rsvpUpdatedAt)) : DETAIL.noReply}
+              {guest.rsvpUpdatedAt
+                ? DETAIL.rsvpUpdated(formatDateTime(guest.rsvpUpdatedAt, timeZone))
+                : DETAIL.noReply}
             </p>
           </div>
         </DashboardCard>

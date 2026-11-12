@@ -5,6 +5,7 @@ import { isDuplicateKeyError } from "@/server/db/errors";
 import { toObjectId } from "@/server/db/object-id";
 
 import {
+  ACTIVE_EMAIL_JOB_STATUSES as ACTIVE,
   EMAIL_JOB_MAX_ATTEMPTS,
   type EmailJobStatus,
   type EmailJobType,
@@ -13,9 +14,6 @@ import { EmailJobModel, type EmailJobDoc, type EmailJobRecord } from "./email-jo
 
 /** The worker's reads and writes cross weddings: the documented tenant-guard opt-out. */
 const ACROSS_WEDDINGS = { tenantScoped: false } as const;
-
-/** Jobs that will still be sent: a guest with one of these isn't queued again. */
-const ACTIVE: readonly EmailJobStatus[] = ["PENDING", "PROCESSING"];
 
 /** A lock held by one worker run; other runs can't touch the job meanwhile. */
 const locked = (jobId: string, lockId: string) => ({
@@ -33,7 +31,8 @@ const unlock = { lockId: null, lockedAt: null };
 export const emailJobRepository = {
   /**
    * Inserts what it can (DATABASE_DESIGN §87: no giant transaction). A job
-   * whose idempotency key already exists is skipped, not an error.
+   * whose idempotency key already exists, or for a guest who already has one
+   * of the same kind on its way (the active-job unique index), is skipped.
    */
   async insertMany(
     weddingId: string,
@@ -53,6 +52,18 @@ export const emailJobRepository = {
       const { insertedDocs } = error as { insertedDocs?: unknown[] };
       return insertedDocs?.length ?? 0;
     }
+  },
+
+  /** Every guest of the wedding with an email of each kind waiting or being sent. */
+  async guestsWithActiveJobs(weddingId: string): Promise<Record<EmailJobType, string[]>> {
+    await connectToDatabase();
+    const rows = await EmailJobModel.aggregate<{ _id: EmailJobType; guestIds: unknown[] }>([
+      { $match: { weddingId: toObjectId(weddingId, "weddingId"), status: { $in: ACTIVE } } },
+      { $group: { _id: "$type", guestIds: { $addToSet: "$guestId" } } },
+    ]).exec();
+    const byType: Record<EmailJobType, string[]> = { GUEST_INVITATION: [], RSVP_REMINDER: [] };
+    for (const row of rows) byType[row._id] = row.guestIds.map(String);
+    return byType;
   },
 
   /** Guests among `guestIds` that already have a job of `type` waiting or being sent. */
@@ -84,14 +95,57 @@ export const emailJobRepository = {
     return Object.fromEntries(rows.map((row) => [row._id, row.count]));
   },
 
-  /** FAILED jobs of the batch start again with a fresh set of attempts (API_DESIGN §86). */
-  async requeueFailed(weddingId: string, batchId: string, now: Date): Promise<number> {
+  /**
+   * FAILED jobs of the batch start again with a fresh set of attempts
+   * (API_DESIGN §86), one by one. A job whose guest has since had the same
+   * kind of email queued again, or sent by a later job, is CANCELLED instead:
+   * retrying it would email them twice (review P5).
+   */
+  async requeueFailed(
+    weddingId: string,
+    batchId: string,
+    now: Date,
+  ): Promise<{ requeued: number; superseded: number }> {
     await connectToDatabase();
-    const result = await EmailJobModel.updateMany(
-      { weddingId: toObjectId(weddingId, "weddingId"), batchId, status: "FAILED" },
-      { $set: { status: "PENDING", attempts: 0, nextAttemptAt: now, lastError: null, ...unlock } },
-    ).exec();
-    return result.modifiedCount;
+    const wedding = toObjectId(weddingId, "weddingId");
+    const failed = await EmailJobModel.find({ weddingId: wedding, batchId, status: "FAILED" })
+      .select({ guestId: 1, type: 1, createdAt: 1 })
+      .lean<Pick<EmailJobRecord, "_id" | "guestId" | "type" | "createdAt">[]>()
+      .exec();
+    const outcome = { requeued: 0, superseded: 0 };
+    for (const job of failed) {
+      const failedJob = { weddingId: wedding, _id: job._id, status: "FAILED" as const };
+      const later = await EmailJobModel.exists({
+        weddingId: wedding,
+        guestId: job.guestId,
+        type: job.type,
+        _id: { $ne: job._id },
+        $or: [{ status: { $in: ACTIVE } }, { status: "SENT", createdAt: { $gt: job.createdAt } }],
+      }).exec();
+      if (!later) {
+        try {
+          const result = await EmailJobModel.updateOne(failedJob, {
+            $set: {
+              status: "PENDING",
+              attempts: 0,
+              nextAttemptAt: now,
+              lastError: null,
+              ...unlock,
+            },
+          }).exec();
+          outcome.requeued += result.modifiedCount;
+          continue;
+        } catch (error) {
+          // Queued again meanwhile: the active-job unique index refused this one.
+          if (!isDuplicateKeyError(error)) throw error;
+        }
+      }
+      const result = await EmailJobModel.updateOne(failedJob, {
+        $set: { status: "CANCELLED", lastError: "Sent or queued again by a later send" },
+      }).exec();
+      outcome.superseded += result.modifiedCount;
+    }
+    return outcome;
   },
 
   /** Jobs not yet picked up become CANCELLED; one already being sent is left to finish. */

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PublicInvitationDto } from "@/modules/guests/guest.types";
@@ -194,5 +194,34 @@ describe("<InvitationScreen />", () => {
     expect(screen.getByRole("status", { name: INVITATION.rsvp.countQuestion })).toHaveTextContent(
       "2",
     );
+  });
+  it("shows a reply saved in another tab instead of the open form", async () => {
+    const channels: { onmessage: ((event: { data: unknown }) => void) | null }[] = [];
+    vi.stubGlobal(
+      "BroadcastChannel",
+      class {
+        onmessage: ((event: { data: unknown }) => void) | null = null;
+        constructor() {
+          channels.push(this);
+        }
+        postMessage() {}
+        close() {}
+      },
+    );
+    renderScreen(invitation());
+    // Half-way through replying here…
+    fireEvent.click(screen.getByLabelText(INVITATION.rsvp.yes));
+    fireEvent.click(screen.getByLabelText("2"));
+
+    // …when the reply is saved in another tab.
+    replies[`GET /api/public/invitations/${TOKEN}`] = () => ({
+      status: 200,
+      body: { data: invitation({ rsvpStatus: "ATTENDING", attendingCount: 3 }) },
+    });
+    act(() => channels[0]?.onmessage?.({ data: { token: TOKEN, from: "another-tab" } }));
+
+    expect(await screen.findByText(INVITATION.rsvp.coming(3))).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: INVITATION.rsvp.change }));
+    expect(screen.getByLabelText("3")).toBeChecked();
   });
 });

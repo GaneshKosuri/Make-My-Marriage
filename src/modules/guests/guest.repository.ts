@@ -125,14 +125,15 @@ export const guestRepository = {
    */
   async listEmailRecipients(
     weddingId: string,
-    filter: { invitationSent?: false; rsvpStatus?: RsvpStatus; guestIds?: readonly string[] },
+    filter: { invitationSent?: boolean; rsvpStatus?: RsvpStatus; guestIds?: readonly string[] },
   ): Promise<{ guestId: string; email: string }[]> {
     await connectToDatabase();
     const query: QueryFilter<GuestDoc> = {
       weddingId: toObjectId(weddingId, "weddingId"),
       email: { $ne: null },
     };
-    if (filter.invitationSent === false) query.invitationSentAt = null;
+    if (filter.invitationSent !== undefined)
+      query.invitationSentAt = filter.invitationSent ? { $ne: null } : null;
     if (filter.rsvpStatus) query.rsvpStatus = filter.rsvpStatus;
     if (filter.guestIds)
       query._id = { $in: filter.guestIds.map((id) => toObjectId(id, "guestIds")) };
@@ -215,18 +216,29 @@ export const guestRepository = {
   /**
    * Guest (invitation) counts by RSVP status, people attending (the sum of
    * `attendingCount` on ATTENDING guests) and invitations sent, in one pass.
+   * Guests in `alreadyQueued` have that email on its way and aren't counted
+   * as still to email.
    */
-  async rsvpSummary(weddingId: string): Promise<{
+  async rsvpSummary(
+    weddingId: string,
+    alreadyQueued: { invitations: readonly string[]; reminders: readonly string[] } = {
+      invitations: [],
+      reminders: [],
+    },
+  ): Promise<{
     totalGuests: number;
     byStatus: Record<RsvpStatus, number>;
     totalPeopleAttending: number;
     invitationsSent: number;
     /** Guests with an email address who haven't been emailed their invitation. */
     invitationsToEmail: number;
-    /** Guests with an email address still awaiting a reply. */
+    /** Guests emailed their invitation, with an email address, still awaiting a reply. */
     remindersToEmail: number;
   }> {
     await connectToDatabase();
+    const notIn = (guestIds: readonly string[]) => ({
+      $not: [{ $in: ["$_id", guestIds.map((id) => toObjectId(id, "guestId"))] }],
+    });
     const isStatus = (status: RsvpStatus) => ({
       $cond: [{ $eq: ["$rsvpStatus", status] }, 1, 0],
     });
@@ -267,6 +279,7 @@ export const guestRepository = {
                   $and: [
                     { $ne: [{ $ifNull: ["$email", null] }, null] },
                     { $eq: [{ $ifNull: ["$invitationSentAt", null] }, null] },
+                    notIn(alreadyQueued.invitations),
                   ],
                 },
                 1,
@@ -280,7 +293,9 @@ export const guestRepository = {
                 {
                   $and: [
                     { $ne: [{ $ifNull: ["$email", null] }, null] },
+                    { $ne: [{ $ifNull: ["$invitationSentAt", null] }, null] },
                     { $eq: ["$rsvpStatus", "PENDING"] },
+                    notIn(alreadyQueued.reminders),
                   ],
                 },
                 1,

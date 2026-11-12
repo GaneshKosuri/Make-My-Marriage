@@ -179,6 +179,7 @@ export const GUESTS = {
       progress: (sent: number, total: number) => `Emailing invitations: ${sent} of ${total} sent`,
       done: (sent: number) =>
         sent === 1 ? "1 invitation emailed." : `${sent} invitations emailed.`,
+      alreadySending: "These invitations are already being sent.",
     },
     reminders: {
       button: (count: number) => (count === 1 ? "Remind 1 guest" : `Remind ${count} guests`),
@@ -188,6 +189,7 @@ export const GUESTS = {
       confirm: "Send reminders",
       progress: (sent: number, total: number) => `Sending reminders: ${sent} of ${total} sent`,
       done: (sent: number) => (sent === 1 ? "1 reminder sent." : `${sent} reminders sent.`),
+      alreadySending: "These reminders are already being sent.",
     },
     cancel: "Not now",
     working: "Starting…",
@@ -201,6 +203,8 @@ export const GUESTS = {
     waiting:
       "Some emails are waiting: the email account may have reached its daily limit. They'll go out later.",
     error: "We couldn't start sending. Try again.",
+    statusError: "We couldn't check on these emails. Any that were queued still go out.",
+    close: "OK",
     dismiss: "Dismiss",
   },
   share: {

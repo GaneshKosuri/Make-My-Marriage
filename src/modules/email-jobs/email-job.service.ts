@@ -8,6 +8,7 @@ import { AppError } from "@/server/errors";
 import { runAfterResponse } from "@/server/http/after-response";
 import { logger } from "@/server/logging/logger";
 
+import type { EmailJobType } from "./email-job.constants";
 import { toEmailBatchStatusDto } from "./email-job.mapper";
 import { emailJobRepository } from "./email-job.repository";
 import type {
@@ -46,7 +47,8 @@ export const emailJobsService = {
   /**
    * One job per recipient under a new batch id, then returns at once; sending
    * starts after the response. A guest who already has the same kind of email
-   * waiting is skipped, so pressing the button twice doesn't email them twice.
+   * waiting is skipped, so pressing the button twice, or two organisers
+   * sending at once (the active-job unique index), doesn't email them twice.
    */
   async enqueueGuestEmails(
     weddingId: string,
@@ -94,18 +96,31 @@ export const emailJobsService = {
     return status;
   },
 
-  /** FAILED → PENDING with fresh attempts, then sends them. API §86. */
+  /**
+   * FAILED → PENDING with fresh attempts, then sends them; those already sent
+   * or queued again by a later send are cancelled instead. API §86.
+   */
   async retryFailed(ctx: MemberContext, batchId: string): Promise<EmailBatchStatusDto> {
     await batchStatus(ctx.weddingId, batchId);
-    const requeued = await emailJobRepository.requeueFailed(ctx.weddingId, batchId, new Date());
+    const { requeued, superseded } = await emailJobRepository.requeueFailed(
+      ctx.weddingId,
+      batchId,
+      new Date(),
+    );
     logger.info("Failed guest emails requeued", {
       requestId: ctx.requestId,
       weddingId: ctx.weddingId,
       batchId,
       requeued,
+      superseded,
     });
     if (requeued > 0) processSoon("retry");
     return batchStatus(ctx.weddingId, batchId);
+  },
+
+  /** Guests with an invitation or reminder already on its way, by type. */
+  async guestsWithQueuedEmails(weddingId: string): Promise<Record<EmailJobType, string[]>> {
+    return emailJobRepository.guestsWithActiveJobs(weddingId);
   },
 
   /** Called when a guest is deleted (DATABASE_DESIGN §48). */

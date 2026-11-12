@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Mail, RefreshCw, X } from "lucide-react";
+import { AlertCircle, CheckCircle2, Mail, RefreshCw, X } from "lucide-react";
 import { useState } from "react";
 
 import { focusRing, primaryButton, secondaryButton } from "@/components/ui/button-styles";
@@ -30,58 +30,87 @@ export function BulkEmailButton({
   const copy = COPY[kind];
   const send = useEmailGuestsInBulk();
   const [confirming, setConfirming] = useState(false);
-  if (count === 0) return null;
+  // Everyone counted already had one of these on its way: nothing new was queued.
+  const [alreadySending, setAlreadySending] = useState(false);
+  const close = () => {
+    setConfirming(false);
+    setAlreadySending(false);
+  };
+  // The dialog stays up to say so even when the refreshed count hides the button.
+  if (count === 0 && !confirming) return null;
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => {
-          send.reset();
-          setConfirming(true);
-        }}
-        className={secondaryButton}
-      >
-        <Mail aria-hidden className="size-4" />
-        {copy.button(count)}
-      </button>
+      {count > 0 && (
+        <button
+          type="button"
+          onClick={() => {
+            send.reset();
+            setAlreadySending(false);
+            setConfirming(true);
+          }}
+          className={secondaryButton}
+        >
+          <Mail aria-hidden className="size-4" />
+          {copy.button(count)}
+        </button>
+      )}
       <Dialog
         open={confirming}
-        onClose={() => setConfirming(false)}
+        onClose={close}
         title={copy.title}
-        description={copy.description(count)}
+        description={alreadySending ? undefined : copy.description(count)}
       >
-        {send.isError && (
-          <p role="alert" className="mb-4 text-body-md text-destructive">
-            {COPY.error}
-          </p>
+        {alreadySending ? (
+          <>
+            <p role="status" className="mb-4 text-body-md text-graphite">
+              {copy.alreadySending}
+            </p>
+            <div className="flex flex-col gap-3 md:flex-row md:justify-end">
+              <button type="button" onClick={close} className={secondaryButton}>
+                {COPY.close}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            {send.isError && (
+              <p role="alert" className="mb-4 text-body-md text-destructive">
+                {COPY.error}
+              </p>
+            )}
+            <div className="flex flex-col-reverse gap-3 md:flex-row md:justify-end">
+              <button type="button" onClick={close} className={secondaryButton}>
+                {COPY.cancel}
+              </button>
+              <button
+                type="button"
+                disabled={send.isPending}
+                aria-busy={send.isPending || undefined}
+                onClick={() =>
+                  send.mutate(
+                    kind === "invitations"
+                      ? { kind, body: { scope: "ALL_UNSENT" } }
+                      : { kind, body: { scope: "ALL_PENDING_RSVP" } },
+                    {
+                      onSuccess: (result) => {
+                        if (result.jobsCreated === 0) {
+                          setAlreadySending(true);
+                          return;
+                        }
+                        setConfirming(false);
+                        onStarted(result.batchId);
+                      },
+                    },
+                  )
+                }
+                className={primaryButton}
+              >
+                {send.isPending ? COPY.working : copy.confirm}
+              </button>
+            </div>
+          </>
         )}
-        <div className="flex flex-col-reverse gap-3 md:flex-row md:justify-end">
-          <button type="button" onClick={() => setConfirming(false)} className={secondaryButton}>
-            {COPY.cancel}
-          </button>
-          <button
-            type="button"
-            disabled={send.isPending}
-            aria-busy={send.isPending || undefined}
-            onClick={() =>
-              send.mutate(
-                kind === "invitations"
-                  ? { kind, body: { scope: "ALL_UNSENT" } }
-                  : { kind, body: { scope: "ALL_PENDING_RSVP" } },
-                {
-                  onSuccess: (result) => {
-                    setConfirming(false);
-                    onStarted(result.batchId);
-                  },
-                },
-              )
-            }
-            className={primaryButton}
-          >
-            {send.isPending ? COPY.working : copy.confirm}
-          </button>
-        </div>
       </Dialog>
     </>
   );
@@ -94,10 +123,11 @@ export function BulkEmailProgress({
   onDismiss,
 }: Readonly<{ kind: BulkEmailKind; batchId: string; onDismiss: () => void }>) {
   const copy = COPY[kind];
-  const batch = useEmailBatch(batchId);
-  const retry = useRetryFailedEmails();
   // Counts consecutive checks in which nothing more was sent.
   const [stall, setStall] = useState({ sent: -1, checks: 0, at: 0 });
+  const waiting = stall.checks >= STALLED_CHECKS;
+  const batch = useEmailBatch(batchId, { waiting });
+  const retry = useRetryFailedEmails();
   if (batch.data && batch.dataUpdatedAt !== stall.at) {
     setStall((last) => ({
       sent: batch.data.sent,
@@ -109,6 +139,8 @@ export function BulkEmailProgress({
   const status = batch.data;
   const total = status?.total ?? 0;
   const done = status?.completed ?? false;
+  // A batch that can't be read (none queued, or a network problem) is no longer checked.
+  const lost = batch.isError && !done;
   const percent =
     total > 0 && status
       ? Math.round(((status.sent + status.failed + status.cancelled) / total) * 100)
@@ -121,20 +153,24 @@ export function BulkEmailProgress({
     >
       <div className="flex items-start justify-between gap-3">
         <p role="status" className="flex items-center gap-2 text-body-md text-graphite">
-          {done ? (
+          {lost ? (
+            <AlertCircle aria-hidden className="size-5 shrink-0 text-destructive" />
+          ) : done ? (
             <CheckCircle2 aria-hidden className="size-5 shrink-0 text-gold-deep" />
           ) : (
             <Mail aria-hidden className="size-5 shrink-0 text-gold-deep" />
           )}
           <span>
-            {!status
-              ? COPY.working
-              : done
-                ? copy.done(status.sent)
-                : copy.progress(status.sent, total)}
+            {lost
+              ? COPY.statusError
+              : !status
+                ? COPY.working
+                : done
+                  ? copy.done(status.sent)
+                  : copy.progress(status.sent, total)}
           </span>
         </p>
-        {done && (
+        {(done || lost) && (
           <button
             type="button"
             onClick={onDismiss}
@@ -148,7 +184,7 @@ export function BulkEmailProgress({
           </button>
         )}
       </div>
-      {!done && (
+      {!done && !lost && (
         <div
           role="progressbar"
           aria-label={copy.title}
@@ -160,10 +196,8 @@ export function BulkEmailProgress({
           <div className="h-full bg-burgundy transition-[width]" style={{ width: `${percent}%` }} />
         </div>
       )}
-      {status && !done && (
-        <p className="text-body-sm text-plum">
-          {stall.checks >= STALLED_CHECKS ? COPY.waiting : COPY.background}
-        </p>
+      {status && !done && !lost && (
+        <p className="text-body-sm text-plum">{waiting ? COPY.waiting : COPY.background}</p>
       )}
       {status && status.cancelled > 0 && (
         <p className="text-body-sm text-plum">{COPY.skipped(status.cancelled)}</p>

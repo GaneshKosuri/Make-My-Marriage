@@ -6,15 +6,13 @@ import { useState } from "react";
 import { primaryButton, secondaryButton } from "@/components/ui/button-styles";
 import { DashboardCard } from "@/components/ui/dashboard-card";
 import { ApiError } from "@/lib/api-client";
-import { formatInstant } from "@/lib/dates";
+import { formatDateTime } from "@/lib/schedule";
 import type { GuestDto } from "@/modules/guests/guest.types";
 
 import { useEmailGuest } from "../api";
 import { GUESTS } from "../guests-content";
 
 const COPY = GUESTS.email;
-const DAY: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric" };
-const TIME: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit" };
 
 /**
  * Email this guest their invitation, again if needed, and RSVP reminders
@@ -28,8 +26,7 @@ export function EmailInvitation({
 }: Readonly<{ guest: GuestDto; timeZone: string; onAddEmail: () => void }>) {
   const email = useEmailGuest();
   const [done, setDone] = useState<string | null>(null);
-  const when = (iso: string) =>
-    `${formatInstant(iso, timeZone, DAY)}, ${formatInstant(iso, timeZone, TIME, "en-US")}`;
+  const when = (iso: string) => formatDateTime(iso, timeZone);
   const send = (kind: "invitation" | "reminder") => {
     setDone(null);
     email.mutate({ guestId: guest.id, kind }, { onSuccess: () => setDone(COPY.done[kind]) });

@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 
 import type { InternalContext } from "@/server/auth";
 import { getEnv } from "@/server/config/env";
-import { getEmailService, isEmailQuotaError } from "@/server/email";
+import { isEmailQuotaError } from "@/server/email";
 import { logger } from "@/server/logging/logger";
 
 import {
@@ -16,7 +16,7 @@ import {
 } from "./email-job.constants";
 import { emailJobRepository } from "./email-job.repository";
 import type { EmailWorkerRunResult } from "./email-job.types";
-import { getGuestEmailPort, type QueuedGuestEmail } from "./guest-email.port";
+import { getGuestEmailPort, sendGuestEmail } from "./guest-email.port";
 
 const MINUTE = 60_000;
 
@@ -34,14 +34,6 @@ function reasonOf(error: unknown): string {
     .slice(0, EMAIL_JOB_LAST_ERROR_MAX_LENGTH);
 }
 
-/** Sends one queued email through the app's email service. */
-function send(email: QueuedGuestEmail, idempotencyKey: string) {
-  const service = getEmailService();
-  return email.template === "guest-invitation"
-    ? service.send({ to: email.to, template: email.template, props: email.props, idempotencyKey })
-    : service.send({ to: email.to, template: email.template, props: email.props, idempotencyKey });
-}
-
 /**
  * Sends queued guest emails (SYSTEM_DESIGN §49–54; API_DESIGN §87). Runs from
  * the daily cron, and right after jobs are queued or while an organiser watches
@@ -52,7 +44,9 @@ function send(email: QueuedGuestEmail, idempotencyKey: string) {
  *   3. each is rebuilt from the guest as it is now (deleted guests, missing
  *      addresses and guests who already replied are cancelled) and sent with
  *      the job's idempotency key;
- *   4. SENT, or a retry after 5 then 30 minutes, then FAILED. A provider's
+ *   4. recorded on the guest, then SENT. A failure to record is logged, not
+ *      retried: the email went out, and sending it again would duplicate it;
+ *   5. otherwise a retry after 5 then 30 minutes, then FAILED. A provider's
  *      sending limit puts the job back for an hour without spending an attempt
  *      and ends the run, since the next email would be refused too.
  */
@@ -85,10 +79,20 @@ export const emailJobWorker = {
           await emailJobRepository.markCancelled(jobId, lockId, "No longer applies");
           continue;
         }
-        const delivery = await send(email, job.idempotencyKey);
+        const delivery = await sendGuestEmail(email, job.idempotencyKey);
         const sentAt = new Date();
+        // On the guest first, so a finished job always shows on the guest list.
+        try {
+          await port.delivered(job, sentAt);
+        } catch (error) {
+          // The guest may still read "not sent"; the job says SENT (review P4, decided 2026-11-12).
+          logger.warn("Email sent but not recorded on the guest", {
+            requestId: ctx.requestId,
+            jobId,
+            reason: reasonOf(error),
+          });
+        }
         await emailJobRepository.markSent(jobId, lockId, delivery.providerMessageId, sentAt);
-        await port.delivered(job, sentAt);
         result.sent += 1;
       } catch (error) {
         if (isEmailQuotaError(error)) {

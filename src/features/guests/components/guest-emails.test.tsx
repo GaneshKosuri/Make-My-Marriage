@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EmailBatchStatusDto } from "@/modules/email-jobs/email-job.types";
 import type { GuestDto } from "@/modules/guests/guest.types";
 
+import { useRsvpSummary } from "../api";
 import { GUESTS } from "../guests-content";
 import { BulkEmailButton, BulkEmailProgress } from "./bulk-email";
 import { EmailInvitation } from "./email-invitation";
@@ -64,12 +65,21 @@ const fetchMock = vi.fn(async (url: string, init: RequestInit) => {
   });
 });
 
+let client: QueryClient;
 function renderWithClient(element: ReactElement) {
-  const client = new QueryClient({
+  client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return render(<QueryClientProvider client={client}>{element}</QueryClientProvider>);
 }
+
+/** A mounted guest query, to count the refetches a progress check causes. */
+function SummaryProbe() {
+  useRsvpSummary();
+  return null;
+}
+const summaryFetches = () => calls.filter((call) => call.url === "/api/guests/rsvp-summary").length;
+const checkBatchNow = () => act(() => client.refetchQueries({ queryKey: ["email-batch", BATCH] }));
 
 beforeEach(() => {
   replies = {};
@@ -193,5 +203,64 @@ describe("bulk email", () => {
     await waitFor(() =>
       expect(calls.some((call) => call.url.endsWith("/retry-failed"))).toBe(true),
     );
+  });
+  it("says so instead of opening a panel when everyone already has one on its way", async () => {
+    replies["POST /api/guests/actions/send-invitations"] = () => ({
+      status: 200,
+      body: { data: { batchId: BATCH, jobsCreated: 0 } },
+    });
+    const onStarted = vi.fn();
+    renderWithClient(<BulkEmailButton kind="invitations" count={3} onStarted={onStarted} />);
+
+    fireEvent.click(screen.getByRole("button", { name: GUESTS.bulk.invitations.button(3) }));
+    const dialog = within(screen.getByRole("dialog", { name: GUESTS.bulk.invitations.title }));
+    fireEvent.click(dialog.getByRole("button", { name: GUESTS.bulk.invitations.confirm }));
+
+    expect(await dialog.findByText(GUESTS.bulk.invitations.alreadySending)).toBeInTheDocument();
+    expect(onStarted).not.toHaveBeenCalled();
+    fireEvent.click(dialog.getByRole("button", { name: GUESTS.bulk.close }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("stops checking a batch it can't read, and can be dismissed", async () => {
+    replies[`GET /api/email-batches/${BATCH}`] = () => ({
+      status: 404,
+      body: { error: { code: "NOT_FOUND", message: "Not found" } },
+    });
+    const onDismiss = vi.fn();
+    renderWithClient(
+      <BulkEmailProgress kind="invitations" batchId={BATCH} onDismiss={onDismiss} />,
+    );
+
+    expect(await screen.findByText(GUESTS.bulk.statusError)).toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    // Longer than one polling interval: no second check.
+    await new Promise((resolve) => setTimeout(resolve, 3500));
+    expect(calls.filter((call) => call.url === `/api/email-batches/${BATCH}`)).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: GUESTS.bulk.dismiss }));
+    expect(onDismiss).toHaveBeenCalled();
+  }, 10_000);
+
+  it("refreshes guest lists only when a check finds more emails done", async () => {
+    let status = batch({ pending: 3, sent: 0, completed: false });
+    replies[`GET /api/email-batches/${BATCH}`] = () => ({ status: 200, body: { data: status } });
+    replies["GET /api/guests/rsvp-summary"] = () => ({ status: 200, body: { data: {} } });
+    renderWithClient(
+      <>
+        <SummaryProbe />
+        <BulkEmailProgress kind="invitations" batchId={BATCH} onDismiss={vi.fn()} />
+      </>,
+    );
+    expect(await screen.findByText(GUESTS.bulk.invitations.progress(0, 3))).toBeInTheDocument();
+    await waitFor(() => expect(summaryFetches()).toBe(1));
+
+    await checkBatchNow();
+    await checkBatchNow();
+    expect(summaryFetches()).toBe(1);
+
+    status = batch({ pending: 2, sent: 1, completed: false });
+    await checkBatchNow();
+    expect(await screen.findByText(GUESTS.bulk.invitations.progress(1, 3))).toBeInTheDocument();
+    await waitFor(() => expect(summaryFetches()).toBe(2));
   });
 });

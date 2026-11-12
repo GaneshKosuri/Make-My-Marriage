@@ -1,6 +1,7 @@
 "use client";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useRef } from "react";
 
 import { dashboardKeys } from "@/features/dashboard/query-keys";
 import { apiAction, apiFetch, apiFetchPage } from "@/lib/api-client";
@@ -73,11 +74,14 @@ export function useInvitationLink(guestId: string) {
 /** Lists, the summary and the dashboard's guest and RSVP counts change together. */
 function useInvalidateGuests() {
   const queryClient = useQueryClient();
-  return () =>
-    Promise.all([
-      queryClient.invalidateQueries({ queryKey: guestsKeys.all }),
-      queryClient.invalidateQueries({ queryKey: dashboardKeys.all }),
-    ]);
+  return useCallback(
+    () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: guestsKeys.all }),
+        queryClient.invalidateQueries({ queryKey: dashboardKeys.all }),
+      ]),
+    [queryClient],
+  );
 }
 
 /** POST /api/guests (API §40). */
@@ -165,27 +169,49 @@ export function useEmailGuestsInBulk() {
 
 /** How often an open progress panel checks on a bulk send. */
 const BATCH_POLL_MS = 3000;
+/** Once nothing has gone out for a while (e.g. a daily sending limit), checks slow down. */
+const BATCH_SLOW_POLL_MS = 15_000;
+
+/** What a check found that changes the guest lists. */
+const progressOf = (status: EmailBatchStatusDto) =>
+  `${status.sent}:${status.failed}:${status.cancelled}:${status.completed}`;
 
 /**
  * GET /api/email-batches/:id (API §85), checked every few seconds until the
- * batch is done. Each check also keeps the sending going. Guest lists and
- * counts refresh as emails go out and when it finishes.
+ * batch is done, more slowly while it is `waiting`. Each check also keeps the
+ * sending going. Stops on an error (an unknown or empty batch answers 404).
+ * Guest lists and counts refresh only when a check finds more emails done.
  */
-export function useEmailBatch(batchId: string | null) {
+export function useEmailBatch(batchId: string | null, { waiting = false } = {}) {
   const invalidate = useInvalidateGuests();
-  return useQuery({
+  const query = useQuery({
     queryKey: guestsKeys.emailBatch(batchId ?? ""),
-    queryFn: async ({ signal }) => {
-      const status = await apiFetch<EmailBatchStatusDto>(
-        `/api/email-batches/${encodeURIComponent(batchId!)}`,
-        { signal },
-      );
-      void invalidate();
-      return status;
-    },
+    queryFn: ({ signal }) =>
+      apiFetch<EmailBatchStatusDto>(`/api/email-batches/${encodeURIComponent(batchId!)}`, {
+        signal,
+      }),
     enabled: batchId !== null,
-    refetchInterval: (query) => (query.state.data?.completed ? false : BATCH_POLL_MS),
+    retry: false,
+    refetchInterval: (current) =>
+      current.state.status === "error" || current.state.data?.completed
+        ? false
+        : waiting
+          ? BATCH_SLOW_POLL_MS
+          : BATCH_POLL_MS,
   });
+
+  const seen = useRef<string | null>(null);
+  const { data } = query;
+  useEffect(() => {
+    if (!data) return;
+    const progress = progressOf(data);
+    if (progress === seen.current) return;
+    // The first check only refreshes when emails already went out.
+    const first = seen.current === null;
+    seen.current = progress;
+    if (!first || data.sent + data.failed + data.cancelled > 0) void invalidate();
+  }, [data, invalidate]);
+  return query;
 }
 
 /** POST /api/email-batches/:id/retry-failed (API §86). */

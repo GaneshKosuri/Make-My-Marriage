@@ -6,6 +6,7 @@ import { baseSchemaOptions, defineModel, type WithId } from "@/server/db/model";
 import { tenantGuardPlugin } from "@/server/db/plugins/tenant-guard";
 
 import {
+  ACTIVE_EMAIL_JOB_STATUSES,
   EMAIL_JOB_LAST_ERROR_MAX_LENGTH,
   EMAIL_JOB_STATUSES,
   EMAIL_JOB_TYPES,
@@ -70,6 +71,15 @@ emailJobSchema.index(
 emailJobSchema.index({ weddingId: 1, status: 1 }, { name: "weddingId_status" });
 emailJobSchema.index({ batchId: 1 }, { name: "batchId" });
 emailJobSchema.index({ guestId: 1 }, { name: "guestId" });
+// One email of each kind on its way per guest, however many sends race (review P5).
+emailJobSchema.index(
+  { weddingId: 1, guestId: 1, type: 1 },
+  {
+    unique: true,
+    name: "weddingId_guestId_type_active_unique",
+    partialFilterExpression: { status: { $in: [...ACTIVE_EMAIL_JOB_STATUSES] } },
+  },
+);
 
 emailJobSchema.plugin(tenantGuardPlugin);
 
