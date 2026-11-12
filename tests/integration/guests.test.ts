@@ -122,7 +122,7 @@ const recordRsvp = (id: string, attendingCount: number) =>
   ).setOptions({ tenantScoped: false });
 
 describe("POST /api/guests", () => {
-  it("creates an invitation with its events, pending RSVP and a hidden token", async () => {
+  it("creates an invitation with its events in date order, pending RSVP and a hidden token", async () => {
     const { cookie, haldi, weddingEvent } = await setup();
     const guest = await create(cookie, {
       name: "  Rajesh Sharma ",
@@ -140,8 +140,9 @@ describe("POST /api/guests", () => {
       phone: "+91 98765 43210",
       maxGuests: 4,
       invitedEvents: [
-        { id: weddingEvent, name: "Wedding", startsAt: expect.any(String), archivedAt: null },
+        // Ticked Wedding first; listed by date (QA P3-2).
         { id: haldi, name: "Haldi", startsAt: expect.any(String), archivedAt: null },
+        { id: weddingEvent, name: "Wedding", startsAt: expect.any(String), archivedAt: null },
       ],
       notes: "Family friend",
       rsvpStatus: "PENDING",

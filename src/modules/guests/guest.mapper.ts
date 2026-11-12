@@ -9,7 +9,8 @@ import type { GuestDto, PublicInvitationDto } from "./guest.types";
 /**
  * Guest document → DTO (API_DESIGN §39 notes). Built field by field, so the
  * invitation token and `emailNormalized` can never leak into a response.
- * Invited events keep their stored order; one that no longer exists is left out.
+ * Invited events are in date order, as on the guest's invitation, whatever
+ * order they were ticked in (QA P3-2); one that no longer exists is left out.
  */
 export function toGuestDto(
   guest: GuestRecord,
@@ -21,10 +22,12 @@ export function toGuestDto(
     email: guest.email ?? null,
     phone: guest.phone ?? null,
     maxGuests: guest.maxGuests,
-    invitedEvents: guest.invitedEventIds.flatMap((id) => {
-      const event = events.get(id.toString());
-      return event ? [event] : [];
-    }),
+    invitedEvents: guest.invitedEventIds
+      .flatMap((id) => {
+        const event = events.get(id.toString());
+        return event ? [event] : [];
+      })
+      .sort((a, b) => a.startsAt.localeCompare(b.startsAt) || a.id.localeCompare(b.id)),
     notes: guest.notes ?? null,
     rsvpStatus: guest.rsvpStatus,
     attendingCount: guest.attendingCount ?? null,

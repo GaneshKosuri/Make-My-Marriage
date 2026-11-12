@@ -5,12 +5,17 @@ import { useState } from "react";
 
 import { focusRing, primaryButton, secondaryButton } from "@/components/ui/button-styles";
 import { Dialog } from "@/components/ui/dialog";
+import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 
 import { useEmailBatch, useEmailGuestsInBulk, useRetryFailedEmails } from "../api";
 import { GUESTS } from "../guests-content";
 
 const COPY = GUESTS.bulk;
+
+/** The hourly limit on bulk sends: trying again at once won't help (QA P3-1). */
+const isRateLimited = (error: unknown) =>
+  error instanceof ApiError && error.code === "RATE_LIMITED";
 
 /** Checks without any email going out before the panel says some are waiting. */
 const STALLED_CHECKS = 10;
@@ -76,7 +81,7 @@ export function BulkEmailButton({
           <>
             {send.isError && (
               <p role="alert" className="mb-4 text-body-md text-destructive">
-                {COPY.error}
+                {isRateLimited(send.error) ? COPY.rateLimited : COPY.error}
               </p>
             )}
             <div className="flex flex-col-reverse gap-3 md:flex-row md:justify-end">
@@ -139,8 +144,9 @@ export function BulkEmailProgress({
   const status = batch.data;
   const total = status?.total ?? 0;
   const done = status?.completed ?? false;
-  // A batch that can't be read (none queued, or a network problem) is no longer checked.
-  const lost = batch.isError && !done;
+  // A batch that can't be read (none queued, or a network problem) is no longer
+  // checked; while offline, checks wait and resume once back online (QA P2-1).
+  const lost = (batch.isError || batch.isPaused) && !done;
   const percent =
     total > 0 && status
       ? Math.round(((status.sent + status.failed + status.cancelled) / total) * 100)

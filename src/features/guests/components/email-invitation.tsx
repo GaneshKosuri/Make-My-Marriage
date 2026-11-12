@@ -36,9 +36,11 @@ export function EmailInvitation({
     email.error instanceof ApiError &&
     (email.error.code === "EXTERNAL_SERVICE_ERROR" || email.error.code === "VALIDATION_ERROR")
       ? email.error.message
-      : email.error
-        ? COPY.error
-        : null;
+      : email.error instanceof ApiError && email.error.code === "RATE_LIMITED"
+        ? COPY.rateLimited
+        : email.error
+          ? COPY.error
+          : null;
 
   return (
     <DashboardCard title={COPY.title}>

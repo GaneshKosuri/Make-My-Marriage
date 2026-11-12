@@ -167,6 +167,7 @@ export const GUESTS = {
     addEmail: "Add email",
     done: { invitation: "Invitation emailed.", reminder: "Reminder sent." },
     error: "We couldn't send the email. Try again.",
+    rateLimited: "You've sent a lot of emails this hour. Please try again later.",
   },
   bulk: {
     invitations: {
@@ -203,6 +204,7 @@ export const GUESTS = {
     waiting:
       "Some emails are waiting: the email account may have reached its daily limit. They'll go out later.",
     error: "We couldn't start sending. Try again.",
+    rateLimited: "You've started a lot of sends this hour. Please try again later.",
     statusError: "We couldn't check on these emails. Any that were queued still go out.",
     close: "OK",
     dismiss: "Dismiss",

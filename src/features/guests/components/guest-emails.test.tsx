@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { onlineManager, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -145,6 +145,18 @@ describe("<EmailInvitation />", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("sending limit is reached");
   });
 
+  it("explains the hourly limit on single emails", async () => {
+    replies[`POST /api/guests/${ID}/send-invitation`] = () => ({
+      status: 429,
+      body: { error: { code: "RATE_LIMITED", message: "Too many requests" } },
+    });
+    renderWithClient(
+      <EmailInvitation guest={guest()} timeZone="Asia/Kolkata" onAddEmail={vi.fn()} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: GUESTS.email.send }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(GUESTS.email.rateLimited);
+  });
+
   it("asks for an email address first", () => {
     const onAddEmail = vi.fn();
     renderWithClient(
@@ -262,5 +274,32 @@ describe("bulk email", () => {
     await checkBatchNow();
     expect(await screen.findByText(GUESTS.bulk.invitations.progress(1, 3))).toBeInTheDocument();
     await waitFor(() => expect(summaryFetches()).toBe(2));
+  });
+  it("says it can't check while offline, then carries on once back online", async () => {
+    replies[`GET /api/email-batches/${BATCH}`] = () => ({
+      status: 200,
+      body: { data: batch({ pending: 2, sent: 1, completed: false }) },
+    });
+    onlineManager.setOnline(false);
+    try {
+      renderWithClient(<BulkEmailProgress kind="reminders" batchId={BATCH} onDismiss={vi.fn()} />);
+      expect(await screen.findByText(GUESTS.bulk.statusError)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: GUESTS.bulk.dismiss })).toBeInTheDocument();
+    } finally {
+      act(() => onlineManager.setOnline(true));
+    }
+    expect(await screen.findByText(GUESTS.bulk.reminders.progress(1, 3))).toBeInTheDocument();
+  });
+  it("explains the hourly limit on bulk sends instead of asking to try again", async () => {
+    replies["POST /api/guests/actions/send-reminders"] = () => ({
+      status: 429,
+      body: { error: { code: "RATE_LIMITED", message: "Too many requests" } },
+    });
+    renderWithClient(<BulkEmailButton kind="reminders" count={2} onStarted={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: GUESTS.bulk.reminders.button(2) }));
+    const dialog = within(screen.getByRole("dialog", { name: GUESTS.bulk.reminders.title }));
+    fireEvent.click(dialog.getByRole("button", { name: GUESTS.bulk.reminders.confirm }));
+    expect(await dialog.findByRole("alert")).toHaveTextContent(GUESTS.bulk.rateLimited);
   });
 });

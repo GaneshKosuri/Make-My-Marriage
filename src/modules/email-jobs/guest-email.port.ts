@@ -39,13 +39,24 @@ export function sendGuestEmail(email: QueuedGuestEmail, idempotencyKey?: string)
     : service.send({ to: email.to, template: email.template, props: email.props, idempotencyKey });
 }
 
-let port: GuestEmailPort | undefined;
+/**
+ * On globalThis, like the identity ports: src/instrumentation.ts registers it
+ * in its own server bundle, and the route handlers (another bundle, with its
+ * own copy of this module) must see the same port (QA P1-1).
+ */
+const registry = globalThis as typeof globalThis & { __mmmGuestEmailPort?: GuestEmailPort };
 
 export function configureGuestEmails(implementation: GuestEmailPort): void {
-  port = implementation;
+  registry.__mmmGuestEmailPort = implementation;
 }
 
 export function getGuestEmailPort(): GuestEmailPort {
-  if (!port) throw new Error("Guest emails are not configured: call registerServerDependencies()");
+  const port = registry.__mmmGuestEmailPort;
+  if (!port) {
+    throw new Error(
+      "Guest emails are not configured. registerServerDependencies() from src/composition-root.ts " +
+        "must run at startup (src/instrumentation.ts in Next.js, tests/setup/* in Vitest).",
+    );
+  }
   return port;
 }

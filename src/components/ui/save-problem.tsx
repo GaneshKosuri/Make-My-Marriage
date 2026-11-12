@@ -1,6 +1,7 @@
 "use client";
 
 import { RefreshCw } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
@@ -21,13 +22,31 @@ export interface SaveProblemCopy {
 /**
  * The banner above an edit form after a failed save. Field errors
  * (VALIDATION_ERROR with details) show next to their fields instead, so
- * there is no banner for them.
+ * there is no banner for them. Save is at the bottom of a long form, so each
+ * new problem is scrolled into view and focused (QA P3-3).
  */
 export function SaveProblem({
   error,
   onReload,
   copy,
 }: Readonly<{ error: unknown; onReload: () => void; copy: SaveProblemCopy }>) {
+  const banner = bannerFor(error, onReload, copy);
+  const ref = useRef<HTMLDivElement>(null);
+  const shown = banner !== null;
+  useEffect(() => {
+    if (!shown || !ref.current) return;
+    ref.current.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+    ref.current.focus({ preventScroll: true });
+  }, [shown, error]);
+  if (!banner) return null;
+  return (
+    <div ref={ref} tabIndex={-1} className="scroll-mt-4 outline-none">
+      {banner}
+    </div>
+  );
+}
+
+function bannerFor(error: unknown, onReload: () => void, copy: SaveProblemCopy) {
   if (!error) return null;
   if (error instanceof ApiError) {
     if (error.code === "VALIDATION_ERROR" && error.details) return null;

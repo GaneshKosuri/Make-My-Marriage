@@ -163,6 +163,8 @@ export function useEmailGuestsInBulk() {
         `/api/guests/actions/${request.kind === "invitations" ? "send-invitations" : "send-reminders"}`,
         { method: "POST", body: request.body },
       ),
+    // Offline, fail at once ("Try again") rather than wait on "Starting…".
+    networkMode: "always",
     onSuccess: invalidate,
   });
 }
