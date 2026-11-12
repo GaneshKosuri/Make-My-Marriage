@@ -1,10 +1,19 @@
 /**
  * Guest DTOs and inputs (API_DESIGN §39–52). Isomorphic.
- * TODO(Phase 3): derive inputs from ./guest.schemas.ts with z.infer.
  */
-import type { PageQuery } from "@/lib/pagination";
+import type { z } from "zod";
 
-import type { BulkEmailScope, RsvpStatus } from "./guest.constants";
+import type { PublicEventDto } from "@/modules/events/event.types";
+
+import type { RsvpStatus } from "./guest.constants";
+import type {
+  createGuestSchema,
+  listGuestsQuerySchema,
+  sendInvitationsSchema,
+  sendRemindersSchema,
+  submitRsvpSchema,
+  updateGuestSchema,
+} from "./guest.schemas";
 
 /** Guest CRUD response. Never contains the invitation token or emailNormalized. */
 export interface GuestDto {
@@ -26,33 +35,17 @@ export interface GuestDto {
   updatedAt: string;
 }
 
-export interface ListGuestsQuery extends PageQuery {
-  search?: string;
-  rsvpStatus?: RsvpStatus;
-  eventId?: string;
-  invitationSent?: boolean;
-}
-
-export interface CreateGuestInput {
-  name: string;
-  email?: string;
-  phone?: string;
-  maxGuests?: number;
-  invitedEventIds?: string[];
-  notes?: string;
-}
-
-export type UpdateGuestInput = Partial<CreateGuestInput> & { version: number };
+export type ListGuestsQuery = z.output<typeof listGuestsQuerySchema>;
+export type CreateGuestInput = z.output<typeof createGuestSchema>;
+export type UpdateGuestInput = z.output<typeof updateGuestSchema>;
 
 /** GET /api/guests/:id/invitation-link (API_DESIGN §45). */
 export interface InvitationLinkDto {
   url: string;
 }
 
-export interface BulkEmailInput {
-  scope: BulkEmailScope;
-  guestIds?: string[];
-}
+export type SendInvitationsInput = z.output<typeof sendInvitationsSchema>;
+export type SendRemindersInput = z.output<typeof sendRemindersSchema>;
 
 /** POST /api/guests/actions/* (API_DESIGN §47, §49). */
 export interface BulkEmailResultDto {
@@ -67,6 +60,10 @@ export interface RsvpSummaryDto {
   attendingInvitations: number;
   notAttendingInvitations: number;
   totalPeopleAttending: number;
+  /** Guests with an email address not yet emailed their invitation (for "Email invitations"). */
+  invitationsToEmail: number;
+  /** Guests with an email address still awaiting a reply (for "Send reminders"). */
+  remindersToEmail: number;
 }
 
 /** GET /api/public/invitations/:token (API_DESIGN §50). No ids, contacts or notes. */
@@ -85,21 +82,10 @@ export interface PublicInvitationDto {
     title: string | null;
     location: string | null;
   };
-  events: {
-    name: string;
-    startsAt: string;
-    endsAt: string | null;
-    venueName: string | null;
-    address: string | null;
-    dressCode: string | null;
-    description: string | null;
-  }[];
+  events: PublicEventDto[];
 }
 
-export interface SubmitRsvpInput {
-  status: Exclude<RsvpStatus, "PENDING">;
-  attendingCount: number;
-}
+export type SubmitRsvpInput = z.output<typeof submitRsvpSchema>;
 
 /** POST /api/public/invitations/:token/rsvp (API_DESIGN §51). */
 export interface RsvpResultDto {

@@ -29,6 +29,20 @@ export interface EventSummaryDto {
   archivedAt: string | null;
 }
 
+/**
+ * What a guest's invitation shows of an event (API_DESIGN §50): no ids, type,
+ * cover, version or archive state.
+ */
+export interface PublicEventDto {
+  name: string;
+  startsAt: string;
+  endsAt: string | null;
+  venueName: string | null;
+  address: string | null;
+  dressCode: string | null;
+  description: string | null;
+}
+
 export type ListEventsQuery = z.output<typeof listEventsQuerySchema>;
 export type CreateEventInput = z.output<typeof createEventSchema>;
 export type UpdateEventInput = z.output<typeof updateEventSchema>;

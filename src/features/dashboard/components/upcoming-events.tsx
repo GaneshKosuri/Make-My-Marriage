@@ -5,7 +5,8 @@ import { EventRow } from "@/features/events/components/event-row";
 import type { EventDto } from "@/modules/events/event.types";
 
 import { DASHBOARD, DASHBOARD_ROUTES } from "../dashboard-content";
-import { ArrowLink, DashboardCard, EmptyState, textLink } from "./dashboard-card";
+import { textLink } from "@/components/ui/button-styles";
+import { ArrowLink, DashboardCard, EmptyState } from "@/components/ui/dashboard-card";
 
 /** PRD §9.3 "Upcoming Events": the nearest ceremonies with time, venue and dress code. */
 export function UpcomingEvents({

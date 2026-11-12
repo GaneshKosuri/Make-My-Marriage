@@ -4,14 +4,17 @@ import { CheckCircle2, RefreshCw, ShieldCheck, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
-import { UserAvatar } from "@/components/layout/user-avatar";
 import { SettingsTabs } from "@/components/layout/settings-tabs";
-import { FormAlert } from "@/features/auth/components/form-controls";
+import { UserAvatar } from "@/components/layout/user-avatar";
+import { FormAlert } from "@/components/ui/form-controls";
 import {
-  DashboardCard,
-  focusRing,
+  dangerButton,
+  dangerOutlineButton,
   primaryButton,
-} from "@/features/dashboard/components/dashboard-card";
+  secondaryButton,
+} from "@/components/ui/button-styles";
+import { DashboardCard } from "@/components/ui/dashboard-card";
+import { ListSkeleton } from "@/components/ui/list-skeleton";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { formatInstant } from "@/lib/dates";
@@ -28,23 +31,10 @@ import {
   useRevokeInvitation,
 } from "../api";
 import { MEMBERS } from "../members-content";
-import { Dialog } from "./dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { InviteMemberDialog } from "./invite-member-dialog";
 
 const SHORT_DATE: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric" };
-
-const smallButton = cn(
-  "inline-flex h-11 items-center justify-center gap-1.5 rounded-full border border-sand bg-white px-4 text-label-md text-graphite hover:bg-sand disabled:opacity-60",
-  focusRing,
-);
-const dangerButton = cn(
-  smallButton,
-  "border-destructive/30 text-destructive hover:bg-destructive/5",
-);
-const confirmDangerButton = cn(
-  smallButton,
-  "border-transparent bg-destructive text-white hover:bg-destructive/90",
-);
 
 /** One message at a time: each action clears it when it starts and sets its own on success. */
 type Notify = (message: string | null) => void;
@@ -209,14 +199,14 @@ function MembersList({
     body = (
       <div role="alert" className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-body-md text-destructive">{MEMBERS.loadError.title}</p>
-        <button type="button" onClick={() => void members.refetch()} className={smallButton}>
+        <button type="button" onClick={() => void members.refetch()} className={secondaryButton}>
           <RefreshCw aria-hidden className={cn("size-4", members.isFetching && "animate-spin")} />
           {MEMBERS.loadError.retry}
         </button>
       </div>
     );
   } else if (!members.data) {
-    body = <ListSkeleton />;
+    body = <ListSkeleton rows={2} framed={false} />;
   } else {
     body = (
       <ul className="divide-y divide-sand">
@@ -261,7 +251,7 @@ function MembersList({
                               : setRole(member, "MANAGER")
                             : setRole(member, "ADMIN")
                         }
-                        className={smallButton}
+                        className={secondaryButton}
                         aria-label={`${member.role === "ADMIN" ? MEMBERS.makeManager : MEMBERS.makeAdmin}: ${member.user.name}`}
                       >
                         {member.role === "ADMIN" ? MEMBERS.makeManager : MEMBERS.makeAdmin}
@@ -270,7 +260,7 @@ function MembersList({
                         type="button"
                         disabled={busy}
                         onClick={() => setConfirming({ kind: isSelf ? "leave" : "remove", member })}
-                        className={dangerButton}
+                        className={dangerOutlineButton}
                         aria-label={
                           isSelf ? MEMBERS.leave : `${MEMBERS.remove}: ${member.user.name}`
                         }
@@ -343,13 +333,13 @@ function ConfirmDialog({
       description={content?.description}
     >
       <div className="flex flex-col-reverse gap-3 md:flex-row md:justify-end">
-        <button type="button" onClick={onCancel} className={smallButton}>
+        <button type="button" onClick={onCancel} className={secondaryButton}>
           {copy.cancel}
         </button>
         <button
           type="button"
           onClick={onConfirm}
-          className={pending?.kind === "demote-self" ? smallButton : confirmDangerButton}
+          className={pending?.kind === "demote-self" ? secondaryButton : dangerButton}
         >
           {content?.action}
         </button>
@@ -383,14 +373,18 @@ function PendingInvitations({
     body = (
       <div role="alert" className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-body-md text-destructive">{MEMBERS.loadError.title}</p>
-        <button type="button" onClick={() => void invitations.refetch()} className={smallButton}>
+        <button
+          type="button"
+          onClick={() => void invitations.refetch()}
+          className={secondaryButton}
+        >
           <RefreshCw aria-hidden className="size-4" />
           {MEMBERS.loadError.retry}
         </button>
       </div>
     );
   } else if (!invitations.data) {
-    body = <ListSkeleton rows={1} />;
+    body = <ListSkeleton rows={1} framed={false} />;
   } else if (invitations.data.length === 0) {
     body = (
       <p className="rounded-2xl border border-dashed border-sand bg-ivory px-5 py-6 text-center text-body-md text-plum">
@@ -429,7 +423,7 @@ function PendingInvitations({
                       onSuccess: () => onNotice(MEMBERS.resent(invitation.email)),
                     });
                   }}
-                  className={smallButton}
+                  className={secondaryButton}
                   aria-label={`${MEMBERS.resend}: ${invitation.email}`}
                 >
                   {resending ? MEMBERS.resending : MEMBERS.resend}
@@ -438,7 +432,7 @@ function PendingInvitations({
                   type="button"
                   disabled={busy}
                   onClick={() => setRevoking(invitation)}
-                  className={dangerButton}
+                  className={dangerOutlineButton}
                   aria-label={`${MEMBERS.revoke}: ${invitation.email}`}
                 >
                   {MEMBERS.revoke}
@@ -470,10 +464,10 @@ function PendingInvitations({
         }
       >
         <div className="flex flex-col-reverse gap-3 md:flex-row md:justify-end">
-          <button type="button" onClick={() => setRevoking(null)} className={smallButton}>
+          <button type="button" onClick={() => setRevoking(null)} className={secondaryButton}>
             {MEMBERS.confirm.cancel}
           </button>
-          <button type="button" onClick={confirmRevoke} className={confirmDangerButton}>
+          <button type="button" onClick={confirmRevoke} className={dangerButton}>
             {MEMBERS.revoke}
           </button>
         </div>
@@ -504,21 +498,5 @@ function RolePill({ role }: Readonly<{ role: MemberRole }>) {
     >
       {MEMBER_ROLE_LABELS[role]}
     </span>
-  );
-}
-
-function ListSkeleton({ rows = 2 }: Readonly<{ rows?: number }>) {
-  return (
-    <div aria-busy="true" aria-label="Loading" className="flex flex-col gap-4">
-      {Array.from({ length: rows }, (_, index) => (
-        <div key={index} className="flex animate-pulse items-center gap-3">
-          <div className="size-10 rounded-full bg-sand" />
-          <div className="flex-1 space-y-2">
-            <div className="h-3 w-40 rounded bg-sand" />
-            <div className="h-3 w-56 rounded bg-sand" />
-          </div>
-        </div>
-      ))}
-    </div>
   );
 }

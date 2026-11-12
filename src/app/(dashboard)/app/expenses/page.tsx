@@ -9,7 +9,7 @@ export default function ExpensesPage() {
     <PagePlaceholder
       title="Expenses"
       phase="Phase 4: Financial & Vendors"
-      description="Money spent or committed, by category — not a budget (PRD §9.15)."
+      description="Money spent or committed, by category — not a budget."
     />
   );
 }

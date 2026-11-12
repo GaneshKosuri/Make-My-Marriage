@@ -5,14 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 
+import { FormAlert, primaryButtonClass, secondaryButtonClass } from "@/components/ui/form-controls";
 import { errorCode, useLogout } from "@/features/auth/api";
 import { AUTH_ROUTES, GENERIC_ERROR } from "@/features/auth/auth-content";
 import { AuthCard, AuthShell } from "@/features/auth/components/auth-shell";
-import {
-  FormAlert,
-  primaryButtonClass,
-  secondaryButtonClass,
-} from "@/features/auth/components/form-controls";
 import { coupleDisplayName } from "@/lib/couple";
 import { formatDateOnly } from "@/lib/dates";
 import { normalizeEmail } from "@/lib/email";

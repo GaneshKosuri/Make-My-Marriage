@@ -6,7 +6,8 @@ import { ok, route } from "@/server/http";
  *
  * Vercel Cron calls with GET and `Authorization: Bearer <CRON_SECRET>`, so both
  * GET and POST are exported and both require the secret (binding decision 9).
- * Until Phase 3 the worker reports `{ claimed: 0, sent: 0, failed: 0 }`.
+ * Bulk sends also start the worker right after queueing (decided 2026-11-12);
+ * this daily run is the safety net.
  */
 const processEmailJobs = route({
   auth: "internal",

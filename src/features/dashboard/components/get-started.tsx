@@ -6,7 +6,7 @@ import type { DashboardDto } from "@/modules/dashboard/dashboard.types";
 import type { MemberRole } from "@/modules/members/member.constants";
 
 import { DASHBOARD, DASHBOARD_ROUTES } from "../dashboard-content";
-import { focusRing, primaryButton } from "./dashboard-card";
+import { focusRing, primaryButton } from "@/components/ui/button-styles";
 
 interface Step {
   key: string;
@@ -37,7 +37,7 @@ export function gettingStartedSteps(summary: DashboardDto["summary"], role: Memb
       key: "guests",
       ...steps.guests,
       done: summary.guests > 0,
-      action: { label: steps.guests.action, href: DASHBOARD_ROUTES.guests },
+      action: { label: steps.guests.action, href: DASHBOARD_ROUTES.addGuest },
     },
     {
       key: "member",

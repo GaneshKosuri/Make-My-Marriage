@@ -11,41 +11,35 @@ import {
   Pencil,
   RefreshCw,
   Shirt,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
 import {
-  DashboardCard,
-  focusRing,
+  dangerButton,
   primaryButton,
+  secondaryButton,
   textLink,
-} from "@/features/dashboard/components/dashboard-card";
-import { Dialog } from "@/features/members/components/dialog";
+} from "@/components/ui/button-styles";
+import { DashboardCard } from "@/components/ui/dashboard-card";
+import { Dialog } from "@/components/ui/dialog";
+import { useGuests } from "@/features/guests/api";
 import { EventTasks } from "@/features/tasks/components/event-tasks";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { formatInstant, type DateOnly } from "@/lib/dates";
+import { eventSchedule, mapsSearchUrl } from "@/lib/schedule";
 import { EVENT_TYPE_LABELS } from "@/modules/events/event.constants";
 import type { EventDto } from "@/modules/events/event.types";
 
 import { useArchiveEvent, useEvent } from "../api";
 import { EVENTS, EVENTS_ROUTES } from "../events-content";
-import { eventSchedule, mapsSearchUrl } from "../format";
 import { EventFormDialog } from "./event-form-dialog";
 
 const DETAIL = EVENTS.detail;
 const LONG_DATE: Intl.DateTimeFormatOptions = { day: "numeric", month: "long", year: "numeric" };
-
-const secondaryButton = cn(
-  "inline-flex h-11 items-center justify-center gap-2 rounded-full border border-sand bg-white px-5 text-label-md text-graphite hover:bg-sand disabled:opacity-60",
-  focusRing,
-);
-const dangerButton = cn(
-  secondaryButton,
-  "border-transparent bg-destructive text-white hover:bg-destructive/90",
-);
 
 export interface EventDetailScreenProps {
   eventId: string;
@@ -255,6 +249,7 @@ function EventDetail({
         title={DETAIL.confirmArchive.title(event.name)}
         description={DETAIL.confirmArchive.description}
       >
+        <InvitedGuestsWarning eventId={event.id} eventName={event.name} />
         {archive.isError && (
           <p role="alert" className="mb-4 text-body-md text-destructive">
             {DETAIL.confirmArchive.error}
@@ -281,6 +276,26 @@ function EventDetail({
         </div>
       </Dialog>
     </>
+  );
+}
+
+/**
+ * Archiving takes the event off every invited guest's invitation page at once
+ * (decided 2026-11-12): say how many guests that is (PRD §14). Fetched only
+ * while the confirmation is open; says nothing when no one is invited.
+ */
+function InvitedGuestsWarning({
+  eventId,
+  eventName,
+}: Readonly<{ eventId: string; eventName: string }>) {
+  const guests = useGuests({ eventId, limit: 1 });
+  const invited = guests.data?.pagination.total ?? 0;
+  if (invited === 0) return null;
+  return (
+    <p className="mb-4 flex gap-2 rounded-xl bg-gold/10 p-3 text-body-md text-graphite">
+      <Users aria-hidden className="mt-0.5 size-4 shrink-0 text-gold-deep" />
+      {DETAIL.confirmArchive.invitedGuests(invited, eventName)}
+    </p>
   );
 }
 

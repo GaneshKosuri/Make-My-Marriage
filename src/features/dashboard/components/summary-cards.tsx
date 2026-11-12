@@ -7,7 +7,7 @@ import { formatINR } from "@/lib/money";
 import type { DashboardDto } from "@/modules/dashboard/dashboard.types";
 
 import { DASHBOARD, DASHBOARD_ROUTES } from "../dashboard-content";
-import { focusRing } from "./dashboard-card";
+import { focusRing } from "@/components/ui/button-styles";
 
 /** The six numbers from PRD §9.3. Each card links to the page behind it. */
 export function SummaryCards({ summary }: Readonly<{ summary: DashboardDto["summary"] }>) {

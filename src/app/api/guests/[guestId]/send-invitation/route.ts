@@ -1,15 +1,16 @@
-import { notImplemented, route } from "@/server/http";
+import { policies, route, success } from "@/server/http";
+import { guestsService } from "@/modules/guests";
 import { guestIdParams } from "@/modules/guests/guest.schemas";
 
-/**
- * /api/guests/[guestId]/send-invitation — stub (POST API §46).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 3: Guests.
- */
+/** /api/guests/[guestId]/send-invitation (POST API §46). */
 
-/** POST — API §46. */
+/** POST — API §46: emails the guest's invitation now (or again) and records when. */
 export const POST = route({
   auth: "member",
   params: guestIdParams,
-  // Phase 3: Guests: await guestsService.sendInvitation(ctx, params.guestId); return success()
-  handler: () => notImplemented("Phase 3: Guests"),
+  rateLimit: policies.guestEmailSend,
+  handler: async ({ ctx, params }) => {
+    await guestsService.sendInvitation(ctx, params.guestId);
+    return success();
+  },
 });

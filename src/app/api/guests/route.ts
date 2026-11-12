@@ -1,20 +1,22 @@
-import { notImplemented, route } from "@/server/http";
+import { created, paginated, route } from "@/server/http";
+import { guestsService } from "@/modules/guests";
+import { createGuestSchema, listGuestsQuerySchema } from "@/modules/guests/guest.schemas";
 
-/**
- * /api/guests — stub (GET API §39, POST API §40).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 3: Guests.
- */
+/** /api/guests (GET API §39, POST API §40). */
 
-/** GET — API §39. */
+/** GET — API §39: page, search and filters. */
 export const GET = route({
   auth: "member",
-  // Phase 3: Guests: paginated(...(await guestsService.list(ctx, query)))
-  handler: () => notImplemented("Phase 3: Guests"),
+  query: listGuestsQuerySchema,
+  handler: async ({ ctx, query }) => {
+    const { items, pagination } = await guestsService.list(ctx, query);
+    return paginated(items, pagination);
+  },
 });
 
 /** POST — API §40. */
 export const POST = route({
   auth: "member",
-  // Phase 3: Guests: created(await guestsService.create(ctx, body))
-  handler: () => notImplemented("Phase 3: Guests"),
+  body: createGuestSchema,
+  handler: async ({ ctx, body }) => created(await guestsService.create(ctx, body)),
 });

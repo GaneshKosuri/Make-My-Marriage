@@ -14,12 +14,15 @@ export interface InvitationShareMessageInput {
   invitationUrl: string;
 }
 
-/** Placeholder copy; final wording arrives with the Phase 3 sharing UI. */
+/**
+ * The message a family sends with a guest's link: a greeting by name, the
+ * couple, and where to see the invitation and reply.
+ */
 export function buildInvitationShareMessage({
   coupleNames,
   guestName,
   invitationUrl,
 }: InvitationShareMessageInput): string {
   const greeting = guestName ? `Dear ${guestName},\n\n` : "";
-  return `${greeting}${coupleNames} would love for you to celebrate their wedding with them.\n\nView your invitation and RSVP here: ${invitationUrl}`;
+  return `${greeting}${coupleNames} would love for you to celebrate their wedding with them.\n\nPlease see your invitation and let us know if you can come: ${invitationUrl}`;
 }

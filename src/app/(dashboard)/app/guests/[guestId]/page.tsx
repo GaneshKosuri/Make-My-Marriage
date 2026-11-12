@@ -1,15 +1,34 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
-import { PagePlaceholder } from "@/components/layout/page-placeholder";
+import { GuestDetailScreen } from "@/features/guests/components/guest-detail-screen";
+import { coupleDisplayName } from "@/lib/couple";
+import { getCurrentContext } from "@/server/auth";
 
 export const metadata: Metadata = { title: "Guest" };
 
-export default function GuestDetailPage() {
+/** /app/guests/[guestId] (PRD §9.7–9.11): one guest, with edit and delete. */
+export default function GuestDetailPage({ params }: PageProps<"/app/guests/[guestId]">) {
   return (
-    <PagePlaceholder
-      title="Guest"
-      phase="Phase 3: Guests"
-      description="Guest details, invited events, invitation link and RSVP (PRD §9.7–9.11)."
+    <Suspense fallback={null}>
+      <GuestDetail params={params} />
+    </Suspense>
+  );
+}
+
+async function GuestDetail({ params }: Pick<PageProps<"/app/guests/[guestId]">, "params">) {
+  // Memoised per request: the layout's guard made the same call.
+  const [current, { guestId }] = await Promise.all([getCurrentContext(), params]);
+  if (!current?.wedding) return null;
+  return (
+    <GuestDetailScreen
+      guestId={guestId}
+      timeZone={current.wedding.timeZone}
+      // Names, never the custom title: the message reads "Akshay & Princi would love for you…".
+      coupleName={coupleDisplayName({
+        brideName: current.wedding.brideName,
+        groomName: current.wedding.groomName,
+      })}
     />
   );
 }

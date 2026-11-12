@@ -1,6 +1,8 @@
 import "server-only";
 
 import { identityPorts } from "@/modules/auth";
+import { configureGuestEmails } from "@/modules/email-jobs";
+import { guestEmailPort } from "@/modules/guests";
 import { configureIdentity } from "@/server/auth/identity";
 
 /**
@@ -17,5 +19,6 @@ let registered = false;
 export function registerServerDependencies(): void {
   if (registered) return;
   configureIdentity(identityPorts);
+  configureGuestEmails(guestEmailPort);
   registered = true;
 }

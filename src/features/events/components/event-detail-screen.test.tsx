@@ -215,6 +215,37 @@ describe("<EventDetailScreen />", () => {
     expect(calls.some((call) => call.method === "DELETE" && call.url === URL)).toBe(true);
   });
 
+  it("warns that the event leaves invited guests' invitations", async () => {
+    routes["GET /api/guests?eventId=e1&limit=1"] = () => ({
+      status: 200,
+      body: { data: [], pagination: { page: 1, limit: 1, total: 12, totalPages: 12 } },
+    });
+    renderScreen();
+
+    fireEvent.click(await screen.findByRole("button", { name: DETAIL.archive }));
+    expect(
+      await dialog().findByText(
+        "12 guests are invited to Sangeet. It will disappear from their invitations.",
+      ),
+    ).toBeInTheDocument();
+    expect(dialog().getByText(DETAIL.confirmArchive.description)).toBeInTheDocument();
+  });
+
+  it("says nothing about invitations when no guest is invited", async () => {
+    routes["GET /api/guests?eventId=e1&limit=1"] = () => ({
+      status: 200,
+      body: { data: [], pagination: { page: 1, limit: 1, total: 0, totalPages: 0 } },
+    });
+    renderScreen();
+
+    fireEvent.click(await screen.findByRole("button", { name: DETAIL.archive }));
+    expect(dialog().getByText(DETAIL.confirmArchive.description)).toBeInTheDocument();
+    await vi.waitFor(() =>
+      expect(calls.some((call) => call.url.startsWith("/api/guests?"))).toBe(true),
+    );
+    expect(dialog().queryByText(/disappear from their invitations/)).not.toBeInTheDocument();
+  });
+
   it("keeps archived events read-only", async () => {
     routes[`GET ${URL}`] = () => data({ ...sangeet, archivedAt: "2026-11-01T06:30:00.000Z" });
     renderScreen();

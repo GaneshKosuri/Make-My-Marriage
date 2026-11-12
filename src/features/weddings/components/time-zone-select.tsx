@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import type { UseFormRegisterReturn } from "react-hook-form";
 
-import { SelectField } from "@/features/auth/components/form-controls";
+import { SelectField } from "@/components/ui/form-controls";
 
 import { CREATE_WEDDING, TIME_ZONE_LABELS, timeZoneLabel } from "../create-wedding-content";
 

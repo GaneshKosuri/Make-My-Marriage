@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { eventSchedule, mapsSearchUrl } from "./format";
+import { eventSchedule, mapsSearchUrl } from "./schedule";
 
 const TZ = "Asia/Kolkata";
 

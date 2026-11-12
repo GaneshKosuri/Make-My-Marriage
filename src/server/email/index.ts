@@ -25,6 +25,7 @@ export type {
   PasswordResetEmailProps,
   RsvpReminderEmailProps,
 } from "./templates";
+export { EmailQuotaError, isEmailQuotaError } from "./types";
 export type { EmailDeliveryResult, RenderedEmail } from "./types";
 
 const FALLBACK_FROM = "Make My Marriage <noreply@localhost>";

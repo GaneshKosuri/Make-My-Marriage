@@ -1,7 +1,7 @@
-import { formatShortDate, isOverdue, taskDueDay } from "@/features/dashboard/format";
 import { cn } from "@/lib/cn";
 import { initialsOf } from "@/lib/couple";
 import type { DateOnly } from "@/lib/dates";
+import { formatShortDate, isOverdue, taskDueDay } from "@/lib/schedule";
 import {
   TASK_PRIORITY_LABELS,
   TASK_STATUS_LABELS,

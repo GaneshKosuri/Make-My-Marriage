@@ -1,15 +1,13 @@
-import { notImplemented, route } from "@/server/http";
+import { ok, route } from "@/server/http";
+import { guestsService } from "@/modules/guests";
 import { guestIdParams } from "@/modules/guests/guest.schemas";
 
-/**
- * /api/guests/[guestId]/invitation-link — stub (GET API §45).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 3: Guests.
- */
+/** /api/guests/[guestId]/invitation-link (GET API §45). */
 
-/** GET — API §45. */
+/** GET — API §45: the guest's stable invitation URL, for copying and sharing. */
 export const GET = route({
   auth: "member",
   params: guestIdParams,
-  // Phase 3: Guests: ok(await guestsService.getInvitationLink(ctx, params.guestId))
-  handler: () => notImplemented("Phase 3: Guests"),
+  handler: async ({ ctx, params }) =>
+    ok(await guestsService.getInvitationLink(ctx, params.guestId)),
 });

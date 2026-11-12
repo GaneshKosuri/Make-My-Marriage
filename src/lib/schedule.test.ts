@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { eventDateTile, eventTimeRange, formatShortDate, isOverdue, taskDueDay } from "./format";
+import { eventDateTile, eventTimeRange, formatShortDate, isOverdue, taskDueDay } from "./schedule";
 
 const IST = "Asia/Kolkata";
 

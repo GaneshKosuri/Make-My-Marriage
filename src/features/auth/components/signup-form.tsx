@@ -11,7 +11,7 @@ import { signupSchema } from "@/modules/auth/auth.schemas";
 import { applyFieldErrors, errorCode, useSignup } from "../api";
 import { AUTH_ROUTES, GENERIC_ERROR, SIGN_UP } from "../auth-content";
 import { AuthCard } from "./auth-shell";
-import { FormAlert, PasswordField, SubmitButton, TextField } from "./form-controls";
+import { FormAlert, PasswordField, SubmitButton, TextField } from "@/components/ui/form-controls";
 import { PasswordStrengthMeter } from "./password-strength-meter";
 
 const linkClass =

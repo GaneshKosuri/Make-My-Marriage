@@ -1,13 +1,10 @@
-import { notImplemented, route } from "@/server/http";
+import { ok, route } from "@/server/http";
+import { guestsService } from "@/modules/guests";
 
-/**
- * /api/guests/rsvp-summary — stub (GET API §52).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 3: Guests.
- */
+/** /api/guests/rsvp-summary (GET API §52): invitations by RSVP status and people coming. */
 
 /** GET — API §52. */
 export const GET = route({
   auth: "member",
-  // Phase 3: Guests: ok(await guestsService.getRsvpSummary(ctx))
-  handler: () => notImplemented("Phase 3: Guests"),
+  handler: async ({ ctx }) => ok(await guestsService.getRsvpSummary(ctx)),
 });

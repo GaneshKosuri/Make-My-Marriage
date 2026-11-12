@@ -1,0 +1,265 @@
+/**
+ * Copy for the guest screens (PRD §9.7–9.8, §9.11). Kept in one place so the
+ * screens and their tests agree. Styled like the dashboard (decided 2026-11-12).
+ */
+import type { RsvpStatus } from "@/modules/guests/guest.constants";
+
+/** URL parameters /app/guests understands (dashboard and "+" links use them). */
+export const GUESTS_PARAMS = {
+  search: "search",
+  rsvpStatus: "rsvpStatus",
+  eventId: "eventId",
+  invitationSent: "invitationSent",
+  /** Opens the add form straight away. */
+  add: "new",
+} as const;
+
+export const GUESTS_ROUTES = {
+  list: "/app/guests",
+  add: `/app/guests?${GUESTS_PARAMS.add}=1`,
+  guest: (guestId: string) => `/app/guests/${guestId}`,
+  rsvp: "/app/guests/rsvp",
+  /** The RSVP page opened on one status. */
+  rsvpFor: (status: RsvpStatus) => `/app/guests/rsvp?status=${status}`,
+} as const;
+
+/** "Sent" / "Not sent" filter values, as the address carries them. */
+export const INVITATION_SENT_OPTIONS = ["true", "false"] as const;
+
+export const GUESTS = {
+  eyebrow: "Guests",
+  title: "Guest List",
+  description: "One entry per invitation: a person, a couple or a whole family.",
+  add: "Add guest",
+  summary: {
+    label: "Guest list at a glance",
+    invitations: "Invitations",
+    attending: "People coming",
+    pending: "Awaiting reply",
+    rsvpLink: "RSVP status",
+  },
+  search: { label: "Search guests", placeholder: "Name, email or phone" },
+  filters: {
+    label: "Filters",
+    /** The phone toggle, with how many filters are on. */
+    toggle: (active: number) => (active > 0 ? `Filters (${active})` : "Filters"),
+    rsvp: "RSVP",
+    anyRsvp: "Any reply",
+    event: "Event",
+    anyEvent: "Any event",
+    invitation: "Invitation",
+    anyInvitation: "Sent or not",
+    sent: "Sent",
+    notSent: "Not sent",
+    clear: "Clear filters",
+  },
+  count: (from: number, to: number, total: number) =>
+    total === 0 ? "No guests" : `${from}–${to} of ${total}`,
+  previous: "Previous",
+  next: "Next",
+  partySize: (count: number) => (count === 1 ? "1 person" : `Up to ${count}`),
+  noEvents: "No events chosen yet",
+  archivedEvent: (name: string) => `${name} (archived)`,
+  open: (name: string) => `Open ${name}`,
+  edit: (name: string) => `Edit ${name}`,
+  empty: {
+    title: "No guests yet",
+    description:
+      "Add each invitation once, with how many people it covers and which events they're invited to.",
+    action: "Add your first guest",
+  },
+  noMatches: {
+    title: "No guests match",
+    description: "Try another search or filter, or clear them to see everyone.",
+  },
+  loadError: { title: "We couldn't load your guests.", retry: "Try again" },
+  form: {
+    addTitle: "Add guest",
+    editTitle: "Edit guest",
+    fields: {
+      name: { label: "Name", placeholder: "e.g. Rajesh Sharma or The Sharma family" },
+      maxGuests: {
+        label: "People invited",
+        hint: "Everyone this invitation covers, including the person named. They can reply for up to this many.",
+        decrease: "One fewer person",
+        increase: "One more person",
+      },
+      email: { label: "Email", placeholder: "name@example.com" },
+      phone: { label: "Phone", placeholder: "+91 98765 43210" },
+      events: {
+        label: "Invited to",
+        hint: "Their invitation will show only these events.",
+        all: "Select all",
+        none: "Clear all",
+        noEvents: "Add your events first; you can invite this guest to them later.",
+      },
+      notes: { label: "Notes", placeholder: "Relation, dietary needs, anything to remember" },
+    },
+    optionsError: "We couldn't load the wedding's events for this form.",
+    optionsRetry: "Try again",
+    cancel: "Cancel",
+    save: "Save guest",
+    saving: "Saving…",
+    delete: "Delete guest",
+    confirmDelete: {
+      prompt: "Delete this guest? Their invitation link stops working. This can't be undone.",
+      confirm: "Yes, delete",
+      cancel: "Keep",
+    },
+    added: (name: string) => `${name} added.`,
+    updated: (name: string) => `${name} saved.`,
+    deleted: (name: string) => `${name} deleted.`,
+    conflict: {
+      title: "This guest changed while you were editing",
+      description:
+        "Someone else saved changes, or the guest replied. Reload to see the latest, then make your changes again.",
+      action: "Reload guest",
+    },
+    gone: {
+      title: "This guest no longer exists",
+      description: "Someone may have deleted them. Close this form to see the latest.",
+    },
+    error: {
+      title: "We couldn't save the guest",
+      description: "Check your connection and try again.",
+    },
+  },
+  detail: {
+    back: "Guest List",
+    eyebrow: "Guest",
+    edit: "Edit",
+    delete: "Delete",
+    rsvp: "RSVP",
+    invitation: "Invitation",
+    contact: "Contact",
+    notes: "Notes",
+    partySize: (count: number) =>
+      count === 1 ? "Invited: 1 person" : `Invited: up to ${count} people`,
+    rsvpUpdated: (when: string) => `Replied ${when}`,
+    noReply: "No reply yet. Share their invitation link below.",
+    events: "Events",
+    noEventsInvited: "Not invited to any events yet.",
+    noContact: "No email or phone number.",
+    notFound: {
+      title: "Guest not found",
+      description: "This guest may have been deleted, or the link is wrong.",
+    },
+    confirmDelete: {
+      title: (name: string) => `Delete ${name}?`,
+      description:
+        "Their invitation link stops working and their RSVP is removed. This can't be undone.",
+      cancel: "Keep guest",
+      confirm: "Delete guest",
+      error: "We couldn't delete the guest. Try again.",
+    },
+  },
+  email: {
+    title: "By email",
+    send: "Email invitation",
+    resend: "Email again",
+    remind: "Send RSVP reminder",
+    sending: "Sending…",
+    sent: (when: string) => `Invitation emailed ${when}.`,
+    notSent: "Invitation not emailed yet.",
+    reminded: (count: number, when: string) =>
+      count === 1 ? `Reminder sent ${when}.` : `${count} reminders sent, the last ${when}.`,
+    noEmail: "Add an email address to send the invitation by email.",
+    addEmail: "Add email",
+    done: { invitation: "Invitation emailed.", reminder: "Reminder sent." },
+    error: "We couldn't send the email. Try again.",
+    rateLimited: "You've sent a lot of emails this hour. Please try again later.",
+  },
+  bulk: {
+    invitations: {
+      button: (count: number) =>
+        count === 1 ? "Email 1 invitation" : `Email ${count} invitations`,
+      title: "Email invitations?",
+      description: (count: number) =>
+        `${count === 1 ? "1 guest with an email address hasn't" : `${count} guests with an email address haven't`} been sent their invitation yet. Each gets their own link. Guests without an email address are skipped.`,
+      confirm: "Send invitations",
+      progress: (sent: number, total: number) => `Emailing invitations: ${sent} of ${total} sent`,
+      done: (sent: number) =>
+        sent === 1 ? "1 invitation emailed." : `${sent} invitations emailed.`,
+      alreadySending: "These invitations are already being sent.",
+    },
+    reminders: {
+      button: (count: number) => (count === 1 ? "Remind 1 guest" : `Remind ${count} guests`),
+      title: "Send RSVP reminders?",
+      description: (count: number) =>
+        `${count === 1 ? "1 guest with an email address hasn't" : `${count} guests with an email address haven't`} replied yet. Each gets a short reminder with their link.`,
+      confirm: "Send reminders",
+      progress: (sent: number, total: number) => `Sending reminders: ${sent} of ${total} sent`,
+      done: (sent: number) => (sent === 1 ? "1 reminder sent." : `${sent} reminders sent.`),
+      alreadySending: "These reminders are already being sent.",
+    },
+    cancel: "Not now",
+    working: "Starting…",
+    background: "You can leave this page; sending carries on.",
+    skipped: (count: number) =>
+      count === 1
+        ? "1 was skipped (deleted, or already replied)."
+        : `${count} were skipped (deleted, or already replied).`,
+    failed: (count: number) => (count === 1 ? "1 couldn't be sent." : `${count} couldn't be sent.`),
+    retry: "Try again",
+    waiting:
+      "Some emails are waiting: the email account may have reached its daily limit. They'll go out later.",
+    error: "We couldn't start sending. Try again.",
+    rateLimited: "You've started a lot of sends this hour. Please try again later.",
+    statusError: "We couldn't check on these emails. Any that were queued still go out.",
+    close: "OK",
+    dismiss: "Dismiss",
+  },
+  share: {
+    title: "Invitation link",
+    description:
+      "Their own link: it shows only their events, and they reply there. No account needed.",
+    whatsApp: "Share on WhatsApp",
+    copy: "Copy link",
+    copied: "Copied",
+    copiedStatus: "Invitation link copied.",
+    copyByHand: "Copy the link from here:",
+    open: "Open invitation",
+    hint: "Sharing the link doesn't mark the invitation as emailed.",
+    error: "We couldn't load the invitation link.",
+  },
+  rsvp: {
+    eyebrow: "Guests",
+    title: "RSVP",
+    description: "Who has replied, who is coming and who still needs a nudge.",
+    stats: {
+      peopleComing: "People coming",
+      attending: "Attending",
+      notAttending: "Not attending",
+      pending: "Awaiting reply",
+      invitations: (count: number) => (count === 1 ? "1 invitation" : `${count} invitations`),
+      unit: (count: number) => (count === 1 ? "invitation" : "invitations"),
+    },
+    tabs: {
+      label: "Show guests",
+    },
+    empty: {
+      PENDING: "Everyone has replied.",
+      ATTENDING: "No one has said yes yet.",
+      NOT_ATTENDING: "No one has declined.",
+    } satisfies Record<RsvpStatus, string>,
+    noGuests: {
+      title: "No guests yet",
+      description: "Add guests, and their replies will show here.",
+      action: "Add guests",
+    },
+  },
+} as const;
+
+/** What a guest's reply is called on these screens. */
+export const RSVP_LABELS: Readonly<Record<RsvpStatus, string>> = {
+  PENDING: "Awaiting reply",
+  ATTENDING: "Attending",
+  NOT_ATTENDING: "Not attending",
+};
+
+/** Short RSVP labels for pills ("Attending · 3"). */
+export function rsvpLabel(status: RsvpStatus, attendingCount: number | null): string {
+  return status === "ATTENDING"
+    ? `${RSVP_LABELS.ATTENDING} · ${attendingCount ?? 0}`
+    : RSVP_LABELS[status];
+}

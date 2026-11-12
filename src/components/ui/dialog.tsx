@@ -5,7 +5,7 @@ import { useEffect, useId, useRef, type ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
 
-import { focusRing } from "@/features/dashboard/components/dashboard-card";
+import { focusRing } from "@/components/ui/button-styles";
 
 /**
  * A modal panel in the dashboard style: a bottom sheet on phones, a centred

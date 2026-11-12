@@ -42,7 +42,7 @@ export const QUICK_ADD_ITEMS: readonly {
   {
     label: "Add guest",
     hint: "A guest or a family, with how many can come",
-    href: "/app/guests",
+    href: "/app/guests?new=1",
     icon: UserPlus,
   },
   { label: "Add expense", hint: "Record money spent", href: "/app/expenses", icon: Receipt },

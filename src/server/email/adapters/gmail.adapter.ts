@@ -2,7 +2,7 @@ import "server-only";
 
 import nodemailer from "nodemailer";
 
-import type { EmailAdapter } from "../types";
+import { EmailQuotaError, type EmailAdapter } from "../types";
 
 export class GmailDeliveryError extends Error {
   override readonly name = "GmailDeliveryError";
@@ -13,6 +13,16 @@ interface SmtpError {
   code?: string;
   responseCode?: number;
   response?: string;
+}
+
+/**
+ * Gmail's sending limits: "550 5.4.5 Daily user sending limit exceeded", and
+ * 421/452/454 replies asking the client to slow down or come back later.
+ */
+export function isGmailQuotaRefusal(error: unknown): boolean {
+  const { responseCode, response } = (error ?? {}) as SmtpError;
+  if (response && /5\.4\.5|sending (limit|quota)|rate limit/i.test(response)) return true;
+  return responseCode === 421 || responseCode === 452 || responseCode === 454;
 }
 
 function describe(error: unknown): string {
@@ -49,6 +59,7 @@ export function createGmailAdapter({
         const info = await transport.sendMail({ from, to, subject, html, text });
         return { providerMessageId: info.messageId ?? null };
       } catch (error) {
+        if (isGmailQuotaRefusal(error)) throw new EmailQuotaError(describe(error));
         throw new GmailDeliveryError(describe(error));
       }
     },

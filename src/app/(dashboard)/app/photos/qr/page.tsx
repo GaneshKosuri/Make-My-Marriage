@@ -9,7 +9,7 @@ export default function PhotosQrPage() {
     <PagePlaceholder
       title="QR Code"
       phase="Phase 6: Memories"
-      description="A printable QR code that opens the guest gallery (PRD §9.23)."
+      description="A printable QR code that opens the guest gallery."
     />
   );
 }

@@ -19,7 +19,7 @@ import {
   SubmitButton,
   TextAreaField,
   TextField,
-} from "@/features/auth/components/form-controls";
+} from "@/components/ui/form-controls";
 import { coupleDisplayName } from "@/lib/couple";
 import { dateOnlyInTimeZone } from "@/lib/dates";
 import { DEFAULT_COUNTRY, DEFAULT_TIME_ZONE } from "@/modules/weddings/wedding.constants";

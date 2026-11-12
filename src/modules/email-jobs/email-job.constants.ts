@@ -10,12 +10,24 @@ export type EmailJobType = (typeof EMAIL_JOB_TYPES)[number];
 export const EMAIL_JOB_STATUSES = ["PENDING", "PROCESSING", "SENT", "FAILED", "CANCELLED"] as const;
 export type EmailJobStatus = (typeof EMAIL_JOB_STATUSES)[number];
 
+/** Jobs that will still be sent: a guest has at most one of each type (unique index). */
+export const ACTIVE_EMAIL_JOB_STATUSES = [
+  "PENDING",
+  "PROCESSING",
+] as const satisfies readonly EmailJobStatus[];
+
 /** Attempt 1 immediately, attempt 2 after 5 min, attempt 3 after 30 min, then FAILED (DATABASE_DESIGN §74). */
 export const EMAIL_JOB_MAX_ATTEMPTS = 3;
 export const EMAIL_JOB_RETRY_DELAYS_MINUTES = [0, 5, 30] as const;
 
 /** PROCESSING jobs locked longer than this are reclaimed (DATABASE_DESIGN §73: 10–15 min). */
 export const EMAIL_JOB_STALE_LOCK_MINUTES = 15;
+
+/**
+ * When the provider says a sending limit is reached (Gmail's ~500 a day), the
+ * job waits this long and keeps its attempts (decided 2026-11-12).
+ */
+export const EMAIL_JOB_QUOTA_RETRY_MINUTES = 60;
 
 /** Batch ids are 16 random bytes, base64url (22 chars). */
 export const EMAIL_BATCH_ID_PATTERN = /^[A-Za-z0-9_-]{22}$/;

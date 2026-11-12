@@ -290,15 +290,37 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
   },
 
   // ── Guests (API §39–49, §52) ───────────────────────────────────────────────
-  { method: "GET", path: "/api/guests", auth: "member", phase: P3, doc: "API §39" },
-  { method: "POST", path: "/api/guests", auth: "member", phase: P3, doc: "API §40" },
-  { method: "GET", path: "/api/guests/rsvp-summary", auth: "member", phase: P3, doc: "API §52" },
+  {
+    method: "GET",
+    path: "/api/guests",
+    auth: "member",
+    phase: P3,
+    doc: "API §39",
+    implemented: true,
+  },
+  {
+    method: "POST",
+    path: "/api/guests",
+    auth: "member",
+    phase: P3,
+    doc: "API §40",
+    implemented: true,
+  },
+  {
+    method: "GET",
+    path: "/api/guests/rsvp-summary",
+    auth: "member",
+    phase: P3,
+    doc: "API §52",
+    implemented: true,
+  },
   {
     method: "POST",
     path: "/api/guests/actions/send-invitations",
     auth: "member",
     phase: P3,
     doc: "API §47",
+    implemented: true,
   },
   {
     method: "POST",
@@ -306,16 +328,39 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "member",
     phase: P3,
     doc: "API §49",
+    implemented: true,
   },
-  { method: "GET", path: "/api/guests/[guestId]", auth: "member", phase: P3, doc: "API §41" },
-  { method: "PATCH", path: "/api/guests/[guestId]", auth: "member", phase: P3, doc: "API §42" },
-  { method: "DELETE", path: "/api/guests/[guestId]", auth: "member", phase: P3, doc: "API §43" },
+  {
+    method: "GET",
+    path: "/api/guests/[guestId]",
+    auth: "member",
+    phase: P3,
+    doc: "API §41",
+    implemented: true,
+  },
+  {
+    method: "PATCH",
+    path: "/api/guests/[guestId]",
+    auth: "member",
+    phase: P3,
+    doc: "API §42",
+    implemented: true,
+  },
+  {
+    method: "DELETE",
+    path: "/api/guests/[guestId]",
+    auth: "member",
+    phase: P3,
+    doc: "API §43",
+    implemented: true,
+  },
   {
     method: "GET",
     path: "/api/guests/[guestId]/invitation-link",
     auth: "member",
     phase: P3,
     doc: "API §45",
+    implemented: true,
   },
   {
     method: "POST",
@@ -323,6 +368,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "member",
     phase: P3,
     doc: "API §46",
+    implemented: true,
   },
   {
     method: "POST",
@@ -330,6 +376,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "member",
     phase: P3,
     doc: "API §48",
+    implemented: true,
   },
 
   // ── Public guest invitation (API §50–51) ───────────────────────────────────
@@ -339,6 +386,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "public",
     phase: P3,
     doc: "API §50",
+    implemented: true,
   },
   {
     method: "POST",
@@ -346,6 +394,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "public",
     phase: P3,
     doc: "API §51",
+    implemented: true,
   },
 
   // ── Email batches + internal worker (API §85–87) ───────────────────────────
@@ -355,6 +404,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "member",
     phase: P3,
     doc: "API §85",
+    implemented: true,
   },
   {
     method: "POST",
@@ -362,6 +412,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "member",
     phase: P3,
     doc: "API §86",
+    implemented: true,
   },
   {
     method: "GET",

@@ -1,16 +1,14 @@
-import { notImplemented, route, tokenParams } from "@/server/http";
+import { ok, policies, route, tokenParams } from "@/server/http";
+import { invitationService } from "@/modules/guests";
 
-/**
- * /api/public/invitations/[token] — stub (GET API §50).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 3: Guests.
- */
+/** /api/public/invitations/[token] (GET API §50). */
 
-/** GET — API §50. */
+/** GET — API §50: what /invite/[token] shows; unusable links are NOT_FOUND. */
 export const GET = route({
   auth: "public",
   params: tokenParams,
   invalidParams: "NOT_FOUND",
-  // Phase 3: Guests: rateLimit: policies.publicInvitationView
-  // Phase 3: Guests: ok(await invitationService.getPublicInvitation(ctx, params.token))
-  handler: () => notImplemented("Phase 3: Guests"),
+  rateLimit: policies.publicInvitationView,
+  handler: async ({ ctx, params }) =>
+    ok(await invitationService.getPublicInvitation(ctx, params.token)),
 });

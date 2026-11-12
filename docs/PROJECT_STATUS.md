@@ -1,8 +1,8 @@
 # Project Status — Make My Marriage
 
-**Last updated:** 2026-11-04
-**Current phase:** Phase 2 — Planning (PRD §16): complete and QA-verified (4 Nov, 256/257 checks; the one P3 fixed); Phase 1 complete and QA-verified (3 Nov)
-**Next up:** Phase 3 — Guests (guests, invitations, RSVP, email jobs), starting with the R8/R9 clean-ups. Open decision: D7 (time zone change and event clock times)
+**Last updated:** 2026-11-12
+**Current phase:** Phase 3 — Guests (PRD §16): all features built (slices 0–4, 12 Nov), code review fixes P1–P8 and QA fixes done (12 Nov), awaiting the QA re-test of bulk email; Phases 1 and 2 complete and QA-verified
+**Next up:** Phase 3 QA re-test of bulk email (M10–M16, Q6), then Phase 4 — Financial and Vendors. Open decision: D7 (time zone change and event clock times)
 
 This file tracks what has been built and what comes next. Update it whenever a feature lands or new
 work starts: move items between the tables, add a row to the change log and refresh the header.
@@ -48,15 +48,15 @@ Status key: ✅ Done · 🚧 In progress · ⏳ Not started (scaffold stub only)
 | Events | ✅ | API (2026-11-04): list (start-time order, archived hidden unless asked, `from`/`to` window), create, get, partial edit with version check, archive. Screens (dashboard style, desktop + mobile): `/app/events` with upcoming, past and archived-on-request lists, an add/edit dialog with occasion shortcuts and wall-clock times in the wedding's time zone (an end before the start is the next day); `/app/events/[id]` with when and where, Google Maps link, dress code, notes, edit (reload on conflict) and archive with confirmation. Dashboard and "+" links open the add form (`?new=1`). Cover images wait for Phase 5 uploads |
 | Tasks | ✅ | API (2026-11-04): paged list (newest first) with status, priority, event, assignee, `none` and `mine` filters; create, get, partial edit with version check, hard delete; assignee and event checked against the wedding; server-owned `completedAt`. Screen (dashboard style, desktop + mobile): `/app/tasks` with All / My / Completed views, filters by status, event, assignee and priority (kept in the address), a tick to complete or reopen, overdue flags, "Former member" and archived-event labels, pages of 20, add/edit dialog (assignee, event, due day in the wedding's time zone, priority, status, notes) with reload on conflict and delete with confirmation. Event pages list their tasks with "Add task" linked to the event. Dashboard, checklist and "+" links open the add form |
 
-### Phase 3 — Guests ⏳
+### Phase 3 — Guests ✅
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| Guest management | ⏳ | |
-| Invitations | ⏳ | |
-| RSVP | ⏳ | |
-| Email (jobs + cron worker) | ⏳ | Cron endpoint is live; sending flows are not |
-| WhatsApp sharing | ⏳ | |
+| Guest management | ✅ | API (2026-11-12): paged list in name order (ignoring case) with literal search on name, email and phone and RSVP, event and invitation-sent filters; create with a stable 32-byte invitation token that responses never contain; get; partial edit with version check that keeps RSVP and token and refuses a party size below the people already coming; hard delete that cancels the guest's pending emails; RSVP summary (invitations vs people). Screens (2026-11-12, dashboard style, desktop + mobile): `/app/guests` with a summary strip, search (as you type) and RSVP, event and invitation filters kept in the address (behind a "Filters" button on phones), pages of 20, rows with party size, reply, contacts and invited events; add/edit sheet with a party-size stepper and event checkboxes (archived events it already has stay listed), reload on conflict and delete with confirmation; `/app/guests/[id]` with reply, contacts, invited events, notes, edit and delete. Dashboard checklist and "+" open the add form (`?new=1`) |
+| Invitations | ✅ | Links and sharing (2026-11-12): every guest has a stable link (`GET /api/guests/:id/invitation-link`, built from `NEXT_PUBLIC_APP_URL`); the guest page offers Share on WhatsApp (a `wa.me` link with a ready message), Copy link (with a copy-by-hand fallback) and Open invitation. `/invite/[token]` shows the couple, date and place, a welcome by name, the party size and only the guest's active invited events (time, venue, Google Maps, dress code, notes). Email (2026-11-12): each guest's page emails the invitation (again if needed) and RSVP reminders, showing when they went out; the guest list emails everyone not yet invited, the RSVP page reminds everyone awaiting a reply |
+| RSVP | ✅ | Organiser side (2026-11-12): `/app/guests/rsvp` leads with people coming, then invitations attending, awaiting reply and not attending, with the guests under each (`?status=`). Guest side (2026-11-12): on `/invite/[token]`, yes/no and a head-count up to the party size (one button per number up to 10, a stepper above), a thank-you, and "Change reply" through the same link. `POST /api/public/invitations/:token/rsvp` checks the link and party size first (`GUEST_LIMIT_EXCEEDED`), then 20 replies per invitation per 15 minutes and 300 a minute overall, then writes atomically (`PARTY_SIZE_CHANGED` / `CONFLICT`); the same reply twice changes nothing |
+| Email (jobs + cron worker) | ✅ | 2026-11-12: single sends go out in the request (`POST /api/guests/:id/send-invitation`, `/send-reminder`); bulk sends (`/api/guests/actions/send-invitations`, `/send-reminders`) queue one email job per guest under a batch and start the worker after the response. The worker claims jobs atomically, rebuilds each email from the guest as they are now (deleted guests, missing addresses and guests who replied are cancelled), retries after 5 and 30 minutes, then FAILED; a provider's sending limit waits an hour without spending an attempt. Batch progress (`GET /api/email-batches/:id`, polled every 3 s) and "Try again" (`POST …/retry-failed`). The daily cron is the safety net |
+| WhatsApp sharing | ✅ | 2026-11-12: Share on WhatsApp on each guest's page opens WhatsApp with a greeting by name, the couple's names and the invitation link; no WhatsApp API (PRD §9.14) |
 
 ### Phase 4 — Financial and Vendors ⏳
 
@@ -96,6 +96,10 @@ monitoring.
 - **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** still lists the six auth endpoints as
   "501 stub". That file is outside the editable set; `tests/architecture/api-inventory.ts` marks them
   `implemented: true`.
+- **New unique index on `email_jobs`** (`weddingId_guestId_type_active_unique`, 12 Nov): Mongoose
+  builds it at start-up. A database that already holds two PENDING/PROCESSING jobs of the same kind
+  for one guest can't build it until one is cancelled; check the dev and production databases once
+  after deploying.
 - **Per-email limit on forgot-password.** Only a per-IP limit exists today, so one IP can send up to
   5 reset emails per 15 minutes to the same address. Revisit if abuse appears.
 - **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** also lists the eight member endpoints as
@@ -116,8 +120,6 @@ monitoring.
   Gmail, Resend, console is used. The server logs "Email transport selected" with the adapter on its
   first email. Not for production or guest invitations at scale (Phase 3): get a
   domain and verify it in Resend before launch.
-- **Mongoose security advisories (11 Nov).** `npm audit` reports high-severity advisories for
-  mongoose 9.0.0–9.11.3 (fix available via `npm audit fix`). Upgrade and rerun the full suite.
 - **Restart `next dev` after this change.** The identity ports are registered once at startup, so a
   running dev server keeps showing the header without the wedding's place until it restarts.
 - **Dashboard links lead to placeholders.** Every card, "+ Add" item and checklist step links to the
@@ -143,7 +145,8 @@ monitoring.
   `googlePlaceId`. Harmless today (nothing sets them); merge or resend those fields when the place picker
   is built. Found in the 2026-10-29 code review.
 - **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** also still lists the five event and five task
-  endpoints as "501 stub"; the inventory marks them implemented.
+  endpoints, and the six guest endpoints of 12 Nov (list, create, get, update, delete, RSVP summary), as
+  "501 stub"; the inventory marks them implemented.
 - **Event cover images (Phase 5).** PRD §9.5 lists a cover image; `POST /api/events/:id/cover/upload-url`
   stays a stub until uploads land with the website and covers work.
 - **Endpoint table in `docs/CODEBASE_ARCHITECTURE.md` §14** does not list
@@ -154,7 +157,10 @@ monitoring.
 - **Sign-in page flash (accepted).** Signed-in visitors of /login and /signup briefly see the form
   before the redirect (the check runs inside `<Suspense>`). Cosmetic; left as is.
 - **Watch list (seen once, not reproduced):** `POST /api/auth/logout` answered 500 once on 17 Oct right
-  after creating a wedding; the integration suite failed once on a cold first run. Capture the stack
+  after creating a wedding; the integration suite failed once on a cold first run. On 12 Nov "creates exactly one wedding when the same user submits twice at once"
+  (`tests/integration/create-wedding.test.ts`) failed once in a full run while a build and the dev server
+  were busy, then passed 4 runs in a row; if it recurs, log which statuses came back (a transaction
+  write conflict surfacing as 500 instead of 409 is the likely cause). Capture the stack
   trace / check the in-memory MongoDB start-up timeout if either recurs. Close stray `localhost:3000`
   tabs when testing: one reloading /login twice a second flooded the dev log on 3 Nov.
 - **Decision needed: changing the wedding's time zone (QA D7, 4 Nov).** Events and due dates keep their
@@ -171,31 +177,21 @@ monitoring.
   production to start; their services throw in production when the keys are missing (instead of
   silently using the fakes). Add them in Vercel before shipping vendor discovery (Phase 4), covers
   (Phase 5) and the gallery (Phase 6).
-- **Email job schedule (11 Nov).** Vercel Hobby refused the deploy with the 5-minute cron (`*/5 * * * *`):
-  Hobby allows daily cron jobs only. `vercel.json` now runs `/api/internal/jobs/email` daily at
-  02:30 UTC (08:00 IST), which is fine while the worker has nothing to send. **Before Phase 3's bulk
-  guest email**, choose how it runs more often: Vercel Pro (restore `*/5 * * * *`), an external
-  scheduler (e.g. GitHub Actions or cron-job.org) calling `GET /api/internal/jobs/email` with
-  `Authorization: Bearer <CRON_SECRET>`, or processing a batch right after jobs are queued (`after()`)
-  with the daily cron as a safety net.
-- **Phase 3 start: shared form pieces (code review R8).** `SaveProblem` (event and task forms), the
-  list skeletons and the `secondaryButton` / `dangerButton` class strings are copied across the events
-  and tasks screens. Move the buttons next to `primaryButton` in `dashboard-card.tsx` (or a shared
-  button module), make one `SaveProblem` that takes its copy as props and one list skeleton, before
-  guests copies them again.
-- **Phase 3 start: shared UI in other features (code review R9).** Events and tasks import `Dialog` from
-  `features/members` and `isOverdue`, `eventTimeRange`, `formatShortDate`, `taskDueDay` from
-  `features/dashboard/format.ts`. Move `Dialog` (and its test) to `src/components/` and the formatters
-  to `src/lib/`; no behaviour change.
+- **Email job schedule (11 Nov; decided 12 Nov).** Vercel Hobby allows daily crons only, so
+  `vercel.json` runs `/api/internal/jobs/email` daily at 02:30 UTC (08:00 IST). Phase 3 processes a
+  batch right after bulk jobs are queued (`after()`), with the daily cron as the safety net (see
+  Decisions). If batches back up, add a free external scheduler (e.g. GitHub Actions every 10
+  minutes) calling `GET /api/internal/jobs/email` with `Authorization: Bearer <CRON_SECRET>`, or move
+  to Vercel Pro and restore `*/5 * * * *`.
 - **Legal pages.** Privacy policy and terms are needed before production. Until they exist, the home
   footer, the auth footer and the sign-up form leave out the "Privacy · Terms" links and the
   "By continuing you agree…" line shown in the designs.
-
-- **Placeholder pages show developer text** (mobile QA, outside its scope): Guests, Expenses,
-  Vendors, Photos, Website and Livestream read "(PRD §9.7–9.14)" and "Placeholder · Phase 3: Guests".
-  Replace with a plain "Coming soon" message, or as each phase ships.
 - **Signed-in mobile overflow is not in E2E yet.** `tests/e2e/mobile-overflow.spec.ts` covers the
   public pages only; add the app pages once E2E has a seeded test account.
+- **Dev-tool advisories (12 Nov).** After the mongoose upgrade, production dependencies audit clean.
+  `npm audit` still lists `follow-redirects` 1.16.0–1.16.1 (high; `npm audit fix`) and `minimatch`
+  inside `@typescript-eslint` (moderate; the suggested fix downgrades `eslint-config-next` to 15, so
+  wait for a typescript-eslint release). Both are development tooling only.
 
 ## 4. Decisions
 
@@ -243,6 +239,13 @@ monitoring.
 | 2026-11-11 | Emails share one branded layout (`src/server/email/templates/layout.ts`) in the app's palette: wordmark header (text, no images: Gmail blocks SVG and a localhost logo can't load), gold-topped card, serif heading, details panel, burgundy table-cell button with the plain link underneath. Table layout and inline styles only, system serif instead of web fonts; every email keeps a plain-text version |
 | 2026-11-11 | `EMAIL_PROVIDER` (gmail, resend or console) switches the email sender; the chosen sender's settings are checked at startup. Unset, Gmail is used when configured, then Resend, then the console. Production may send through Gmail instead of Resend (RESEND_API_KEY is then not required) but never through the console |
 | 2026-11-11 | Email can go out through a personal Gmail (Google app password, nodemailer over Gmail SMTP) when there is no verified domain for Resend. Gmail wins over Resend while configured; the From line uses the Gmail address with EMAIL_FROM's display name. nodemailer 10.2.1 pinned (7.x and ≤10.1.3 have advisories); it is fenced like the Resend SDK (`src/server/email/adapters` only) |
+| 2026-11-12 | Phase 3 code review decisions: (P6, product owner) reminders, single and bulk, go only to guests whose invitation was emailed and who haven't replied, so no one's first email is a reminder; `remindersToEmail` counts the same guests and a single reminder to a never-emailed guest is a `VALIDATION_ERROR` on `invitationSentAt`. (P1) `invitationsToEmail` / `remindersToEmail` leave out guests whose email of that kind is already queued; a bulk send that queues nothing says "already being sent" instead of opening a progress panel, and a panel whose batch can't be read stops checking and can be closed. (P4) After an email goes out the worker records it on the guest, then marks the job SENT; if recording fails, a warning is logged and the job is still SENT, never retried (a lost record can at worst re-offer that guest in the next "Email N invitations"). Recording first means a finished batch always shows on the guest list. (P5) A partial unique index allows one PENDING/PROCESSING job per guest and kind, so racing bulk sends can't queue a guest twice; "Try again" cancels a failed job whose guest has since had the same email queued or sent. (P7) Progress checks refresh guest lists only when more emails are done, and slow to every 15 s once the panel says emails are waiting. (P3) Archiving an event says how many invited guests will no longer see it |
+| 2026-11-12 | Guest email rules: one invitation or reminder is sent in the request; bulk sends queue jobs and the worker runs right after the response (up to 45 s per run) and again on each progress check while emails are waiting, with the daily cron as the safety net. A guest who already has the same kind of email waiting isn't queued twice. Each email is built when it is sent, so it uses the guest's current address and is skipped (CANCELLED) if the guest was deleted, lost their address or (for a reminder) replied. A provider's sending limit (Gmail 5.4.5 / 421 / 452 / 454, Resend rate or quota errors → `EmailQuotaError`) waits an hour without spending an attempt; other failures retry after 5 and 30 minutes, then FAILED. Recording a delivery doesn't change the guest's version, so an open edit form isn't made stale. The RSVP summary gains `invitationsToEmail` and `remindersToEmail` (guests with an address), which the bulk buttons show. Placeholder rate limits: 60 single sends and 10 bulk sends per wedding per hour. The email-jobs module reaches guests through a port (`configureGuestEmails`, registered in `src/composition-root.ts`) because guests already depends on email-jobs |
+| 2026-11-12 | Invitation and RSVP rules: the invitation page reads names, never the custom title, for the couple ("Akshay & Princi"), and so does the WhatsApp message; the title shows under the names when it differs. The place is city and state. Events on an invitation are the guest's active ones in start order; archiving an event removes it from invitations at once. A reply above the party size is `GUEST_LIMIT_EXCEEDED` before any rate limit is spent; a party size lowered between the guest's read and write is `PARTY_SIZE_CHANGED`. The page keeps the guest's unsent answer after a failure, refreshes when the guest returns to the tab and when another tab saves a reply. Copying or sharing a link never marks the invitation as sent. The home page's Guests badge is live; "email invitations with RSVP reminders" stays Coming soon until slice 4. Event schedule and Maps helpers moved to `src/lib/schedule.ts` so the guest-facing page doesn't import the events feature |
+| 2026-11-12 | Guest screens: one guest is one invitation, so rows show the party size ("Up to 4") and the reply ("Attending · 3"); the summary strip and RSVP page count invitations separately from people coming (API_DESIGN §52). Search runs 300 ms after typing stops. On phones the filters sit behind a "Filters (n)" button. The home page's Guests badge ("guest lists and RSVPs") stays "Coming soon" until guests can reply (slice 3) |
+| 2026-11-12 | Guest API rules beyond API_DESIGN §39–43: email is stored as typed and lowercased separately for search; blank or null email, phone and notes clear them; duplicate event ids are dropped; the list orders names ignoring case (collation `en`, strength 2). A party size below the people already coming is a `VALIDATION_ERROR` on `maxGuests` ("They said 3 people are coming. Allow at least 3."); an RSVP that lands between an organiser's read and save makes the save a `CONFLICT`, so the form reloads and sees the new attendance. `DELETE /api/guests/:id` answers `{ success: true }` like tasks and cancels the guest's PENDING email jobs; one already being sent is left to finish |
+| 2026-11-12 | Phase 3 plan (product owner approved): five slices: 0 clean-ups, 1 Guests API, 2 guest screens, 3 invitation link + public invitation + RSVP + WhatsApp, 4 email invitations and reminders. Bulk email jobs are processed right after they are queued (`after()`), with the daily Vercel cron as the safety net. A provider refusing more mail (Gmail's ~500 a day) puts the job back for a later attempt instead of failing it; a verified Resend domain is needed before launch. Guest screens and the invitation page are designed in code in the dashboard style (no Stitch designs exist for them) |
+| 2026-11-12 | Shared UI lives in `src/components/ui`: `button-styles.ts` (`focusRing`, `textLink`, `primaryButton`, `secondaryButton`, `dangerOutlineButton`, `dangerButton`), `dashboard-card.tsx` (`DashboardCard`, `ArrowLink`, `EmptyState`), `dialog.tsx`, `form-controls.tsx`, `save-problem.tsx` (takes its copy as props) and `list-skeleton.tsx`. Schedule formatters (`eventTimeRange`, `eventDateTile`, `taskDueDay`, `formatShortDate`, `isOverdue`) live in `src/lib/schedule.ts`. Features no longer import each other's components (code review R8/R9) |
 | 2026-11-11 | Mobile layout rules (QA hand-off qa-mobile-320-360): pages must not scroll sideways at 320 px. Any user-entered text (names, emails, titles, venues, notes) gets `min-w-0` on its flex/grid chain plus `wrap-anywhere`; grids start from `grid-cols-1`. Small text links and icon buttons reach 44 px with the `tap-target` utility (an invisible hit area) or `size-11`. Confirmations stack on phones with the destructive action on top. Bottom sheets cap at 85dvh, scroll inside and keep their action bar above the home indicator. Task and event titles are auto-growing one-row textareas (`TitleField`): Enter submits and pasted line breaks become spaces. Readable text is at least 12 px; phone selects use 16 px so iOS doesn't zoom |
 | 2026-11-04 | Events list: upcoming (including events still running) in date order, past most recent first, archived only on request. Times show in the wedding's time zone, named on the page |
 
@@ -281,3 +284,10 @@ monitoring.
 | 2026-11-11 | Themed date, date-range and time fields replace every native date/time input (Create Wedding, Wedding Details, event and task forms): calendar popover with Today/Clear and min dates, typed segments, 15-minute time list. Fixed `@/lib/dates` for years below 100 (seen while typing a year). Unit test timeout 15 s for component tests. 10 new tests |
 | 2026-11-11 | Date/time field code review D1–D9: past wedding dates stay valid in Wedding Details; the Dialog's Tab trap leaves keys a popover already handled; re-picking the current time closes the list and an empty list focuses 6 PM; date ranges keep typed years and are all-or-nothing; Today always uses the wedding's day (required `today`, task form gets it from its screens); wedding date calendars cap at 5 years; page scrollbar gutter reserved; the time list scrolls itself (the popover blocks scrollIntoView in browsers). The sign-up/forgot-password smoke test waits for the page to settle before clicking (it failed intermittently under a full parallel run). 7 new tests, each failing before its fix |
 | 2026-11-11 | Mobile QA fixes M1–M22 at 320/360 px (handoffs/qa-mobile-320-360.md): dashboard and home hero no longer overflow; long names, emails and titles wrap (dialogs, alerts, members, events, tasks, join page); one-column event date/time and task filters on the narrowest phones; sheets scroll inside with safe-area action bars; task delete confirmation in the sheet's footer; "+" hidden on Settings and the page leaves room for it; 44 px targets for links, the show-password, calendar and nav buttons; date popover scrolls when cut short; event chips truncate; the revoke dialog is a short title with the email in its text; dashboard hero buttons stack; phone header shows first names ("Sai & Venkata"); settings tabs are two equal columns; join tabs "New account" / "Sign in"; event venues wrap to two lines; one stacked confirmation pattern; 12 px minimum text; scrollbars hidden in sheets on touch screens; auto-growing title fields and a "Password" placeholder. New Playwright guard rail: no sideways scroll on public pages at 320/360 (`tests/e2e/mobile-overflow.spec.ts`); 5 new unit tests |
+| 2026-11-12 | Phase 3 slice 0: shared buttons, card, dialog, form controls, `SaveProblem` and list skeleton moved to `src/components/ui`, schedule formatters to `src/lib/schedule.ts` (R8/R9); secondary buttons are 44 px everywhere; placeholder pages say "Coming soon" without PRD references; mongoose 9.11.1 → 9.11.4 (four high-severity advisories) |
+| 2026-11-12 | Guests API (Phase 3, slice 1): list, create, get, update and delete (API §39–43) and the RSVP summary (API §52); deleting a guest cancels its pending email jobs. 43 integration tests and a new critical security test (deleting another wedding's guest → 404) |
+| 2026-11-12 | Guest screens (Phase 3, slice 2): `/app/guests` list with summary, search, filters and pages; add/edit sheet (party-size stepper, event checkboxes, reload on conflict, delete); `/app/guests/[id]` guest page; `/app/guests/rsvp` replies page; dashboard checklist and "+" open the add form. Shared `dangerButton` now used by the task form. Checked at 320 px and desktop. 22 new unit and component tests |
+| 2026-11-12 | Invitation links and RSVP (Phase 3, slice 3): `GET /api/guests/:id/invitation-link`, `GET /api/public/invitations/:token`, `POST /api/public/invitations/:token/rsvp` (API §45, §50–51); "Invitation link" card with Share on WhatsApp, Copy link and Open; `/invite/[token]` guest page with RSVP, not-found and unavailable states; guest shell in the brand palette; home page Guests badge live. 19 integration tests, the two remaining guest critical security tests (a token can't expose another guest; a guest can't exceed the party size), 10 component tests. Checked at 320 px and desktop |
+| 2026-11-12 | Email invitations and reminders (Phase 3, slice 4): API §46–49 and §85–87 (single and bulk sends, batch status, retry failed, the worker); `EmailQuotaError` for Gmail and Resend sending limits; "By email" card on the guest page, "Email N invitations" on the guest list, "Remind N guests" on the RSVP page, each with a confirmation and live progress; home page email invitations badge live. 20 integration tests, 9 unit and component tests. Phase 3 features complete |
+| 2026-11-12 | Phase 3 code review fixes P1–P8: empty bulk send no longer opens a stuck panel, and unreadable batches stop polling; cross-tab RSVP refresh fixed (the message shape didn't match the listener) and an open form shows the other tab's reply; archive dialog warns how many invited guests lose the event; a failed delivery record no longer counts as a failed send; active email jobs unique per guest and kind, and "Try again" skips superseded jobs; reminders only for guests emailed their invitation (P6); progress polling refreshes lists only on change; shared `sendGuestEmail`, `formatDateTime` and `coupleDisplayName` used for the duplicated code. 16 new tests, each failing before its fix (the parallel-send test can pass by timing; the index test covers it) |
+| 2026-11-12 | Phase 3 QA fixes: (P1-1) bulk emails were queued but never sent, and the cron answered 500: the guest-email port lived in module state, which `src/instrumentation.ts` filled in a different server bundle from the route handlers; it now lives on `globalThis` like the identity ports, with a test that loads the module twice. Checked in `next dev` on a local database with the console sender: a bulk send reached "3 invitations emailed.", bulk reminders 4 of 4, the cron 200. (P2-1) a progress panel whose check is paused offline says it can't check and resumes when back online; a bulk send started offline fails at once. (P3-1) the hourly email limits get their own message instead of "Try again". (P3-2) a guest's events are listed by date. (P3-3) a save problem (e.g. the conflict banner) is scrolled into view and focused, in every edit form. P3-4 not reproduced (the guest list never puts the page in the address); P3-5 already has a 44 px hit area through `tap-target`. 6 new tests and 1 updated (events by date) |

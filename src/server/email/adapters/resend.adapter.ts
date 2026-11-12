@@ -2,7 +2,7 @@ import "server-only";
 
 import { Resend } from "resend";
 
-import type { EmailAdapter } from "../types";
+import { EmailQuotaError, type EmailAdapter } from "../types";
 
 export class ResendDeliveryError extends Error {
   override readonly name = "ResendDeliveryError";
@@ -18,7 +18,12 @@ export function createResendAdapter(apiKey: string): EmailAdapter {
         { from, to, subject, html, text },
         idempotencyKey ? { idempotencyKey } : undefined,
       );
-      if (error) throw new ResendDeliveryError(`${error.name}: ${error.message}`);
+      if (error) {
+        const description = `${error.name}: ${error.message}`;
+        // Too many requests, or the plan's daily or monthly quota used up.
+        if (/rate_limit|quota/i.test(error.name)) throw new EmailQuotaError(description);
+        throw new ResendDeliveryError(description);
+      }
       return { providerMessageId: data?.id ?? null };
     },
   };

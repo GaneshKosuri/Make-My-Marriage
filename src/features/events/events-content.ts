@@ -93,6 +93,9 @@ export const EVENTS = {
       title: (name: string) => `Archive ${name}?`,
       description:
         "It leaves your plans and the dashboard. Tasks and guests linked to it keep the link. This can't be undone yet.",
+      /** PRD §14: warn before an action that changes guests' invitations. */
+      invitedGuests: (count: number, name: string) =>
+        `${count === 1 ? "1 guest is" : `${count} guests are`} invited to ${name}. It will disappear from their invitations.`,
       confirm: "Archive event",
       cancel: "Keep event",
       error: "We couldn't archive the event. Try again.",

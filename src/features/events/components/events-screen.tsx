@@ -4,11 +4,9 @@ import { CalendarPlus, CheckCircle2, Plus, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
-import {
-  DashboardCard,
-  focusRing,
-  primaryButton,
-} from "@/features/dashboard/components/dashboard-card";
+import { focusRing, primaryButton, secondaryButton } from "@/components/ui/button-styles";
+import { DashboardCard } from "@/components/ui/dashboard-card";
+import { ListSkeleton } from "@/components/ui/list-skeleton";
 import { timeZoneLabel } from "@/features/weddings/create-wedding-content";
 import { cn } from "@/lib/cn";
 import type { DateOnly } from "@/lib/dates";
@@ -22,11 +20,6 @@ import { EventRow } from "./event-row";
 
 /** Occasions offered as one-tap starts when there are no events yet. */
 const SUGGESTED: readonly EventType[] = ["MEHENDI", "HALDI", "SANGEET", "WEDDING", "RECEPTION"];
-
-const secondaryButton = cn(
-  "inline-flex h-10 items-center justify-center gap-2 rounded-full border border-sand bg-white px-4 text-label-md text-graphite hover:bg-sand",
-  focusRing,
-);
 
 export interface EventsScreenProps {
   timeZone: string;
@@ -102,7 +95,7 @@ export function EventsScreen({
       </div>
     );
   } else {
-    body = <ListSkeleton />;
+    body = <ListSkeleton heading leading="tile" />;
   }
 
   return (
@@ -263,27 +256,6 @@ function EmptyEvents({ onAdd }: Readonly<{ onAdd: (type?: EventType) => void }>)
           </li>
         ))}
       </ul>
-    </div>
-  );
-}
-
-function ListSkeleton() {
-  return (
-    <div
-      aria-busy="true"
-      aria-label="Loading"
-      className="animate-pulse rounded-3xl border border-sand bg-white p-5 md:p-7"
-    >
-      <div className="h-5 w-32 rounded bg-sand" />
-      {[0, 1, 2].map((row) => (
-        <div key={row} className="mt-5 flex gap-4">
-          <div className="h-16 w-14 rounded-xl bg-sand" />
-          <div className="flex-1 space-y-2 pt-1">
-            <div className="h-4 w-40 rounded bg-sand" />
-            <div className="h-3 w-56 rounded bg-sand" />
-          </div>
-        </div>
-      ))}
     </div>
   );
 }
