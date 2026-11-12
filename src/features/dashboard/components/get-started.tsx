@@ -37,7 +37,7 @@ export function gettingStartedSteps(summary: DashboardDto["summary"], role: Memb
       key: "guests",
       ...steps.guests,
       done: summary.guests > 0,
-      action: { label: steps.guests.action, href: DASHBOARD_ROUTES.guests },
+      action: { label: steps.guests.action, href: DASHBOARD_ROUTES.addGuest },
     },
     {
       key: "member",

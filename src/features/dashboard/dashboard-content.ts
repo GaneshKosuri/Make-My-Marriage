@@ -13,6 +13,8 @@ export const DASHBOARD_ROUTES = {
   addTask: "/app/tasks?new=1",
   myTasks: "/app/tasks?mine=true",
   guests: "/app/guests",
+  /** Opens the add form straight away (see features/guests/guests-content.ts). */
+  addGuest: "/app/guests?new=1",
   rsvp: "/app/guests/rsvp",
   expenses: "/app/expenses",
   vendors: "/app/vendors",

@@ -5,12 +5,16 @@ import { RefreshCw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
+import {
+  dangerButton,
+  focusRing,
+  primaryButton,
+  secondaryButton,
+} from "@/components/ui/button-styles";
 import { DateField } from "@/components/ui/date-time-fields";
-import { SaveProblem } from "@/components/ui/save-problem";
-
-import { OptionalTag, SelectField, TextAreaField, TitleField } from "@/components/ui/form-controls";
-import { focusRing, primaryButton, secondaryButton } from "@/components/ui/button-styles";
 import { Dialog } from "@/components/ui/dialog";
+import { OptionalTag, SelectField, TextAreaField, TitleField } from "@/components/ui/form-controls";
+import { SaveProblem } from "@/components/ui/save-problem";
 import { useEvents } from "@/features/events/api";
 import { useMembers } from "@/features/members/api";
 import { timeZoneLabel } from "@/features/weddings/create-wedding-content";
@@ -337,10 +341,7 @@ function TaskForm({
               autoFocus
               disabled={remove.isPending}
               onClick={() => remove.mutate(task.id, { onSuccess: () => onDeleted(task) })}
-              className={cn(
-                secondaryButton,
-                "border-transparent bg-destructive text-white hover:bg-destructive/90",
-              )}
+              className={dangerButton}
             >
               {FORM.confirmDelete.confirm}
             </button>
