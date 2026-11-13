@@ -36,7 +36,10 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       data-scroll-behavior="smooth"
       className={`${manrope.variable} ${playfair.variable}`}
     >
-      <body className="min-h-dvh antialiased">
+      {/* Browser extensions (Grammarly and others) add attributes to <body> before React
+          loads. This ignores attribute differences on <body> itself only; mismatches in
+          the page inside are still reported. */}
+      <body className="min-h-dvh antialiased" suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>
