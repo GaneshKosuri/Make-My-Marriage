@@ -11,6 +11,12 @@ import { typeDate } from "@/components/ui/date-time-fields.test-helpers";
 
 import { TASKS } from "../tasks-content";
 import { TasksScreen, type TasksScreenProps } from "./tasks-screen";
+import {
+  chooseOption,
+  selectedOption,
+  selectTrigger,
+} from "@/components/ui/select-field.test-helpers";
+import userEvent from "@testing-library/user-event";
 
 /** The address's query string, as `useSearchParams` reports it. */
 let search = "";
@@ -196,7 +202,9 @@ describe("<TasksScreen />", () => {
     expect(await screen.findByRole("region", { name: TASKS.views.mine })).toBeInTheDocument();
     expect(window.location.search).toBe("?view=mine");
     // My tasks has no "Assigned to" filter.
-    expect(screen.queryByLabelText(TASKS.filters.assignee)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(TASKS.filters.assignee, { selector: "span" }),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: TASKS.views.completed }));
     expect(await screen.findByText(TASKS.empty.completed.title)).toBeInTheDocument();
@@ -207,7 +215,7 @@ describe("<TasksScreen />", () => {
     renderScreen();
     await screen.findByRole("button", { name: 'Edit "Book the DJ"' });
 
-    fireEvent.change(screen.getByLabelText(TASKS.filters.event), { target: { value: "none" } });
+    await chooseOption(TASKS.filters.event, TASKS.filters.noEvent);
     expect(await screen.findByText(TASKS.empty.filtered.title)).toBeInTheDocument();
     expect(window.location.search).toBe("?eventId=none");
 
@@ -226,8 +234,8 @@ describe("<TasksScreen />", () => {
     fireEvent.click(await screen.findByRole("button", { name: TASKS.add }));
     const form = within(await screen.findByRole("dialog"));
     fireEvent.change(await form.findByLabelText("Task"), { target: { value: " Book the band " } });
-    fireEvent.change(form.getByLabelText("Assigned to"), { target: { value: PRINCI } });
-    fireEvent.change(form.getByLabelText("Event"), { target: { value: SANGEET } });
+    await chooseOption("Assigned to", "Princi Rawat", form);
+    await chooseOption("Event", "Sangeet", form);
     await typeDate("Due date", "2027-01-15", form);
     fireEvent.click(form.getByRole("radio", { name: "High" }));
     fireEvent.click(form.getByRole("button", { name: TASKS.form.save }));
@@ -251,8 +259,8 @@ describe("<TasksScreen />", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: 'Edit "Book the DJ"' }));
     const form = within(await screen.findByRole("dialog"));
-    expect(await form.findByLabelText("Event")).toHaveValue(SANGEET);
-    expect(form.getByLabelText("Assigned to")).toHaveValue(PRINCI);
+    await waitFor(() => expect(selectedOption("Event", form)).toBe("Sangeet"));
+    expect(selectedOption("Assigned to", form)).toBe("Princi Rawat");
     fireEvent.click(form.getByRole("radio", { name: "Low" }));
     fireEvent.click(form.getByRole("button", { name: TASKS.form.save }));
     expect(await screen.findByText('"Book the DJ" saved.')).toBeInTheDocument();
@@ -270,9 +278,12 @@ describe("<TasksScreen />", () => {
   it("keeps a former member selectable on the task that has one", async () => {
     renderScreen();
     fireEvent.click(await screen.findByRole("button", { name: 'Edit "Order flowers"' }));
-    const assignee = await dialog().findByLabelText("Assigned to");
-    expect(assignee).toHaveValue(flowers.assignedMembershipId);
-    expect(within(assignee).getByRole("option", { name: TASKS.formerMember })).toBeInTheDocument();
+    await waitFor(() => expect(selectedOption("Assigned to", dialog())).toBe(TASKS.formerMember));
+    await userEvent.setup().click(selectTrigger("Assigned to", dialog()));
+    expect(screen.getByRole("option", { name: TASKS.formerMember })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
   });
 
   it("opens the add form for an event from ?new=1&eventId and drops the flag", async () => {
@@ -280,7 +291,7 @@ describe("<TasksScreen />", () => {
     search = `new=1&eventId=${SANGEET}`;
     renderScreen();
 
-    expect(await dialog().findByLabelText("Event")).toHaveValue(SANGEET);
+    await waitFor(() => expect(selectedOption("Event", dialog())).toBe("Sangeet"));
     await waitFor(() => expect(window.location.search).toBe(`?eventId=${SANGEET}`));
   });
 
@@ -292,7 +303,7 @@ describe("<TasksScreen />", () => {
 
     // An event's "All tasks for this event".
     navigate(`eventId=${SANGEET}`);
-    await waitFor(() => expect(screen.getByLabelText(TASKS.filters.event)).toHaveValue(SANGEET));
+    await waitFor(() => expect(selectedOption(TASKS.filters.event)).toBe("Sangeet"));
     expect(await screen.findByText("1–1 of 1")).toBeInTheDocument();
     await waitFor(() =>
       expect(calls.at(-1)?.url).toBe(`/api/tasks?page=1&limit=20&eventId=${SANGEET}`),
@@ -344,11 +355,11 @@ describe("<TasksScreen />", () => {
       TASKS.filters.assignee,
       TASKS.filters.priority,
     ]) {
-      // Browsers would add a wrapped select's value to its name ("Status Any status"),
-      // so the label must point at the select instead of containing it.
-      const label = screen.getByText(name, { selector: "label" }) as HTMLLabelElement;
-      expect(label.querySelector("select")).toBeNull();
-      expect(document.getElementById(label.htmlFor)).toBe(screen.getByRole("combobox", { name }));
+      // The label names the dropdown without wrapping it; the dropdown adds its
+      // current value ("Any status"), as React Aria's select button does.
+      const label = screen.getByText(name, { selector: "span" });
+      expect(label.querySelector("button")).toBeNull();
+      expect(selectTrigger(name).getAttribute("aria-labelledby")).toContain(label.id);
     }
   });
 });

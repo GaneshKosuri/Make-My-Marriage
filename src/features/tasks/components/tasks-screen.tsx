@@ -2,10 +2,11 @@
 
 import { Check, CheckCircle2, ListChecks, Plus, RefreshCw } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useId, useState, type ComponentProps } from "react";
+import { useEffect, useState } from "react";
 
 import { focusRing, primaryButton, secondaryButton } from "@/components/ui/button-styles";
 import { ListSkeleton } from "@/components/ui/list-skeleton";
+import { SelectField } from "@/components/ui/select-field";
 import { useEvents } from "@/features/events/api";
 import { useMembers } from "@/features/members/api";
 import { ApiError } from "@/lib/api-client";
@@ -273,59 +274,63 @@ function FilterBar({
       {/* One column on the narrowest phones, where 16 px "Any priority" no longer fits half the card. */}
       <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 md:grid-cols-4">
         {view !== "completed" && (
-          <FilterSelect
+          <SelectField
+            variant="filter"
             label={copy.status}
             value={filters.status ?? ""}
-            onChange={(event) => set("status", event.target.value)}
-          >
-            <option value="">{copy.anyStatus}</option>
-            {TASK_STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {TASK_STATUS_LABELS[status]}
-              </option>
-            ))}
-          </FilterSelect>
+            onChange={(value) => set("status", value)}
+            options={[
+              { value: "", label: copy.anyStatus },
+              ...TASK_STATUSES.map((status) => ({
+                value: status,
+                label: TASK_STATUS_LABELS[status],
+              })),
+            ]}
+          />
         )}
-        <FilterSelect
+        <SelectField
+          variant="filter"
           label={copy.event}
           value={filters.eventId ?? ""}
-          onChange={(event) => set("eventId", event.target.value)}
-        >
-          <option value="">{copy.anyEvent}</option>
-          <option value={TASK_FILTER_NONE}>{copy.noEvent}</option>
-          {events.data?.map((event) => (
-            <option key={event.id} value={event.id}>
-              {event.archivedAt ? TASKS.archivedEvent(event.name) : event.name}
-            </option>
-          ))}
-        </FilterSelect>
+          onChange={(value) => set("eventId", value)}
+          options={[
+            { value: "", label: copy.anyEvent },
+            { value: TASK_FILTER_NONE, label: copy.noEvent },
+            ...(events.data ?? []).map((event) => ({
+              value: event.id,
+              label: event.archivedAt ? TASKS.archivedEvent(event.name) : event.name,
+            })),
+          ]}
+        />
         {view !== "mine" && (
-          <FilterSelect
+          <SelectField
+            variant="filter"
             label={copy.assignee}
             value={filters.assignedMembershipId ?? ""}
-            onChange={(event) => set("assignedMembershipId", event.target.value)}
-          >
-            <option value="">{copy.anyone}</option>
-            <option value={TASK_FILTER_NONE}>{copy.unassigned}</option>
-            {members.data?.map((member) => (
-              <option key={member.membershipId} value={member.membershipId}>
-                {member.user.name}
-              </option>
-            ))}
-          </FilterSelect>
+            onChange={(value) => set("assignedMembershipId", value)}
+            options={[
+              { value: "", label: copy.anyone },
+              { value: TASK_FILTER_NONE, label: copy.unassigned },
+              ...(members.data ?? []).map((member) => ({
+                value: member.membershipId,
+                label: member.user.name,
+              })),
+            ]}
+          />
         )}
-        <FilterSelect
+        <SelectField
+          variant="filter"
           label={copy.priority}
           value={filters.priority ?? ""}
-          onChange={(event) => set("priority", event.target.value)}
-        >
-          <option value="">{copy.anyPriority}</option>
-          {TASK_PRIORITIES.map((priority) => (
-            <option key={priority} value={priority}>
-              {TASK_PRIORITY_LABELS[priority]}
-            </option>
-          ))}
-        </FilterSelect>
+          onChange={(value) => set("priority", value)}
+          options={[
+            { value: "", label: copy.anyPriority },
+            ...TASK_PRIORITIES.map((priority) => ({
+              value: priority,
+              label: TASK_PRIORITY_LABELS[priority],
+            })),
+          ]}
+        />
       </div>
       {Object.values(filters).some(Boolean) && (
         <button
@@ -340,33 +345,6 @@ function FilterBar({
         </button>
       )}
     </fieldset>
-  );
-}
-
-function FilterSelect({
-  label,
-  children,
-  ...select
-}: Readonly<{ label: string } & ComponentProps<"select">>) {
-  const id = useId();
-  return (
-    <div className="flex min-w-0 flex-col gap-1">
-      {/* Linked by id, not wrapped, so the name is just the label ("Status"). */}
-      <label htmlFor={id} className="text-label-sm text-plum">
-        {label}
-      </label>
-      <select
-        id={id}
-        className={cn(
-          // 16 px on phones: iOS Safari zooms in on focus below that (QA M13).
-          "h-11 w-full min-w-0 rounded-xl border border-sand bg-ivory px-2.5 text-[16px] text-graphite sm:text-body-md",
-          "focus-visible:border-burgundy focus-visible:ring-[3px] focus-visible:ring-burgundy/10 focus-visible:outline-none",
-        )}
-        {...select}
-      >
-        {children}
-      </select>
-    </div>
   );
 }
 

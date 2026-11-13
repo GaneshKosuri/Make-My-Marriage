@@ -12,6 +12,7 @@ import type { WeddingDto } from "@/modules/weddings/wedding.types";
 import { CREATE_WEDDING } from "../create-wedding-content";
 import { WEDDING_DETAILS } from "../wedding-details-content";
 import { WeddingDetailsScreen } from "./wedding-details-screen";
+import { selectedOption } from "@/components/ui/select-field.test-helpers";
 
 // Wedding dates must be within 5 years: next year's dates are always valid.
 const NEXT_YEAR = new Date().getUTCFullYear() + 1;
@@ -105,7 +106,7 @@ describe("<WeddingDetailsScreen />", () => {
     expect(screen.getByLabelText(FIELDS.groomName.label)).toHaveValue("Akshay");
     expect(fieldValue("weddingDate")).toBe(`${NEXT_YEAR}-02-14`);
     expect(screen.getByLabelText(FIELDS.city.label)).toHaveValue("Dehradun");
-    expect(screen.getByLabelText(FIELDS.timeZone.label)).toHaveValue("Asia/Kolkata");
+    expect(selectedOption(FIELDS.timeZone.label)).toBe("India (IST)");
     expect(screen.getByText(`/w/akshay-princi-1402${NEXT_YEAR}`)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: WEDDING_DETAILS.save })).toBeDisabled();
   });
@@ -113,7 +114,8 @@ describe("<WeddingDetailsScreen />", () => {
   it("keeps a stored time zone the picker would not list (an alias id)", async () => {
     getReply = { status: 200, body: { data: { ...wedding, timeZone: "Asia/Calcutta" } } };
     renderScreen();
-    expect(await screen.findByLabelText(FIELDS.timeZone.label)).toHaveValue("Asia/Calcutta");
+    await screen.findByLabelText(FIELDS.brideName.label);
+    await waitFor(() => expect(selectedOption(FIELDS.timeZone.label)).toBe("Asia/Calcutta"));
   });
 
   it("saves only what changed, then confirms and refreshes the header", async () => {

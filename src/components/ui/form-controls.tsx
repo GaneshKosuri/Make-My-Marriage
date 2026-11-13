@@ -188,31 +188,6 @@ export function TitleField({
   );
 }
 
-export function SelectField({
-  label,
-  error,
-  labelAside,
-  hint,
-  className,
-  children,
-  ...select
-}: Omit<FieldProps, "icon"> & ComponentProps<"select">) {
-  const id = useId();
-  return (
-    <FieldShell id={id} label={label} error={error} labelAside={labelAside} hint={hint}>
-      <select
-        id={id}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${id}-error` : undefined}
-        className={cn(inputClass, "appearance-auto pr-3", className)}
-        {...select}
-      >
-        {children}
-      </select>
-    </FieldShell>
-  );
-}
-
 /** "Optional" marker for the right side of a label row. */
 export function OptionalTag() {
   return <span className="text-body-sm text-plum">Optional</span>;

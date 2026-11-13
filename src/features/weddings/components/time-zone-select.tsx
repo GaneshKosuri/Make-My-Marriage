@@ -1,40 +1,62 @@
 "use client";
 
-import { useMemo } from "react";
-import type { UseFormRegisterReturn } from "react-hook-form";
+import { useMemo, type Ref } from "react";
 
-import { SelectField } from "@/components/ui/form-controls";
+import type { FocusableField } from "@/components/ui/aria-field-chrome";
+import { SelectField } from "@/components/ui/select-field";
 
 import { CREATE_WEDDING, TIME_ZONE_LABELS, timeZoneLabel } from "../create-wedding-content";
 
+const COPY = CREATE_WEDDING.fields.timeZone;
+
 /**
- * The wedding's IANA time zone: common zones first, then every other zone.
- * `current` is the stored zone; it is always offered, because browsers list
- * some zones under other ids (Chrome has Europe/Kiev, the server Europe/Kyiv)
- * and a missing option would show, and then save, the first zone instead.
+ * The wedding's IANA time zone: common zones first, then every other zone,
+ * with a search box (there are about 400). `current` is the stored zone; it
+ * is always offered, because browsers list some zones under other ids (Chrome
+ * has Europe/Kiev, the server Europe/Kyiv) and a missing option would show
+ * nothing, and then save nothing.
  */
 export function TimeZoneSelect({
+  value,
+  onChange,
+  onBlur,
+  name,
+  fieldRef,
   error,
-  registration,
   current,
-}: Readonly<{ error?: string; registration: UseFormRegisterReturn; current?: string }>) {
-  const zones = useMemo(() => {
+}: Readonly<{
+  value: string;
+  onChange: (value: string) => void;
+  onBlur?: () => void;
+  name?: string;
+  fieldRef?: Ref<FocusableField>;
+  error?: string;
+  current?: string;
+}>) {
+  const sections = useMemo(() => {
     const common = Object.keys(TIME_ZONE_LABELS);
-    const all = Intl.supportedValuesOf("timeZone").filter(
+    const others = Intl.supportedValuesOf("timeZone").filter(
       // Chrome lists India under its legacy id; offer only the canonical one.
       (zone) => !common.includes(zone) && zone !== "Asia/Calcutta",
     );
-    const options = [...common, ...all];
-    if (current && !options.includes(current)) options.splice(common.length, 0, current);
-    return options;
+    if (current && !common.includes(current) && !others.includes(current)) others.unshift(current);
+    const option = (zone: string) => ({ value: zone, label: timeZoneLabel(zone) });
+    return [
+      { title: COPY.common, options: common.map(option) },
+      { title: COPY.others, options: others.map(option) },
+    ];
   }, [current]);
   return (
-    <SelectField label={CREATE_WEDDING.fields.timeZone.label} error={error} {...registration}>
-      {zones.map((zone) => (
-        <option key={zone} value={zone}>
-          {timeZoneLabel(zone)}
-        </option>
-      ))}
-    </SelectField>
+    <SelectField
+      label={COPY.label}
+      error={error}
+      value={value}
+      onChange={onChange}
+      onBlur={onBlur}
+      name={name}
+      fieldRef={fieldRef}
+      options={sections}
+      search={{ label: COPY.search, noResults: COPY.noResults }}
+    />
   );
 }
