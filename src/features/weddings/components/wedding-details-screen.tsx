@@ -242,10 +242,20 @@ function DetailsForm({ wedding }: Readonly<{ wedding: WeddingDto }>) {
                 />
               )}
             />
-            <TimeZoneSelect
-              error={errors.timeZone?.message}
-              registration={form.register("timeZone")}
-              current={wedding.timeZone}
+            <Controller
+              control={form.control}
+              name="timeZone"
+              render={({ field }) => (
+                <TimeZoneSelect
+                  error={errors.timeZone?.message}
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  fieldRef={field.ref}
+                  current={wedding.timeZone}
+                />
+              )}
             />
           </div>
           <div className="grid gap-5 sm:grid-cols-2">

@@ -8,6 +8,12 @@ import { SIGN_OUT } from "@/features/auth/auth-content";
 
 import { CREATE_WEDDING } from "../create-wedding-content";
 import { CreateWeddingScreen } from "./create-wedding-screen";
+import {
+  chooseOption,
+  selectedOption,
+  selectTrigger,
+} from "@/components/ui/select-field.test-helpers";
+import userEvent from "@testing-library/user-event";
 
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, push: vi.fn() }) }));
@@ -126,13 +132,20 @@ describe("<CreateWeddingScreen />", () => {
     ).toHaveAttribute("href", "/app");
   });
 
-  it("lets the time zone be changed", () => {
+  it("lets the time zone be changed, searching the list", async () => {
     renderScreen();
     expect(screen.getByText("India (IST)")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: CREATE_WEDDING.changeTimeZone }));
-    const select = screen.getByLabelText("Time zone");
-    fireEvent.change(select, { target: { value: "Asia/Dubai" } });
-    expect(select).toHaveValue("Asia/Dubai");
+    expect(selectedOption("Time zone")).toBe("India (IST)");
+
+    const user = userEvent.setup();
+    await user.click(selectTrigger("Time zone"));
+    await user.keyboard("toronto");
+    await user.click(screen.getByRole("option", { name: "America/Toronto" }));
+    expect(selectedOption("Time zone")).toBe("America/Toronto");
+
+    await chooseOption("Time zone", "UAE (GST)");
+    expect(selectedOption("Time zone")).toBe("UAE (GST)");
   });
 
   it("points invited family members to their invitation link", () => {

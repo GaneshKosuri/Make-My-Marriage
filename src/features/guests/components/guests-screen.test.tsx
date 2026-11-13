@@ -11,6 +11,7 @@ import { GUESTS } from "../guests-content";
 import { GuestDetailScreen } from "./guest-detail-screen";
 import { GuestsScreen } from "./guests-screen";
 import { RsvpScreen } from "./rsvp-screen";
+import { chooseOption } from "@/components/ui/select-field.test-helpers";
 
 /** The address's query string, as `useSearchParams` reports it. */
 let search = "";
@@ -180,9 +181,7 @@ describe("<GuestsScreen />", () => {
     await waitFor(() => expect(list().queryByText("Meera")).not.toBeInTheDocument());
     expect(window.location.search).toBe("?search=sharma");
 
-    fireEvent.change(screen.getByLabelText(GUESTS.filters.invitation), {
-      target: { value: "false" },
-    });
+    await chooseOption(GUESTS.filters.invitation, GUESTS.filters.notSent);
     expect(await screen.findByText(GUESTS.noMatches.title)).toBeInTheDocument();
     expect(window.location.search).toBe("?search=sharma&invitationSent=false");
 

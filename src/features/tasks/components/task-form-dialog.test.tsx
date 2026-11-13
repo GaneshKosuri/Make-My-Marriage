@@ -7,6 +7,8 @@ import type { TaskDto } from "@/modules/tasks/task.types";
 
 import { TASKS } from "../tasks-content";
 import { TaskFormDialog } from "./task-form-dialog";
+import { selectedOption } from "@/components/ui/select-field.test-helpers";
+import { TASK_STATUS_LABELS } from "@/modules/tasks/task.constants";
 
 const task: TaskDto = {
   id: "t1",
@@ -112,7 +114,7 @@ describe("<TaskFormDialog />", () => {
 
     fireEvent.click(dialog().getByRole("button", { name: TASKS.form.conflict.action }));
     expect(await dialog().findByDisplayValue("Book the DJ and lights")).toBeInTheDocument();
-    expect(dialog().getByLabelText("Status")).toHaveValue("COMPLETED");
+    expect(selectedOption("Status", dialog())).toBe(TASK_STATUS_LABELS.COMPLETED);
     expect(dialog().queryByText(TASKS.form.conflict.title)).not.toBeInTheDocument();
   });
 

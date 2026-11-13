@@ -11,7 +11,7 @@
  * steps. Dates read day-first (en-IN) and times on a 12-hour clock.
  */
 import { parseDate, parseTime, Time, type CalendarDate } from "@internationalized/date";
-import { AlertCircle, CalendarDays, ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import {
   useContext,
   useEffect,
@@ -19,7 +19,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type ReactNode,
   type Ref,
 } from "react";
 import {
@@ -40,12 +39,10 @@ import {
   Group,
   Heading,
   I18nProvider,
-  Label,
   ListBox,
   ListBoxItem,
   Popover,
   RangeCalendar,
-  Text,
   TimeField as AriaTimeField,
   type CalendarCellRenderProps,
   type DateSegmentProps,
@@ -53,6 +50,16 @@ import {
 
 import { cn } from "@/lib/cn";
 import { isValidDateOnly, isValidTimeOfDay } from "@/lib/dates";
+
+import {
+  FieldLabel,
+  FieldMessage,
+  popoverSurfaceClass,
+  type FieldChromeProps,
+  type FocusableField,
+} from "./aria-field-chrome";
+
+export type { FocusableField } from "./aria-field-chrome";
 
 const LOCALE = "en-IN";
 /** The time list's step, in minutes. */
@@ -118,18 +125,12 @@ const iconButtonClass = cn("ml-auto", navButtonClass);
 
 // React Aria caps the popover's height to the space on screen; scroll within it
 // so a calendar near the bottom of a small phone keeps its last week reachable (QA M10).
-const popoverClass =
-  "overflow-y-auto overscroll-contain rounded-2xl border border-sand bg-white p-3 shadow-xl outline-none";
+const popoverClass = cn("overflow-y-auto overscroll-contain p-3", popoverSurfaceClass);
 
 const footerButtonClass = cn(
   "rounded-full px-3 py-1.5 text-label-md text-burgundy outline-none hover:bg-sand",
   "data-[focus-visible]:ring-2 data-[focus-visible]:ring-burgundy",
 );
-
-/** What a form library may do with a field: focus it (e.g. on a validation error). */
-export interface FocusableField {
-  focus: () => void;
-}
 
 /** Lets `ref.focus()` move focus to the field's first segment. */
 function useFocusHandle(ref: Ref<FocusableField> | undefined) {
@@ -156,50 +157,6 @@ function Segment({ segment }: Pick<DateSegmentProps, "segment">) {
       {text}
     </DateSegment>
   );
-}
-
-interface FieldChromeProps {
-  label: string;
-  /** e.g. React Hook Form's `field.ref`, so `setError(…, { shouldFocus: true })` works. */
-  fieldRef?: Ref<FocusableField>;
-  /** Right side of the label row, e.g. an "Optional" tag. */
-  labelAside?: ReactNode;
-  error?: string;
-  /** Shown under the field when there is no error. */
-  hint?: ReactNode;
-}
-
-function FieldLabel({ label, labelAside }: Pick<FieldChromeProps, "label" | "labelAside">) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <Label className="text-label-md text-graphite">{label}</Label>
-      {labelAside}
-    </div>
-  );
-}
-
-/**
- * The error, or else the hint, in React Aria's description slots so screen
- * readers read it with the field (like the app's other fields; not an alert).
- */
-function FieldMessage({ error, hint }: Pick<FieldChromeProps, "error" | "hint">) {
-  if (error) {
-    return (
-      <Text
-        slot="errorMessage"
-        elementType="p"
-        className="flex items-center gap-1.5 text-body-sm text-destructive"
-      >
-        <AlertCircle aria-hidden className="size-3.5 shrink-0" />
-        {error}
-      </Text>
-    );
-  }
-  return hint ? (
-    <Text slot="description" elementType="div">
-      {hint}
-    </Text>
-  ) : null;
 }
 
 function calendarCellClass(

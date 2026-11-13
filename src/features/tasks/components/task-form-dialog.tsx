@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/button-styles";
 import { DateField } from "@/components/ui/date-time-fields";
 import { Dialog } from "@/components/ui/dialog";
-import { OptionalTag, SelectField, TextAreaField, TitleField } from "@/components/ui/form-controls";
+import { OptionalTag, TextAreaField, TitleField } from "@/components/ui/form-controls";
+import { SelectField } from "@/components/ui/select-field";
 import { SaveProblem } from "@/components/ui/save-problem";
 import { useEvents } from "@/features/events/api";
 import { useMembers } from "@/features/members/api";
@@ -201,34 +202,51 @@ function TaskForm({
       />
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <SelectField
-          label={FIELDS.assignee.label}
-          error={errors.assignedMembershipId?.message}
-          {...form.register("assignedMembershipId")}
-        >
-          <option value="">{FORM.unassigned}</option>
-          {formerMember && <option value={formerMember}>{TASKS.formerMember}</option>}
-          {members.map((member) => (
-            <option key={member.membershipId} value={member.membershipId}>
-              {member.user.name}
-            </option>
-          ))}
-        </SelectField>
-        <SelectField
-          label={FIELDS.event.label}
-          error={errors.eventId?.message}
-          {...form.register("eventId")}
-        >
-          <option value="">{FORM.noEvent}</option>
-          {archivedEvent && (
-            <option value={archivedEvent.id}>{TASKS.archivedEvent(archivedEvent.name)}</option>
+        <Controller
+          control={form.control}
+          name="assignedMembershipId"
+          render={({ field }) => (
+            <SelectField
+              label={FIELDS.assignee.label}
+              error={errors.assignedMembershipId?.message}
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              name={field.name}
+              fieldRef={field.ref}
+              options={[
+                { value: "", label: FORM.unassigned },
+                ...(formerMember ? [{ value: formerMember, label: TASKS.formerMember }] : []),
+                ...members.map((member) => ({
+                  value: member.membershipId,
+                  label: member.user.name,
+                })),
+              ]}
+            />
           )}
-          {events.map((event) => (
-            <option key={event.id} value={event.id}>
-              {event.name}
-            </option>
-          ))}
-        </SelectField>
+        />
+        <Controller
+          control={form.control}
+          name="eventId"
+          render={({ field }) => (
+            <SelectField
+              label={FIELDS.event.label}
+              error={errors.eventId?.message}
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              name={field.name}
+              fieldRef={field.ref}
+              options={[
+                { value: "", label: FORM.noEvent },
+                ...(archivedEvent
+                  ? [{ value: archivedEvent.id, label: TASKS.archivedEvent(archivedEvent.name) }]
+                  : []),
+                ...events.map((event) => ({ value: event.id, label: event.name })),
+              ]}
+            />
+          )}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -255,17 +273,25 @@ function TaskForm({
             />
           )}
         />
-        <SelectField
-          label={FIELDS.status.label}
-          error={errors.status?.message}
-          {...form.register("status")}
-        >
-          {TASK_STATUSES.map((status) => (
-            <option key={status} value={status}>
-              {TASK_STATUS_LABELS[status]}
-            </option>
-          ))}
-        </SelectField>
+        <Controller
+          control={form.control}
+          name="status"
+          render={({ field }) => (
+            <SelectField
+              label={FIELDS.status.label}
+              error={errors.status?.message}
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              name={field.name}
+              fieldRef={field.ref}
+              options={TASK_STATUSES.map((status) => ({
+                value: status,
+                label: TASK_STATUS_LABELS[status],
+              }))}
+            />
+          )}
+        />
       </div>
 
       <fieldset>

@@ -3,10 +3,11 @@
 import { CheckCircle2, Plus, RefreshCw, Search, SlidersHorizontal, Users, X } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useId, useState, type ComponentProps } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { focusRing, primaryButton, secondaryButton, textLink } from "@/components/ui/button-styles";
 import { ListSkeleton } from "@/components/ui/list-skeleton";
+import { SelectField } from "@/components/ui/select-field";
 import { useEvents } from "@/features/events/api";
 import { cn } from "@/lib/cn";
 import { RSVP_STATUSES } from "@/modules/guests/guest.constants";
@@ -326,39 +327,40 @@ function FilterBar({
           open ? "grid" : "hidden",
         )}
       >
-        <FilterSelect
+        <SelectField
+          variant="filter"
           label={copy.rsvp}
           value={filters.rsvpStatus ?? ""}
-          onChange={(event) => set("rsvpStatus", event.target.value)}
-        >
-          <option value="">{copy.anyRsvp}</option>
-          {RSVP_STATUSES.map((status) => (
-            <option key={status} value={status}>
-              {RSVP_LABELS[status]}
-            </option>
-          ))}
-        </FilterSelect>
-        <FilterSelect
+          onChange={(value) => set("rsvpStatus", value)}
+          options={[
+            { value: "", label: copy.anyRsvp },
+            ...RSVP_STATUSES.map((status) => ({ value: status, label: RSVP_LABELS[status] })),
+          ]}
+        />
+        <SelectField
+          variant="filter"
           label={copy.event}
           value={filters.eventId ?? ""}
-          onChange={(event) => set("eventId", event.target.value)}
-        >
-          <option value="">{copy.anyEvent}</option>
-          {events.data?.map((event) => (
-            <option key={event.id} value={event.id}>
-              {event.archivedAt ? GUESTS.archivedEvent(event.name) : event.name}
-            </option>
-          ))}
-        </FilterSelect>
-        <FilterSelect
+          onChange={(value) => set("eventId", value)}
+          options={[
+            { value: "", label: copy.anyEvent },
+            ...(events.data ?? []).map((event) => ({
+              value: event.id,
+              label: event.archivedAt ? GUESTS.archivedEvent(event.name) : event.name,
+            })),
+          ]}
+        />
+        <SelectField
+          variant="filter"
           label={copy.invitation}
           value={filters.invitationSent ?? ""}
-          onChange={(event) => set("invitationSent", event.target.value)}
-        >
-          <option value="">{copy.anyInvitation}</option>
-          <option value="true">{copy.sent}</option>
-          <option value="false">{copy.notSent}</option>
-        </FilterSelect>
+          onChange={(value) => set("invitationSent", value)}
+          options={[
+            { value: "", label: copy.anyInvitation },
+            { value: "true", label: copy.sent },
+            { value: "false", label: copy.notSent },
+          ]}
+        />
       </div>
       {Object.values(filters).some(Boolean) && (
         <button
@@ -376,32 +378,6 @@ function FilterBar({
         </button>
       )}
     </fieldset>
-  );
-}
-
-function FilterSelect({
-  label,
-  children,
-  ...select
-}: Readonly<{ label: string } & ComponentProps<"select">>) {
-  const id = useId();
-  return (
-    <div className="flex min-w-0 flex-col gap-1">
-      <label htmlFor={id} className="text-label-sm text-plum">
-        {label}
-      </label>
-      <select
-        id={id}
-        className={cn(
-          // 16 px on phones: iOS Safari zooms in on focus below that (QA M13).
-          "h-11 w-full min-w-0 rounded-xl border border-sand bg-ivory px-2.5 text-[16px] text-graphite sm:text-body-md",
-          "focus-visible:border-burgundy focus-visible:ring-[3px] focus-visible:ring-burgundy/10 focus-visible:outline-none",
-        )}
-        {...select}
-      >
-        {children}
-      </select>
-    </div>
   );
 }
 

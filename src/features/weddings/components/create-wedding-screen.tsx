@@ -218,9 +218,19 @@ export function CreateWeddingScreen({ userName }: Readonly<{ userName: string }>
           />
 
           {editTimeZone ? (
-            <TimeZoneSelect
-              error={errors.timeZone?.message}
-              registration={form.register("timeZone")}
+            <Controller
+              control={form.control}
+              name="timeZone"
+              render={({ field }) => (
+                <TimeZoneSelect
+                  error={errors.timeZone?.message}
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  fieldRef={field.ref}
+                />
+              )}
             />
           ) : (
             <p className="flex items-center justify-between gap-3 text-body-sm text-plum">
