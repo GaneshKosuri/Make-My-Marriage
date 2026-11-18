@@ -45,7 +45,7 @@ export const QUICK_ADD_ITEMS: readonly {
     href: "/app/guests?new=1",
     icon: UserPlus,
   },
-  { label: "Add expense", hint: "Record money spent", href: "/app/expenses", icon: Receipt },
+  { label: "Add expense", hint: "Record money spent", href: "/app/expenses?new=1", icon: Receipt },
   {
     label: "Add vendor",
     hint: "Save a photographer, caterer or decorator's details",

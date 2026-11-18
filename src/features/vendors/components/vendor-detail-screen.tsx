@@ -2,6 +2,7 @@
 
 import {
   ArchiveX,
+  Plus,
   ArrowLeft,
   CalendarDays,
   CheckCircle2,
@@ -28,11 +29,17 @@ import {
 import { DashboardCard } from "@/components/ui/dashboard-card";
 import { Dialog } from "@/components/ui/dialog";
 import { EVENTS_ROUTES } from "@/features/events/events-content";
+import { useExpenses } from "@/features/expenses/api";
+import {
+  EXPENSES,
+  EXPENSES_ROUTES,
+  expenseCategoryLabel,
+} from "@/features/expenses/expenses-content";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { formatInstant } from "@/lib/dates";
 import { formatINR } from "@/lib/money";
-import { eventDateTile, mapsSearchUrl } from "@/lib/schedule";
+import { eventDateTile, formatShortDate, mapsSearchUrl } from "@/lib/schedule";
 import type { VendorDto } from "@/modules/vendors/vendor.types";
 
 import { useArchiveVendor, useVendor } from "../api";
@@ -246,6 +253,8 @@ function VendorDetail({ vendor, timeZone }: Readonly<{ vendor: VendorDto; timeZo
         </DashboardCard>
       </div>
 
+      <VendorExpenses vendor={vendor} />
+
       {!archived && (
         <VendorFormDialog
           open={editing}
@@ -288,6 +297,82 @@ function VendorDetail({ vendor, timeZone }: Readonly<{ vendor: VendorDto; timeZo
         </div>
       </Dialog>
     </>
+  );
+}
+
+/** Enough to total a vendor's expenses in one request (a vendor has a handful). */
+const VENDOR_EXPENSES_LIMIT = 100;
+/** Expenses listed on the vendor's page; the rest are one link away. */
+const VENDOR_EXPENSES_SHOWN = 5;
+
+/**
+ * What has been recorded against this vendor: the total and the latest
+ * expenses (PRD §9.16 with §9.15). Never a balance or what is still to pay.
+ */
+function VendorExpenses({ vendor }: Readonly<{ vendor: VendorDto }>) {
+  const copy = EXPENSES.vendorCard;
+  const expenses = useExpenses({ vendorId: vendor.id, limit: VENDOR_EXPENSES_LIMIT });
+  const items = expenses.data?.data ?? [];
+  const total = expenses.data?.pagination.total ?? 0;
+  const recorded = items.reduce((sum, expense) => sum + expense.amountPaise, 0);
+
+  let body;
+  if (expenses.isError) {
+    body = <p className="text-body-md text-destructive">{copy.loadError}</p>;
+  } else if (!expenses.data) {
+    body = <div aria-busy="true" className="h-16 animate-pulse rounded-xl bg-sand" />;
+  } else if (total === 0) {
+    body = <p className="text-body-md text-plum">{copy.none}</p>;
+  } else {
+    body = (
+      <div className="flex flex-col gap-3">
+        {/* Totalled only when every expense came back; past that, the list page has them all. */}
+        {total <= items.length && (
+          <div>
+            <p className="text-body-sm text-plum">{copy.recorded}</p>
+            <p className="font-serif text-headline-sm text-graphite tabular-nums">
+              {formatINR(recorded)}
+            </p>
+          </div>
+        )}
+        <ul className="divide-y divide-sand">
+          {items.slice(0, VENDOR_EXPENSES_SHOWN).map((expense) => (
+            <li key={expense.id} className="flex items-start justify-between gap-3 py-2.5">
+              <div className="min-w-0">
+                <p className="text-label-md wrap-break-word text-graphite">{expense.title}</p>
+                <p className="text-body-sm text-plum">
+                  {formatShortDate(expense.expenseDate)} · {expenseCategoryLabel(expense.category)}
+                </p>
+              </div>
+              <p className="shrink-0 font-semibold text-graphite tabular-nums">
+                {formatINR(expense.amountPaise)}
+              </p>
+            </li>
+          ))}
+        </ul>
+        {total > VENDOR_EXPENSES_SHOWN && (
+          <Link href={EXPENSES_ROUTES.forVendor(vendor.id)} className={cn(textLink, "self-start")}>
+            {copy.viewAll(total)}
+          </Link>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <DashboardCard
+      title={copy.title}
+      actions={
+        vendor.archivedAt ? undefined : (
+          <Link href={EXPENSES_ROUTES.addForVendor(vendor.id)} className={textLink}>
+            <Plus aria-hidden className="size-4" />
+            {copy.add}
+          </Link>
+        )
+      }
+    >
+      {body}
+    </DashboardCard>
   );
 }
 

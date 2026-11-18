@@ -145,7 +145,14 @@ describe("<VendorsScreen />", () => {
   it("lists vendors with category, contact, agreed cost and events", async () => {
     renderWithClient(<VendorsScreen timeZone="Asia/Kolkata" />);
     const row = within(
-      (await screen.findByRole("link", { name: VENDORS.open("Pixel Photography") })).closest("li")!,
+      (
+        await screen.findByRole(
+          "link",
+          { name: VENDORS.open("Pixel Photography") },
+          // The first render of the file can be slow on a busy machine.
+          { timeout: 5000 },
+        )
+      ).closest("li")!,
     );
     expect(row.getByText("Photographer")).toBeInTheDocument();
     expect(row.getByText("Rohit · +91 98765 43210")).toBeInTheDocument();
@@ -279,8 +286,60 @@ describe("<VendorsScreen />", () => {
 });
 
 describe("<VendorDetailScreen />", () => {
+  const EXPENSES_FOR_PIXEL = `GET /api/expenses?vendorId=${pixel.id}&limit=100`;
+  const recorded = (id: string, title: string, amountPaise: number) => ({
+    id,
+    title,
+    amountPaise,
+    currency: "INR",
+    expenseDate: "2026-09-01",
+    category: "PHOTOGRAPHY",
+    event: null,
+    vendor: { id: pixel.id, name: pixel.name, category: "PHOTOGRAPHER", archivedAt: null },
+    notes: null,
+    version: 0,
+    createdAt: "2026-11-18T00:00:00.000Z",
+    updatedAt: "2026-11-18T00:00:00.000Z",
+  });
+
   beforeEach(() => {
     routes[`GET /api/vendors/${pixel.id}`] = () => data(pixel);
+    routes[EXPENSES_FOR_PIXEL] = () => ({
+      status: 200,
+      body: { data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } },
+    });
+  });
+
+  it("shows what has been recorded for the vendor, never a balance", async () => {
+    routes[EXPENSES_FOR_PIXEL] = () => ({
+      status: 200,
+      body: {
+        data: [
+          recorded("6aeb2fe70d805e865a620ac1", "Photographer advance", 5_000_000),
+          recorded("6aeb2fe70d805e865a620ac2", "Album printing", 1_250_050),
+        ],
+        pagination: { page: 1, limit: 100, total: 2, totalPages: 1 },
+      },
+    });
+    renderWithClient(<VendorDetailScreen vendorId={pixel.id} timeZone="Asia/Kolkata" />);
+    const card = within(await screen.findByRole("region", { name: "Expenses for this vendor" }));
+    expect(await card.findByText("₹62,500.50")).toBeInTheDocument();
+    expect(card.getByText("Photographer advance")).toBeInTheDocument();
+    expect(card.getByText("₹12,500.50")).toBeInTheDocument();
+    expect(card.queryByText(/balance|remaining|due/i)).not.toBeInTheDocument();
+    expect(card.getByRole("link", { name: /Add expense/ })).toHaveAttribute(
+      "href",
+      `/app/expenses?new=1&vendorId=${pixel.id}`,
+    );
+  });
+
+  it("says when nothing is recorded yet, and offers no add link on an archived vendor", async () => {
+    routes[`GET /api/vendors/${pixel.id}`] = () =>
+      data({ ...pixel, archivedAt: "2026-11-10T06:30:00.000Z" });
+    renderWithClient(<VendorDetailScreen vendorId={pixel.id} timeZone="Asia/Kolkata" />);
+    const card = within(await screen.findByRole("region", { name: "Expenses for this vendor" }));
+    expect(await card.findByText("No expenses recorded for this vendor yet.")).toBeInTheDocument();
+    expect(card.queryByRole("link", { name: /Add expense/ })).not.toBeInTheDocument();
   });
 
   it("shows the agreed cost, contact actions and the events the vendor works at", async () => {
