@@ -12,7 +12,7 @@ const availability = {
   familyMembers: "live", // Phase 1
   organiserGallery: "coming-soon", // Phase 6
   expenses: "coming-soon",
-  vendors: "coming-soon",
+  vendors: "live", // Phase 4 (My Vendors; discovery follows)
   vendorDiscovery: "coming-soon",
   website: "coming-soon",
   livestream: "coming-soon",

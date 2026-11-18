@@ -49,7 +49,7 @@ export const QUICK_ADD_ITEMS: readonly {
   {
     label: "Add vendor",
     hint: "Save a photographer, caterer or decorator's details",
-    href: "/app/vendors",
+    href: "/app/vendors?new=1",
     icon: Store,
   },
   {

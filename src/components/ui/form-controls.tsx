@@ -101,6 +101,24 @@ export function TextField({
   );
 }
 
+/**
+ * An amount in rupees: "₹" inside the field and a decimal keypad on phones.
+ * Takes what people type ("2,00,000", "1234.50"); forms turn it into paise
+ * with `parseRupeesInput` from `@/lib/money`.
+ */
+export function MoneyField(
+  props: Omit<FieldProps, "icon"> & Omit<ComponentProps<"input">, "type" | "inputMode">,
+) {
+  return (
+    <TextField
+      icon={<span className="text-body-lg font-semibold">₹</span>}
+      inputMode="decimal"
+      autoComplete="off"
+      {...props}
+    />
+  );
+}
+
 export function TextAreaField({
   label,
   error,
