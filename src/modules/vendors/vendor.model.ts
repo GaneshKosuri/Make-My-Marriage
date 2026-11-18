@@ -42,6 +42,8 @@ export interface VendorDoc {
   archivedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  /** Updates are conditional on it (decided 2026-11-13). */
+  __v: number;
 }
 
 export type VendorRecord = WithId<VendorDoc>;

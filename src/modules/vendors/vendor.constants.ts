@@ -63,3 +63,10 @@ export const VENDOR_EMAIL_MAX_LENGTH = 254;
 export const VENDOR_ADDRESS_MAX_LENGTH = 500;
 export const VENDOR_WEBSITE_MAX_LENGTH = 300;
 export const VENDOR_NOTES_MAX_LENGTH = 2000;
+export const VENDOR_SEARCH_MAX_LENGTH = 120;
+/** A vendor works at a handful of events; the cap only guards the request size. */
+export const VENDOR_MAX_EVENTS = 100;
+/** Digits and + ( ) - . and spaces, as for guests. */
+export const VENDOR_PHONE_PATTERN = /^[0-9+()\-.\s]*$/;
+/** Integer paise; ₹100 crore as a sanity bound on the agreed cost (not a budget). */
+export const VENDOR_AGREED_COST_MAX_PAISE = 100_000_000_000;

@@ -1,8 +1,8 @@
 # Project Status — Make My Marriage
 
-**Last updated:** 2026-11-13
-**Current phase:** Phase 3 — Guests (PRD §16): all features built (slices 0–4, 12 Nov), code review fixes P1–P8 and QA fixes done (12 Nov), awaiting the QA re-test of bulk email; Phases 1 and 2 complete and QA-verified
-**Next up:** Phase 3 QA re-test of bulk email (M10–M16, Q6), then Phase 4 — Financial and Vendors. Open decision: D7 (time zone change and event clock times)
+**Last updated:** 2026-11-18
+**Current phase:** Phase 4 — Financial and Vendors (PRD §16): slice 1 (Vendors API) done 18 Nov. Phase 3 built, reviewed and QA-fixed, awaiting the QA re-test of bulk email (M10–M16, Q6); Phases 1 and 2 complete and QA-verified
+**Next up:** Phase 4 slice 2 (My Vendors screens), then 3 Expenses API, 4 expense screens, 5 vendor discovery. Open decision: D7 (time zone change and event clock times)
 
 This file tracks what has been built and what comes next. Update it whenever a feature lands or new
 work starts: move items between the tables, add a row to the change log and refresh the header.
@@ -63,7 +63,7 @@ Status key: ✅ Done · 🚧 In progress · ⏳ Not started (scaffold stub only)
 | Feature | Status | Notes |
 | --- | --- | --- |
 | Expense tracker | ⏳ | |
-| My Vendors | ⏳ | |
+| My Vendors | 🚧 | API done (slice 1, 18 Nov): list, create, get, update, archive. Screens next (slice 2) |
 | Vendor discovery | ⏳ | |
 
 ### Phase 5 — Wedding Experience ⏳
@@ -250,6 +250,8 @@ monitoring.
 | 2026-11-04 | Events list: upcoming (including events still running) in date order, past most recent first, archived only on request. Times show in the wedding's time zone, named on the page |
 | 2026-11-13 | Dropdowns use React Aria Components' Select (already installed for the date and time fields) instead of the browser's native `<select>`, on every device, through one wrapper: `SelectField` in `src/components/ui/select-field.tsx` (`variant="field"` in forms, `"filter"` in filter bars, optional `search` box and titled sections for long lists such as time zones). Values stay plain strings, `""` included; forms use React Hook Form's `Controller`; a hidden native select still carries `name` for form submission. Options are at least 44 px tall; the list opens in the same white card as the date picker. Considered Radix Select (no searchable variant), Base UI / Headless UI (a second component library) and react-select (own styling to fight). Tests pick options with `chooseOption` / `selectedOption` from `select-field.test-helpers.ts` |
 | 2026-11-13 | Signed-in visitors never see the public home page: `/` sends them to `/app` (their dashboard, which follows their role) or to `/create-wedding` when they have no wedding yet, the same rule as /login and /signup (`workspacePathFor` in `src/app/signed-in-redirect.tsx`). The check runs on the page, before any of it renders, not in `src/proxy.ts`: a stale session cookie must still see the home page instead of bouncing between `/app` and `/login`. Without a session cookie no database is touched |
+| 2026-11-18 | Phase 4 plan (product owner approved): slices 1 Vendors API, 2 My Vendors screens, 3 Expenses API, 4 expense screens, 5 vendor discovery. Stitch screens (Expenses, My Vendors, Discover, desktop and mobile) are used for layout only; wording, categories, colours and fields follow the docs and brand tokens. Decisions: a vendor found on Google is added through the add form pre-filled from Google, reviewed and saved by the family (only the place ID identifies it; a legal check of the Google Maps terms goes on the launch list); discovery searches by place name, defaulting to the wedding's city, with no distance shown; the vendor page shows the agreed cost and the expenses recorded for it, never a balance; vendors and expenses use the same `version` / CONFLICT handling as events, tasks and guests; discovery limit placeholder 30 searches per wedding per hour |
+| 2026-11-18 | Vendor API rules beyond API_DESIGN §59–64: list order is active first, then name ignoring case; search matches name or contact person literally; `includeArchived=true` adds archived vendors. Website is stored as a full http(s) address (`pixelphotography.in` → `https://pixelphotography.in/`); other schemes are refused because the link is shown to every member. Agreed cost is integer paise ≥ 0 (₹100 crore cap), null clears it. Linked events must be active events of the wedding; an archived event a vendor already has may stay. An archived vendor can't be changed (`CONFLICT`, "This vendor is archived…"); archiving again succeeds; archived vendors stay readable. Expenses will link only active vendors (`assertActiveVendorInWedding`) and show archived ones they already have (`findSummaries`) |
 
 ## 5. Change log
 
@@ -296,3 +298,4 @@ monitoring.
 | 2026-11-13 | Custom dropdowns: `SelectField` on React Aria replaces every native `<select>` (task form assignee/event/status, wedding time zone with search on create wedding and wedding details, guest and task filter bars); field label/message and popover look shared with the date-time fields (`aria-field-chrome.tsx`). Checked in the browser at desktop, 360 and 320 px (keyboard, Escape inside a dialog, search). 8 new component tests; 6 screen test files moved to the new helpers |
 | 2026-11-13 | Home page redirects signed-in visitors to their workspace (no flash of the landing page); /login and /signup share the same redirect (`SignedOutOnly`, `RedirectIfSignedIn` in `src/app/signed-in-redirect.tsx`). 3 new tests |
 | 2026-11-13 | Root layout: `<body suppressHydrationWarning>`, so attributes browser extensions add to `<body>` (Grammarly's `data-gr-ext-installed`, `data-new-gr-c-s-check-loaded`) no longer raise a hydration warning; mismatches inside the page are still reported |
+| 2026-11-18 | Vendors API (Phase 4, slice 1): GET/POST `/api/vendors`, GET/PATCH/DELETE `/api/vendors/:id` (API §59–60, §62–64); `version` on vendor DTOs; dashboard vendor count excludes archived vendors. 30 integration tests (including cross-wedding 404s), 13 unit tests |
