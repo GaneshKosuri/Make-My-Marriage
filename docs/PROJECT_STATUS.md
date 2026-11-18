@@ -1,8 +1,8 @@
 # Project Status — Make My Marriage
 
 **Last updated:** 2026-11-18
-**Current phase:** Phase 4 — Financial and Vendors (PRD §16): slices 1 (Vendors API) and 2 (My Vendors screens) done 18 Nov. Phase 3 built, reviewed and QA-fixed, awaiting the QA re-test of bulk email (M10–M16, Q6); Phases 1 and 2 complete and QA-verified
-**Next up:** Phase 4 slice 3 (Expenses API), then 4 expense screens, 5 vendor discovery. Open decision: D7 (time zone change and event clock times)
+**Current phase:** Phase 4 — Financial and Vendors (PRD §16): slices 1–3 (Vendors API, My Vendors screens, Expenses API) done 18 Nov. Phase 3 built, reviewed and QA-fixed, awaiting the QA re-test of bulk email (M10–M16, Q6); Phases 1 and 2 complete and QA-verified
+**Next up:** Phase 4 slice 4 (expense screens), then 5 vendor discovery. Open decision: D7 (time zone change and event clock times)
 
 This file tracks what has been built and what comes next. Update it whenever a feature lands or new
 work starts: move items between the tables, add a row to the change log and refresh the header.
@@ -62,7 +62,7 @@ Status key: ✅ Done · 🚧 In progress · ⏳ Not started (scaffold stub only)
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| Expense tracker | ⏳ | |
+| Expense tracker | 🚧 | API done (slice 3, 18 Nov): list with filters, summary by category, create, get, update, delete. Screens next (slice 4) |
 | My Vendors | ✅ | API (slice 1) and screens (slice 2), 18 Nov: list with search, category and archived filters; add/edit sheet; vendor page with contact actions, agreed cost, events and archive. The vendor's expenses arrive with slice 4 |
 | Vendor discovery | ⏳ | |
 
@@ -253,6 +253,7 @@ monitoring.
 | 2026-11-18 | Phase 4 plan (product owner approved): slices 1 Vendors API, 2 My Vendors screens, 3 Expenses API, 4 expense screens, 5 vendor discovery. Stitch screens (Expenses, My Vendors, Discover, desktop and mobile) are used for layout only; wording, categories, colours and fields follow the docs and brand tokens. Decisions: a vendor found on Google is added through the add form pre-filled from Google, reviewed and saved by the family (only the place ID identifies it; a legal check of the Google Maps terms goes on the launch list); discovery searches by place name, defaulting to the wedding's city, with no distance shown; the vendor page shows the agreed cost and the expenses recorded for it, never a balance; vendors and expenses use the same `version` / CONFLICT handling as events, tasks and guests; discovery limit placeholder 30 searches per wedding per hour |
 | 2026-11-18 | Vendor API rules beyond API_DESIGN §59–64: list order is active first, then name ignoring case; search matches name or contact person literally; `includeArchived=true` adds archived vendors. Website is stored as a full http(s) address (`pixelphotography.in` → `https://pixelphotography.in/`); other schemes are refused because the link is shown to every member. Agreed cost is integer paise ≥ 0 (₹100 crore cap), null clears it. Linked events must be active events of the wedding; an archived event a vendor already has may stay. An archived vendor can't be changed (`CONFLICT`, "This vendor is archived…"); archiving again succeeds; archived vendors stay readable. Expenses will link only active vendors (`assertActiveVendorInWedding`) and show archived ones they already have (`findSummaries`) |
 | 2026-11-18 | My Vendors screens: the vendor page opens with a burgundy card (category, name, contact, agreed cost, Archive and Edit) like the dashboard's wedding card, following the Stitch layout; archived vendors show a banner and no actions. Amounts are typed in rupees ("2,00,000" or "1,234.50") in the shared `MoneyField` and sent as paise (`parseRupeesInput` / `formatRupeesInput` in `src/lib/money.ts`). The event checklist moved to `src/components/ui/event-checklist.tsx` (guests and vendors share it). Website links open in a new tab with `noopener noreferrer nofollow`. The home page "My Vendors" badge is live; vendor discovery stays Coming soon |
+| 2026-11-18 | Expense API rules beyond API_DESIGN §53–58: list order is newest date first, then newest entry; `from`/`to` are calendar days with both ends included (a range that runs backwards is a `VALIDATION_ERROR` on `to`). Amounts are integer paise from 1 to ₹100 crore; currency is INR only. A newly linked event or vendor must be active and of this wedding (field error otherwise); links to ones archived later stay and still show. The summary lists categories largest first and has no budget figures; it matches the dashboard total. Who added an expense is stored (`createdByMembershipId`) but not returned yet. Updates are versioned like events, tasks, guests and vendors; delete is permanent |
 
 ## 5. Change log
 
@@ -302,3 +303,4 @@ monitoring.
 | 2026-11-18 | Vendors API (Phase 4, slice 1): GET/POST `/api/vendors`, GET/PATCH/DELETE `/api/vendors/:id` (API §59–60, §62–64); `version` on vendor DTOs; dashboard vendor count excludes archived vendors. 30 integration tests (including cross-wedding 404s), 13 unit tests |
 | 2026-11-18 | Next.js and eslint-config-next 16.4.3 → 16.4.6: fixes two moderate cache-leak advisories (GHSA-mfr8-8qww-v76h, GHSA-vc7v-qv4w-wrv8; `'use cache'` / `unstable_cache`, which the app doesn't use). `next build` now refuses to run on an affected version. `npm audit --omit=dev` reports 0 vulnerabilities |
 | 2026-11-18 | My Vendors screens (Phase 4, slice 2): `/app/vendors` list (search, category, show archived, kept in the address; `?new=1` from the "+" sheet), add/edit sheet with ₹ agreed cost, events and conflict reload, `/app/vendors/[id]` page with call, email, website and Maps actions and archive. Shared `MoneyField` and `EventChecklist`. Checked in the browser at desktop and 360 px. 13 component tests, 2 form tests, 7 money helper tests |
+| 2026-11-18 | Expenses API (Phase 4, slice 3): GET/POST `/api/expenses`, GET `/api/expenses/summary`, GET/PATCH/DELETE `/api/expenses/:id` (API §53–58); `version` on expense DTOs, event and vendor summaries embedded. 30 integration tests (including cross-wedding 404s and the dashboard total), 10 unit tests |

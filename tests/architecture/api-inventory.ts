@@ -432,17 +432,53 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
   },
 
   // ── Expenses (API §53–58) ──────────────────────────────────────────────────
-  { method: "GET", path: "/api/expenses", auth: "member", phase: P4, doc: "API §53" },
-  { method: "POST", path: "/api/expenses", auth: "member", phase: P4, doc: "API §54" },
-  { method: "GET", path: "/api/expenses/summary", auth: "member", phase: P4, doc: "API §55" },
-  { method: "GET", path: "/api/expenses/[expenseId]", auth: "member", phase: P4, doc: "API §56" },
-  { method: "PATCH", path: "/api/expenses/[expenseId]", auth: "member", phase: P4, doc: "API §57" },
+  {
+    method: "GET",
+    path: "/api/expenses",
+    auth: "member",
+    phase: P4,
+    doc: "API §53",
+    implemented: true,
+  },
+  {
+    method: "POST",
+    path: "/api/expenses",
+    auth: "member",
+    phase: P4,
+    doc: "API §54",
+    implemented: true,
+  },
+  {
+    method: "GET",
+    path: "/api/expenses/summary",
+    auth: "member",
+    phase: P4,
+    doc: "API §55",
+    implemented: true,
+  },
+  {
+    method: "GET",
+    path: "/api/expenses/[expenseId]",
+    auth: "member",
+    phase: P4,
+    doc: "API §56",
+    implemented: true,
+  },
+  {
+    method: "PATCH",
+    path: "/api/expenses/[expenseId]",
+    auth: "member",
+    phase: P4,
+    doc: "API §57",
+    implemented: true,
+  },
   {
     method: "DELETE",
     path: "/api/expenses/[expenseId]",
     auth: "member",
     phase: P4,
     doc: "API §58",
+    implemented: true,
   },
 
   // ── Vendors + discovery (API §59–66) ───────────────────────────────────────

@@ -33,6 +33,8 @@ export interface ExpenseDoc {
   createdByMembershipId: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
+  /** Updates are conditional on it (decided 2026-11-18). */
+  __v: number;
 }
 
 export type ExpenseRecord = WithId<ExpenseDoc>;

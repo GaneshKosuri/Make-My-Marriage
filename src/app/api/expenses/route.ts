@@ -1,20 +1,22 @@
-import { notImplemented, route } from "@/server/http";
+import { created, paginated, route } from "@/server/http";
+import { expensesService } from "@/modules/expenses";
+import { createExpenseSchema, listExpensesQuerySchema } from "@/modules/expenses/expense.schemas";
 
-/**
- * /api/expenses — stub (GET API §53, POST API §54).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 4: Financial & Vendors.
- */
+/** /api/expenses (GET API §53, POST API §54). */
 
-/** GET — API §53. */
+/** GET — API §53: newest first, with category, event, vendor and date filters. */
 export const GET = route({
   auth: "member",
-  // Phase 4: Financial & Vendors: paginated(...(await expensesService.list(ctx, query)))
-  handler: () => notImplemented("Phase 4: Financial & Vendors"),
+  query: listExpensesQuerySchema,
+  handler: async ({ ctx, query }) => {
+    const { items, pagination } = await expensesService.list(ctx, query);
+    return paginated(items, pagination);
+  },
 });
 
-/** POST — API §54. */
+/** POST — API §54: the member who adds it is recorded from the session. */
 export const POST = route({
   auth: "member",
-  // Phase 4: Financial & Vendors: created(await expensesService.create(ctx, body))
-  handler: () => notImplemented("Phase 4: Financial & Vendors"),
+  body: createExpenseSchema,
+  handler: async ({ ctx, body }) => created(await expensesService.create(ctx, body)),
 });
