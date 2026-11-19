@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { formatINR, isValidPaise, paiseToRupees, rupeesToPaise } from "./money";
+import {
+  formatINR,
+  formatRupeesInput,
+  isValidPaise,
+  paiseToRupees,
+  parseRupeesInput,
+  rupeesToPaise,
+} from "./money";
 
 describe("formatINR", () => {
   it("uses Indian digit grouping (lakh/crore)", () => {
@@ -59,5 +66,29 @@ describe("paise ↔ rupees", () => {
     expect(isValidPaise(100)).toBe(true);
     expect(isValidPaise(1.1)).toBe(false);
     expect(isValidPaise("100")).toBe(false);
+  });
+});
+
+describe("amount fields", () => {
+  it.each([
+    [20_000_000, "2,00,000"],
+    [123_450, "1,234.5"],
+    [123_456, "1,234.56"],
+    [0, "0"],
+  ])("shows %i paise as %s", (paise, text) => {
+    expect(formatRupeesInput(paise)).toBe(text);
+  });
+
+  it.each([
+    ["2,00,000", 20_000_000],
+    ["₹1,234.50", 123_450],
+    [" 300000 ", 30_000_000],
+    ["0", 0],
+  ])("reads %s", (text, paise) => {
+    expect(parseRupeesInput(text)).toBe(paise);
+  });
+
+  it.each(["", "abc", "-500", "12.345", "1,2,3.4.5"])("refuses %s", (text) => {
+    expect(parseRupeesInput(text)).toBeNull();
   });
 });

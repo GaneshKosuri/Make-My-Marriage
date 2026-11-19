@@ -1,15 +1,14 @@
 import { describe, it } from "vitest";
 
 /**
- * Test plan for expensesService (Phase 4: Financial & Vendors). Replace each `it.todo` with a real test
- * when the behaviour is implemented; DB-backed cases belong in tests/integration.
+ * Test plan for expensesService (Phase 4: Financial & Vendors).
+ *
+ * Covered end to end in tests/integration/expenses.test.ts: expense CRUD (API_DESIGN §53–58),
+ * integer paise, createdByMembershipId from the session, event and vendor links active and of
+ * this wedding (archived links an expense already has stay), date filters with both ends
+ * included, the summary by category (no budget figures) and the dashboard total, versioned
+ * updates (CONFLICT), hard delete, cross-wedding 404s.
  */
 describe("expensesService", () => {
-  describe("expenses (API_DESIGN §53–58)", () => {
-    it.todo("amounts are integer paise");
-    it.todo("createdByMembershipId comes from ctx");
-    it.todo("event and vendor must belong to the same wedding");
-    it.todo("summary totals by category with no budget maths");
-    it.todo("hard delete");
-  });
+  it.todo("vendor page: expenses recorded for one vendor (slice 4)");
 });

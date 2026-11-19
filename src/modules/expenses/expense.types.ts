@@ -1,10 +1,17 @@
 /**
  * Expense DTOs and inputs (API_DESIGN §53–58). Isomorphic. Money is integer paise.
- * TODO(Phase 4): derive inputs from ./expense.schemas.ts with z.infer.
  */
-import type { PageQuery } from "@/lib/pagination";
+import type { z } from "zod";
+
+import type { EventSummaryDto } from "@/modules/events/event.types";
+import type { VendorSummaryDto } from "@/modules/vendors/vendor.types";
 
 import type { ExpenseCategory, ExpenseCurrency } from "./expense.constants";
+import type {
+  createExpenseSchema,
+  listExpensesQuerySchema,
+  updateExpenseSchema,
+} from "./expense.schemas";
 
 export interface ExpenseDto {
   id: string;
@@ -14,33 +21,19 @@ export interface ExpenseDto {
   /** YYYY-MM-DD */
   expenseDate: string;
   category: ExpenseCategory;
-  event: { id: string; name: string } | null;
-  vendor: { id: string; name: string } | null;
+  /** The linked event, archived ones included. */
+  event: EventSummaryDto | null;
+  /** The linked vendor, archived ones included. */
+  vendor: VendorSummaryDto | null;
   notes: string | null;
+  version: number;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface ListExpensesQuery extends PageQuery {
-  category?: ExpenseCategory;
-  eventId?: string;
-  vendorId?: string;
-  from?: string;
-  to?: string;
-}
-
-export interface CreateExpenseInput {
-  title: string;
-  amountPaise: number;
-  currency?: ExpenseCurrency;
-  expenseDate: string;
-  category: ExpenseCategory;
-  eventId?: string | null;
-  vendorId?: string | null;
-  notes?: string | null;
-}
-
-export type UpdateExpenseInput = Partial<CreateExpenseInput>;
+export type ListExpensesQuery = z.output<typeof listExpensesQuerySchema>;
+export type CreateExpenseInput = z.output<typeof createExpenseSchema>;
+export type UpdateExpenseInput = z.output<typeof updateExpenseSchema>;
 
 /** GET /api/expenses/summary (API_DESIGN §55). */
 export interface ExpenseSummaryDto {

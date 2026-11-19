@@ -14,5 +14,17 @@ export const vendorsKeys = {
   all: ROOT,
   list: (query: Record<string, unknown> = {}) => [...ROOT, "list", query] as const,
   detail: (id: string) => [...ROOT, "detail", id] as const,
-  discovery: (query: Record<string, unknown> = {}) => [...ROOT, "discovery", query] as const,
+};
+
+const DISCOVERY_ROOT = ["vendor-discovery"] as const;
+
+/**
+ * Discovery keys sit outside `vendorsKeys.all` on purpose: every search is a
+ * billed Google request limited per wedding, so saving a vendor must not
+ * refetch the results (the saved place is marked in the cache instead).
+ */
+export const vendorDiscoveryKeys = {
+  all: DISCOVERY_ROOT,
+  search: (query: Record<string, unknown>) => [...DISCOVERY_ROOT, "search", query] as const,
+  place: (placeId: string) => [...DISCOVERY_ROOT, "place", placeId] as const,
 };

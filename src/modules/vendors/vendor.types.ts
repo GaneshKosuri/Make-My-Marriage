@@ -1,11 +1,18 @@
 /**
  * Vendor DTOs and inputs (API_DESIGN §59–66). Isomorphic.
- * TODO(Phase 4): derive inputs from ./vendor.schemas.ts with z.infer.
  */
-import type { PageQuery } from "@/lib/pagination";
+import type { z } from "zod";
 
 import type { VendorCategory, VendorSource } from "./vendor.constants";
+import type {
+  addVendorFromPlaceSchema,
+  createVendorSchema,
+  discoverySearchQuerySchema,
+  listVendorsQuerySchema,
+  updateVendorSchema,
+} from "./vendor.schemas";
 
+/** My Vendors response. Events include archived ones the vendor already had, in date order. */
 export interface VendorDto {
   id: string;
   name: string;
@@ -16,55 +23,53 @@ export interface VendorDto {
   address: string | null;
   website: string | null;
   totalAgreedCostPaise: number | null;
-  events: { id: string; name: string }[];
+  events: { id: string; name: string; startsAt: string; archivedAt: string | null }[];
   notes: string | null;
   source: VendorSource;
   googlePlaceId: string | null;
   archivedAt: string | null;
+  version: number;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface ListVendorsQuery extends PageQuery {
-  category?: VendorCategory;
-  search?: string;
-  includeArchived?: boolean;
-}
-
-export interface CreateVendorInput {
+/** A vendor as other records show it (expenses): name and category, archived or not. */
+export interface VendorSummaryDto {
+  id: string;
   name: string;
   category: VendorCategory;
-  contactPerson?: string | null;
-  phone?: string | null;
-  email?: string | null;
-  address?: string | null;
-  website?: string | null;
-  totalAgreedCostPaise?: number | null;
-  eventIds?: string[];
-  notes?: string | null;
+  archivedAt: string | null;
 }
 
-export type UpdateVendorInput = Partial<CreateVendorInput>;
+export type ListVendorsQuery = z.output<typeof listVendorsQuerySchema>;
+export type CreateVendorInput = z.output<typeof createVendorSchema>;
+export type UpdateVendorInput = z.output<typeof updateVendorSchema>;
 
-export interface AddVendorFromPlaceInput {
-  googlePlaceId: string;
-  category?: VendorCategory;
+export type AddVendorFromPlaceInput = z.output<typeof addVendorFromPlaceSchema>;
+export type VendorDiscoveryQuery = z.output<typeof discoverySearchQuerySchema>;
+
+/** The wedding's vendor for a Google place, archived or not (one place per wedding). */
+export interface MyVendorRef {
+  id: string;
+  archived: boolean;
 }
 
-export interface VendorDiscoveryQuery {
-  category: VendorCategory;
-  query?: string;
-  latitude?: number;
-  longitude?: number;
-}
-
-/** GET /api/vendor-discovery/search item (API_DESIGN §66). */
+/**
+ * GET /api/vendor-discovery/search item (API_DESIGN §66). No coordinates: no
+ * map or distance is shown (decided 2026-11-18).
+ */
 export interface DiscoveredVendorDto {
   googlePlaceId: string;
   name: string;
   rating: number | null;
   ratingCount: number | null;
   address: string | null;
-  latitude: number | null;
-  longitude: number | null;
+  /** Set when this place is already in My Vendors. */
+  myVendor: MyVendorRef | null;
+}
+
+/** GET /api/vendor-discovery/places/:placeId — what pre-fills the add form. */
+export interface DiscoveredPlaceDetailsDto extends DiscoveredVendorDto {
+  phone: string | null;
+  website: string | null;
 }

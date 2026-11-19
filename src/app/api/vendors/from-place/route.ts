@@ -1,13 +1,15 @@
-import { notImplemented, route } from "@/server/http";
+import { created, policies, route } from "@/server/http";
+import { vendorsService } from "@/modules/vendors";
+import { addVendorFromPlaceSchema } from "@/modules/vendors/vendor.schemas";
 
 /**
- * /api/vendors/from-place — stub (POST API §61).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 4: Financial & Vendors.
+ * /api/vendors/from-place (POST API §61): saves the add form pre-filled from
+ * Google. The place is checked with Google server-side (source GOOGLE_PLACES),
+ * so it shares the place-details limit.
  */
-
-/** POST — API §61. */
 export const POST = route({
   auth: "member",
-  // Phase 4: Financial & Vendors: created(await vendorsService.createFromPlace(ctx, body))
-  handler: () => notImplemented("Phase 4: Financial & Vendors"),
+  body: addVendorFromPlaceSchema,
+  rateLimit: policies.vendorDiscoveryPlace,
+  handler: async ({ ctx, body }) => created(await vendorsService.createFromPlace(ctx, body)),
 });

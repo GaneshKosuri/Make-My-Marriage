@@ -2,6 +2,7 @@
  * The complete API surface: API_DESIGN §106 (endpoint inventory) + §83 cover
  * uploads (route tree §105) + GET /api/photos/:photoId/download (2026-09-18
  * notes) + POST /api/members/invitations/:id/resend (PROJECT_STATUS 2026-10-29)
+ * + GET /api/vendor-discovery/places/:placeId (PROJECT_STATUS 2026-11-19)
  * + GET /api/health (scaffold only). docs/CODEBASE_ARCHITECTURE.md
  * renders the same table. `tests/architecture/api-routes.test.ts` asserts that
  * every entry exists with exactly these methods and auth levels.
@@ -432,32 +433,120 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
   },
 
   // ── Expenses (API §53–58) ──────────────────────────────────────────────────
-  { method: "GET", path: "/api/expenses", auth: "member", phase: P4, doc: "API §53" },
-  { method: "POST", path: "/api/expenses", auth: "member", phase: P4, doc: "API §54" },
-  { method: "GET", path: "/api/expenses/summary", auth: "member", phase: P4, doc: "API §55" },
-  { method: "GET", path: "/api/expenses/[expenseId]", auth: "member", phase: P4, doc: "API §56" },
-  { method: "PATCH", path: "/api/expenses/[expenseId]", auth: "member", phase: P4, doc: "API §57" },
+  {
+    method: "GET",
+    path: "/api/expenses",
+    auth: "member",
+    phase: P4,
+    doc: "API §53",
+    implemented: true,
+  },
+  {
+    method: "POST",
+    path: "/api/expenses",
+    auth: "member",
+    phase: P4,
+    doc: "API §54",
+    implemented: true,
+  },
+  {
+    method: "GET",
+    path: "/api/expenses/summary",
+    auth: "member",
+    phase: P4,
+    doc: "API §55",
+    implemented: true,
+  },
+  {
+    method: "GET",
+    path: "/api/expenses/[expenseId]",
+    auth: "member",
+    phase: P4,
+    doc: "API §56",
+    implemented: true,
+  },
+  {
+    method: "PATCH",
+    path: "/api/expenses/[expenseId]",
+    auth: "member",
+    phase: P4,
+    doc: "API §57",
+    implemented: true,
+  },
   {
     method: "DELETE",
     path: "/api/expenses/[expenseId]",
     auth: "member",
     phase: P4,
     doc: "API §58",
+    implemented: true,
   },
 
   // ── Vendors + discovery (API §59–66) ───────────────────────────────────────
-  { method: "GET", path: "/api/vendors", auth: "member", phase: P4, doc: "API §59" },
-  { method: "POST", path: "/api/vendors", auth: "member", phase: P4, doc: "API §60" },
-  { method: "POST", path: "/api/vendors/from-place", auth: "member", phase: P4, doc: "API §61" },
-  { method: "GET", path: "/api/vendors/[vendorId]", auth: "member", phase: P4, doc: "API §62" },
-  { method: "PATCH", path: "/api/vendors/[vendorId]", auth: "member", phase: P4, doc: "API §63" },
-  { method: "DELETE", path: "/api/vendors/[vendorId]", auth: "member", phase: P4, doc: "API §64" },
+  {
+    method: "GET",
+    path: "/api/vendors",
+    auth: "member",
+    phase: P4,
+    doc: "API §59",
+    implemented: true,
+  },
+  {
+    method: "POST",
+    path: "/api/vendors",
+    auth: "member",
+    phase: P4,
+    doc: "API §60",
+    implemented: true,
+  },
+  {
+    method: "POST",
+    path: "/api/vendors/from-place",
+    auth: "member",
+    phase: P4,
+    doc: "API §61",
+    implemented: true,
+  },
+  {
+    method: "GET",
+    path: "/api/vendors/[vendorId]",
+    auth: "member",
+    phase: P4,
+    doc: "API §62",
+    implemented: true,
+  },
+  {
+    method: "PATCH",
+    path: "/api/vendors/[vendorId]",
+    auth: "member",
+    phase: P4,
+    doc: "API §63",
+    implemented: true,
+  },
+  {
+    method: "DELETE",
+    path: "/api/vendors/[vendorId]",
+    auth: "member",
+    phase: P4,
+    doc: "API §64",
+    implemented: true,
+  },
   {
     method: "GET",
     path: "/api/vendor-discovery/search",
     auth: "member",
     phase: P4,
     doc: "API §65–66",
+    implemented: true,
+  },
+  // Not in API_DESIGN (added 2026-11-19): pre-fills the add form from Google.
+  {
+    method: "GET",
+    path: "/api/vendor-discovery/places/[placeId]",
+    auth: "member",
+    phase: P4,
+    doc: "PROJECT_STATUS 2026-11-19",
+    implemented: true,
   },
 
   // ── Website, livestream, covers (API §67–72, §83) ──────────────────────────

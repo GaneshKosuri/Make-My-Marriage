@@ -77,3 +77,32 @@ export function formatINR(paise: number): string {
   const fractionDigits = paise % PAISE_PER_RUPEE === 0 ? 0 : 2;
   return inrFormatter(fractionDigits).format(paise / PAISE_PER_RUPEE);
 }
+
+const inputFormatter = new Intl.NumberFormat("en-IN", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+  useGrouping: true,
+});
+
+/**
+ * Paise as an amount field shows them: Indian digit grouping, no ₹ (the field
+ * shows it), paise only when non-zero. 20000000 → "2,00,000"; 123450 → "1,234.5".
+ */
+export function formatRupeesInput(paise: number): string {
+  assertPaise(paise);
+  return inputFormatter.format(paise / PAISE_PER_RUPEE);
+}
+
+/**
+ * What someone typed in an amount field ("2,00,000", "₹1,234.50", "300000")
+ * as paise, or null when it isn't a non-negative amount with at most 2 decimals.
+ */
+export function parseRupeesInput(text: string): number | null {
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.includes("-")) return null;
+  try {
+    return rupeesToPaise(trimmed);
+  } catch {
+    return null;
+  }
+}

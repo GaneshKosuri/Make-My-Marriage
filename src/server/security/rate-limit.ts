@@ -103,6 +103,21 @@ export const policies = {
     windowMs: 15 * MINUTE,
     scope: "ip",
   }, // placeholder
+  // Vendor discovery (API §65–66): every call is a billed Google request. Placeholders
+  // (decided 2026-11-18: 30 searches per wedding per hour).
+  vendorDiscoverySearch: {
+    name: "vendor-discovery.search",
+    limit: 30,
+    windowMs: 60 * MINUTE,
+    scope: "wedding",
+  }, // placeholder
+  /** Place details: pre-filling the add form and checking the place on save. */
+  vendorDiscoveryPlace: {
+    name: "vendor-discovery.place",
+    limit: 60,
+    windowMs: 60 * MINUTE,
+    scope: "wedding",
+  }, // placeholder
   // 2026-09-18 notes: 120 per member, then 600 per wedding, per 15 minutes.
   photoUploadPerMember: {
     name: "photos.upload-url.member",

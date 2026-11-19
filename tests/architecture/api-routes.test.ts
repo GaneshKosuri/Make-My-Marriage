@@ -50,8 +50,8 @@ describe("API route map", () => {
     expect(routeFiles.map(pathOf).sort()).toEqual([...expected.keys()].sort());
   });
 
-  it("covers the 79 documented endpoints", () => {
-    expect(API_INVENTORY).toHaveLength(79);
+  it("covers the 80 documented endpoints", () => {
+    expect(API_INVENTORY).toHaveLength(80);
   });
 
   it.each(routeFiles.map((file) => [pathOf(file), file] as const))(

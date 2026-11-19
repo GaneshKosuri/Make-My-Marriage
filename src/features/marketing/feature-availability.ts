@@ -11,9 +11,9 @@ const availability = {
   guests: "live", // Phase 3 (guest list, invitation links and RSVP)
   familyMembers: "live", // Phase 1
   organiserGallery: "coming-soon", // Phase 6
-  expenses: "coming-soon",
-  vendors: "coming-soon",
-  vendorDiscovery: "coming-soon",
+  expenses: "live", // Phase 4 (expense tracker)
+  vendors: "live", // Phase 4 (My Vendors)
+  vendorDiscovery: "live", // Phase 4 (search Google, add to My Vendors)
   website: "coming-soon",
   livestream: "coming-soon",
   guestPhotoUploads: "coming-soon",

@@ -1,13 +1,10 @@
-import { notImplemented, route } from "@/server/http";
+import { ok, route } from "@/server/http";
+import { expensesService } from "@/modules/expenses";
 
-/**
- * /api/expenses/summary — stub (GET API §55).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 4: Financial & Vendors.
- */
+/** /api/expenses/summary (GET API §55). */
 
-/** GET — API §55. */
+/** GET — API §55: the total and the amount per category. No budget maths. */
 export const GET = route({
   auth: "member",
-  // Phase 4: Financial & Vendors: ok(await expensesService.getSummary(ctx))
-  handler: () => notImplemented("Phase 4: Financial & Vendors"),
+  handler: async ({ ctx }) => ok(await expensesService.getSummary(ctx)),
 });

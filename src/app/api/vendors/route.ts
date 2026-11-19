@@ -1,20 +1,22 @@
-import { notImplemented, route } from "@/server/http";
+import { created, paginated, route } from "@/server/http";
+import { vendorsService } from "@/modules/vendors";
+import { createVendorSchema, listVendorsQuerySchema } from "@/modules/vendors/vendor.schemas";
 
-/**
- * /api/vendors — stub (GET API §59, POST API §60).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 4: Financial & Vendors.
- */
+/** /api/vendors (GET API §59, POST API §60). */
 
-/** GET — API §59. */
+/** GET — API §59: page, category, search and archived vendors on request. */
 export const GET = route({
   auth: "member",
-  // Phase 4: Financial & Vendors: paginated(...(await vendorsService.list(ctx, query)))
-  handler: () => notImplemented("Phase 4: Financial & Vendors"),
+  query: listVendorsQuerySchema,
+  handler: async ({ ctx, query }) => {
+    const { items, pagination } = await vendorsService.list(ctx, query);
+    return paginated(items, pagination);
+  },
 });
 
-/** POST — API §60. */
+/** POST — API §60: a vendor entered by hand (source MANUAL). */
 export const POST = route({
   auth: "member",
-  // Phase 4: Financial & Vendors: created(await vendorsService.create(ctx, body))
-  handler: () => notImplemented("Phase 4: Financial & Vendors"),
+  body: createVendorSchema,
+  handler: async ({ ctx, body }) => created(await vendorsService.create(ctx, body)),
 });
