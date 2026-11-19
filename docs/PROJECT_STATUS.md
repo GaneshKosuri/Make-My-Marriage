@@ -1,8 +1,8 @@
 # Project Status — Make My Marriage
 
-**Last updated:** 2026-11-18
-**Current phase:** Phase 4 — Financial and Vendors (PRD §16): slices 1–4 (Vendors API, My Vendors screens, Expenses API, expense screens) done 18 Nov. Phase 3 built, reviewed and QA-fixed, awaiting the QA re-test of bulk email (M10–M16, Q6); Phases 1 and 2 complete and QA-verified
-**Next up:** Phase 4 slice 5 (vendor discovery), then the Phase 4 code review and QA hand-off. Open decision: D7 (time zone change and event clock times)
+**Last updated:** 2026-11-19
+**Current phase:** Phase 4 — Financial and Vendors (PRD §16): all five slices built (Vendors API, My Vendors screens, Expenses API, expense screens 18 Nov; vendor discovery 19 Nov), awaiting the Phase 4 code review and QA. Phase 3 built, reviewed and QA-fixed, awaiting the QA re-test of bulk email (M10–M16, Q6); Phases 1 and 2 complete and QA-verified
+**Next up:** the Phase 4 code review and QA hand-off; `GOOGLE_PLACES_API_KEY` in Vercel before shipping discovery. Open decision: D7 (time zone change and event clock times)
 
 This file tracks what has been built and what comes next. Update it whenever a feature lands or new
 work starts: move items between the tables, add a row to the change log and refresh the header.
@@ -58,13 +58,13 @@ Status key: ✅ Done · 🚧 In progress · ⏳ Not started (scaffold stub only)
 | Email (jobs + cron worker) | ✅ | 2026-11-12: single sends go out in the request (`POST /api/guests/:id/send-invitation`, `/send-reminder`); bulk sends (`/api/guests/actions/send-invitations`, `/send-reminders`) queue one email job per guest under a batch and start the worker after the response. The worker claims jobs atomically, rebuilds each email from the guest as they are now (deleted guests, missing addresses and guests who replied are cancelled), retries after 5 and 30 minutes, then FAILED; a provider's sending limit waits an hour without spending an attempt. Batch progress (`GET /api/email-batches/:id`, polled every 3 s) and "Try again" (`POST …/retry-failed`). The daily cron is the safety net |
 | WhatsApp sharing | ✅ | 2026-11-12: Share on WhatsApp on each guest's page opens WhatsApp with a greeting by name, the couple's names and the invitation link; no WhatsApp API (PRD §9.14) |
 
-### Phase 4 — Financial and Vendors ⏳
+### Phase 4 — Financial and Vendors ✅
 
 | Feature | Status | Notes |
 | --- | --- | --- |
 | Expense tracker | ✅ | API (slice 3) and screens (slice 4), 18 Nov: total and a bar per category, list with category, event, vendor and date filters, add/edit sheet, delete; each vendor's page shows what was recorded for it |
 | My Vendors | ✅ | API (slice 1) and screens (slice 2), 18 Nov: list with search, category and archived filters; add/edit sheet; vendor page with contact actions, agreed cost, events and archive. Its expenses show on its page (slice 4) |
-| Vendor discovery | ⏳ | |
+| Vendor discovery | ✅ | Slice 5, 19 Nov: `/app/vendors/discover` searches Google by category near a town (the wedding's city by default) with optional keywords; results show rating, reviews, address, an "Open in Google Maps" link and "Add to My Vendors" (or "In My Vendors" with a link); adding opens the vendor form pre-filled from Google for the family to check. 30 searches per wedding per hour |
 
 ### Phase 5 — Wedding Experience ⏳
 
@@ -177,6 +177,13 @@ monitoring.
   production to start; their services throw in production when the keys are missing (instead of
   silently using the fakes). Add them in Vercel before shipping vendor discovery (Phase 4), covers
   (Phase 5) and the gallery (Phase 6).
+- **Vendor discovery before launch (19 Nov).** `GOOGLE_PLACES_API_KEY` is empty in `.env.local`, so
+  local development uses the fake (two sample Dehradun places); only the adapter's unit tests (mocked
+  `fetch`) exercise the Google request shape. Before launch: one real search with a restricted key
+  (Places API (New) only, server IP or no referrer), the legal check of the Google Maps Platform
+  terms (attribution "Results from Google Maps", no storage beyond the place ID), and a billing
+  check: ratings put Text Search on the Enterprise SKU. Tune the 30 searches / 60 place lookups per
+  wedding per hour placeholders with real use.
 - **Email job schedule (11 Nov; decided 12 Nov).** Vercel Hobby allows daily crons only, so
   `vercel.json` runs `/api/internal/jobs/email` daily at 02:30 UTC (08:00 IST). Phase 3 processes a
   batch right after bulk jobs are queued (`after()`), with the daily cron as the safety net (see
@@ -255,6 +262,8 @@ monitoring.
 | 2026-11-18 | My Vendors screens: the vendor page opens with a burgundy card (category, name, contact, agreed cost, Archive and Edit) like the dashboard's wedding card, following the Stitch layout; archived vendors show a banner and no actions. Amounts are typed in rupees ("2,00,000" or "1,234.50") in the shared `MoneyField` and sent as paise (`parseRupeesInput` / `formatRupeesInput` in `src/lib/money.ts`). The event checklist moved to `src/components/ui/event-checklist.tsx` (guests and vendors share it). Website links open in a new tab with `noopener noreferrer nofollow`. The home page "My Vendors" badge is live; vendor discovery stays Coming soon |
 | 2026-11-18 | Expense API rules beyond API_DESIGN §53–58: list order is newest date first, then newest entry; `from`/`to` are calendar days with both ends included (a range that runs backwards is a `VALIDATION_ERROR` on `to`). Amounts are integer paise from 1 to ₹100 crore; currency is INR only. A newly linked event or vendor must be active and of this wedding (field error otherwise); links to ones archived later stay and still show. The summary lists categories largest first and has no budget figures; it matches the dashboard total. Who added an expense is stored (`createdByMembershipId`) but not returned yet. Updates are versioned like events, tasks, guests and vendors; delete is permanent |
 | 2026-11-18 | Expense screens: the summary shows the total and a bar per category scaled to the largest category (shares of what was spent; no budget, balance or percentage). A new expense is dated today in the wedding's time zone. Choosing a vendor fills the category only while none is chosen (Photographer → Photography, Caterer → Catering, DJ and Choreographer → Entertainment, Florist and Decorator → Decoration, Makeup and Mehendi artists → Makeup, Transport → Travel, others → Other), with a note saying so. The vendor page's "Expenses for this vendor" card shows "Recorded so far" (totalled only when all of the vendor's expenses come back in one request of 100) and the latest five, with "Add expense" opening the form with that vendor chosen (`/app/expenses?new=1&vendorId=…`). The date-range filter has its own row (two typed dates don't fit a dropdown's column). Home page "Expenses" badge live |
+| 2026-11-19 | Vendor discovery (slice 5): `GET /api/vendor-discovery/search?category&near&query` replaces API §65's latitude/longitude with `near`, a place name defaulting to the wedding's city and state (a field error when the wedding has neither and none is typed). Results carry only what the UI shows (no coordinates) plus `myVendor` (`{ id, archived }` when the place is already saved). New `GET /api/vendor-discovery/places/:placeId` (not in API_DESIGN) returns one place's details to pre-fill the form; Google's phone and website are dropped when the form wouldn't accept them. `POST /api/vendors/from-place` takes the reviewed vendor form plus `googlePlaceId` (API §61 has only the id): the server checks the place with Google (a place Google no longer lists is a field error), stores what the family saved with `source GOOGLE_PLACES`, and refuses a place already in My Vendors, archived included (`CONFLICT`, "This place is already in My Vendors."). Limits: 30 searches and 60 place lookups (details and saves) per wedding per hour (placeholders). Search results are cached for 30 minutes in the browser and never refetched on their own; saving a vendor marks it in the results instead of searching again. Google vendors' "Open in Google Maps" links open the exact place (`query_place_id`). Home page "Vendor discovery" badge live |
+| 2026-11-19 | Vendor discovery stays on Google Places (product owner). Free alternatives were compared: Ola Maps, Geoapify, OpenStreetMap Overpass and Foursquare are weaker on Indian wedding vendors (no ratings, few phones) or have unclear limits. maps.guru (Pune; open-data geocoding, commercial use allowed on its free tier) was trialled with a real key: every search answered 502 ("Pelias returned 530") on three checks, and it has no ratings or category search. Google's per-SKU free allowance (1,000 Enterprise / 5,000 Pro calls a month) covers development and early launch; dropping ratings would move searches to the Pro allowance |
 
 ## 5. Change log
 
@@ -306,3 +315,4 @@ monitoring.
 | 2026-11-18 | My Vendors screens (Phase 4, slice 2): `/app/vendors` list (search, category, show archived, kept in the address; `?new=1` from the "+" sheet), add/edit sheet with ₹ agreed cost, events and conflict reload, `/app/vendors/[id]` page with call, email, website and Maps actions and archive. Shared `MoneyField` and `EventChecklist`. Checked in the browser at desktop and 360 px. 13 component tests, 2 form tests, 7 money helper tests |
 | 2026-11-18 | Expenses API (Phase 4, slice 3): GET/POST `/api/expenses`, GET `/api/expenses/summary`, GET/PATCH/DELETE `/api/expenses/:id` (API §53–58); `version` on expense DTOs, event and vendor summaries embedded. 30 integration tests (including cross-wedding 404s and the dashboard total), 10 unit tests |
 | 2026-11-18 | Expense screens (Phase 4, slice 4): `/app/expenses` with the total and category bars, filters kept in the address (category, event, vendor, dates), list with vendor links, add/edit sheet (₹ amount, date, vendor → category, event, notes, delete after confirming, conflict reload); "+" sheet opens the form; vendor page "Expenses for this vendor" card. 8 screen tests, 2 vendor-card tests, 3 form tests |
+| 2026-11-19 | Vendor discovery (Phase 4, slice 5): Google Places (New) adapter (Text Search and Place Details over REST, key in a header, field masks, 8 s timeout, provider errors → `EXTERNAL_SERVICE_ERROR`, unknown place → 404); GET `/api/vendor-discovery/search`, GET `/api/vendor-discovery/places/:placeId`, POST `/api/vendors/from-place`; `/app/vendors/discover` with category chips, Near and Keywords, result cards, Google prefill in the vendor form, unavailable and rate-limited states. Checked in the browser at desktop and 360 px (fake provider). 17 integration tests, 12 adapter tests, 10 schema tests, 8 screen tests |

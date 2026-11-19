@@ -139,3 +139,74 @@ export const VENDORS = {
     archivedNotice: (name: string) => `${name} archived.`,
   },
 } as const;
+
+/** Copy for Discover Vendors (PRD §9.17). Results come from Google; nothing is shown as ours. */
+export const DISCOVER = {
+  eyebrow: "Vendors",
+  title: "Discover vendors",
+  description:
+    "Find photographers, venues, caterers and more on Google, then add them to My Vendors.",
+  back: "My Vendors",
+  form: {
+    category: "What are you looking for?",
+    near: { label: "Near", placeholder: "Town or city, e.g. Jaipur" },
+    query: { label: "Keywords", placeholder: "e.g. candid, pure veg, lawns" },
+    search: "Search",
+    searching: "Searching…",
+    nearRequired: "Enter a town or city to search near",
+    categoryRequired: "Choose what you're looking for",
+  },
+  intro: {
+    title: "Pick what you need and where",
+    description:
+      "We'll show what Google lists near the place. You check each one before adding it.",
+  },
+  results: (count: number, category: string, near: string) =>
+    `${count} ${count === 1 ? "result" : "results"} for ${category.toLowerCase()} near ${near}`,
+  attribution: "Results from Google Maps",
+  rating: (rating: string) => `Rated ${rating} out of 5`,
+  ratingCount: (count: number) =>
+    `${new Intl.NumberFormat("en-IN").format(count)} ${count === 1 ? "review" : "reviews"}`,
+  noRating: "No reviews yet",
+  openInMaps: "Open in Google Maps",
+  add: "Add to My Vendors",
+  addLabel: (name: string) => `Add ${name} to My Vendors`,
+  inMyVendors: "In My Vendors",
+  archivedInMyVendors: "Archived in My Vendors",
+  view: "View",
+  viewLabel: (name: string) => `View ${name} in My Vendors`,
+  added: (name: string) => `${name} added to My Vendors.`,
+  empty: {
+    title: "Nothing found",
+    description: "Try a nearby town, fewer keywords or another category.",
+  },
+  unavailable: {
+    title: "Vendor search isn't available right now",
+    description: "Google didn't answer. Try again in a few minutes, or add the vendor by hand.",
+    retry: "Try again",
+    addByHand: "Add a vendor by hand",
+  },
+  rateLimited: {
+    title: "That's a lot of searches",
+    description:
+      "Your wedding has used this hour's vendor searches. Try again later, or add the vendor by hand.",
+  },
+  prefill: {
+    note: "Details from Google. Check them before saving; you can change anything.",
+    loadError: "We couldn't get this place's details from Google.",
+    retry: "Try again",
+    conflict: {
+      title: "This place is already in My Vendors",
+      description: "Someone in the family added it already.",
+      action: "Show My Vendors",
+    },
+    gone: {
+      title: "We couldn't save the vendor",
+      description: "Close this form and try again.",
+    },
+    error: {
+      title: "We couldn't save the vendor",
+      description: "Check your connection and try again.",
+    },
+  },
+} as const;

@@ -125,7 +125,11 @@ function VendorDetail({ vendor, timeZone }: Readonly<{ vendor: VendorDto; timeZo
   const [notice, setNotice] = useState<string | null>(null);
   const archived = vendor.archivedAt !== null;
   const contactLine = [vendor.contactPerson, vendor.phone].filter(Boolean).join(" · ");
-  const maps = mapsSearchUrl({ venueName: vendor.name, address: vendor.address });
+  const maps = mapsSearchUrl({
+    venueName: vendor.name,
+    address: vendor.address,
+    googlePlaceId: vendor.googlePlaceId,
+  });
 
   return (
     <>

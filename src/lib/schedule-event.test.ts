@@ -34,4 +34,10 @@ describe("mapsSearchUrl", () => {
     );
     expect(mapsSearchUrl({ venueName: null, address: null })).toBeNull();
   });
+
+  it("opens the exact Google place when it has one", () => {
+    expect(mapsSearchUrl({ venueName: "Pixel", address: null, googlePlaceId: "ChIJ-1_a" })).toBe(
+      "https://www.google.com/maps/search/?api=1&query=Pixel&query_place_id=ChIJ-1_a",
+    );
+  });
 });

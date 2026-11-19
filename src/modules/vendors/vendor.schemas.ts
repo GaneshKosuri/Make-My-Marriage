@@ -10,10 +10,14 @@ import { pageQuerySchema } from "@/lib/pagination";
 import { queryFlag } from "@/lib/query";
 
 import {
+  GOOGLE_PLACE_ID_MAX_LENGTH,
+  GOOGLE_PLACE_ID_PATTERN,
   VENDOR_ADDRESS_MAX_LENGTH,
   VENDOR_AGREED_COST_MAX_PAISE,
   VENDOR_CATEGORIES,
   VENDOR_CONTACT_MAX_LENGTH,
+  VENDOR_DISCOVERY_NEAR_MAX_LENGTH,
+  VENDOR_DISCOVERY_QUERY_MAX_LENGTH,
   VENDOR_EMAIL_MAX_LENGTH,
   VENDOR_MAX_EVENTS,
   VENDOR_NAME_MAX_LENGTH,
@@ -169,8 +173,47 @@ export const listVendorsQuerySchema = pageQuerySchema
   })
   .strict();
 
-/*
- * TODO(Phase 4 slice 5: vendor discovery) — define with `.strict()`:
- *   - addVendorFromPlaceSchema   API_DESIGN §61  { googlePlaceId } only — details are fetched server-side
- *   - discoverySearchQuerySchema API_DESIGN §65  category, query?, near? (default: wedding city)
+/** Blank text means "not given". */
+const optionalSearchText = (max: number, message: string) =>
+  z
+    .string()
+    .trim()
+    .max(max, message)
+    .transform((value) => value || undefined)
+    .optional();
+
+/** A Google place id, as Google returns it. Never trusted for anything but a lookup. */
+export const googlePlaceId = z
+  .string("Choose a place from the results")
+  .trim()
+  .min(1, "Choose a place from the results")
+  .max(GOOGLE_PLACE_ID_MAX_LENGTH, "Choose a place from the results")
+  .regex(GOOGLE_PLACE_ID_PATTERN, "Choose a place from the results");
+
+export const placeIdParams = z.object({ placeId: googlePlaceId }).strict();
+
+/**
+ * API_DESIGN §65, with a place name instead of latitude/longitude (decided
+ * 2026-11-18): `near` defaults to the wedding's city and state.
  */
+export const discoverySearchQuerySchema = z
+  .object({
+    category,
+    near: optionalSearchText(
+      VENDOR_DISCOVERY_NEAR_MAX_LENGTH,
+      "Keep the place under 120 characters",
+    ),
+    query: optionalSearchText(
+      VENDOR_DISCOVERY_QUERY_MAX_LENGTH,
+      "Keep the keywords under 80 characters",
+    ),
+  })
+  .strict();
+
+/**
+ * API_DESIGN §61. The family reviews the add form pre-filled from Google and
+ * saves it (decided 2026-11-18), so the body is the vendor form plus the place
+ * id. The server checks the place with Google itself; only its id is kept as
+ * Google's (the rest is what the family saved).
+ */
+export const addVendorFromPlaceSchema = createVendorSchema.extend({ googlePlaceId }).strict();

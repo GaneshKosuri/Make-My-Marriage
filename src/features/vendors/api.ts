@@ -6,10 +6,14 @@ import { useCallback } from "react";
 import { dashboardKeys } from "@/features/dashboard/query-keys";
 import { apiAction, apiFetch, apiFetchPage } from "@/lib/api-client";
 import type { VendorCategory } from "@/modules/vendors/vendor.constants";
-import type { VendorDto } from "@/modules/vendors/vendor.types";
+import type {
+  DiscoveredPlaceDetailsDto,
+  DiscoveredVendorDto,
+  VendorDto,
+} from "@/modules/vendors/vendor.types";
 
-import type { CreateVendorBody, UpdateVendorBody } from "./vendor-form";
-import { vendorsKeys } from "./query-keys";
+import type { AddVendorFromPlaceBody, CreateVendorBody, UpdateVendorBody } from "./vendor-form";
+import { vendorDiscoveryKeys, vendorsKeys } from "./query-keys";
 
 /** TanStack Query hooks over the Vendors REST API (API_DESIGN §59–64). */
 
@@ -98,4 +102,79 @@ export function useReloadVendor() {
     void queryClient.invalidateQueries({ queryKey: vendorsKeys.all });
     return vendor;
   };
+}
+
+// ── Discovery (API §61, §65–66) ─────────────────────────────────────────────
+
+export interface VendorDiscoverySearch {
+  category: VendorCategory;
+  near: string;
+  query?: string;
+}
+
+/** Results stay for the visit: each search is a billed Google request (30 per wedding per hour). */
+const DISCOVERY_STALE_MS = 30 * 60_000;
+
+/**
+ * GET /api/vendor-discovery/search (API §65–66). Runs only for a submitted
+ * search (`null` until then) and never retries or refetches on its own.
+ */
+export function useVendorDiscovery(search: VendorDiscoverySearch | null) {
+  return useQuery({
+    queryKey: vendorDiscoveryKeys.search({ ...search }),
+    queryFn: ({ signal }) =>
+      apiFetch<DiscoveredVendorDto[]>("/api/vendor-discovery/search", {
+        query: { ...search },
+        signal,
+      }),
+    enabled: search !== null,
+    staleTime: DISCOVERY_STALE_MS,
+    gcTime: DISCOVERY_STALE_MS,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+}
+
+/** GET /api/vendor-discovery/places/:placeId: what pre-fills the add form. */
+export function useDiscoveredPlace(placeId: string | null) {
+  return useQuery({
+    queryKey: vendorDiscoveryKeys.place(placeId ?? ""),
+    queryFn: ({ signal }) =>
+      apiFetch<DiscoveredPlaceDetailsDto>(
+        `/api/vendor-discovery/places/${encodeURIComponent(placeId!)}`,
+        { signal },
+      ),
+    enabled: placeId !== null,
+    staleTime: DISCOVERY_STALE_MS,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/**
+ * POST /api/vendors/from-place (API §61). Search results already on screen
+ * mark the place as saved instead of searching Google again.
+ */
+export function useAddVendorFromPlace() {
+  const invalidate = useInvalidateVendors();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: AddVendorFromPlaceBody) =>
+      apiFetch<VendorDto>("/api/vendors/from-place", { method: "POST", body }),
+    onSuccess: (vendor) => {
+      const myVendor = { id: vendor.id, archived: false };
+      queryClient.setQueriesData<DiscoveredVendorDto[]>(
+        { queryKey: [...vendorDiscoveryKeys.all, "search"] },
+        (places) =>
+          places?.map((place) =>
+            place.googlePlaceId === vendor.googlePlaceId ? { ...place, myVendor } : place,
+          ),
+      );
+      if (vendor.googlePlaceId) {
+        queryClient.removeQueries({ queryKey: vendorDiscoveryKeys.place(vendor.googlePlaceId) });
+      }
+      return invalidate();
+    },
+  });
 }

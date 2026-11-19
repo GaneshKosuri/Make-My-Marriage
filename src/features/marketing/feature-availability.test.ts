@@ -48,16 +48,12 @@ describe("feature availability", () => {
       "guests",
       "emailInvitations",
       "vendors",
+      "vendorDiscovery",
       "expenses",
     ] as const) {
       expect(isComingSoon(feature)).toBe(false);
     }
-    for (const feature of [
-      "organiserGallery",
-      "vendorDiscovery",
-      "website",
-      "livestream",
-    ] as const) {
+    for (const feature of ["organiserGallery", "website", "livestream"] as const) {
       expect(isComingSoon(feature)).toBe(true);
     }
   });

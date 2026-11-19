@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { createVendorSchema, normaliseWebsite, updateVendorSchema } from "./vendor.schemas";
+import {
+  addVendorFromPlaceSchema,
+  createVendorSchema,
+  discoverySearchQuerySchema,
+  normaliseWebsite,
+  placeIdParams,
+  updateVendorSchema,
+} from "./vendor.schemas";
 
 describe("vendor website", () => {
   it.each([
@@ -51,5 +58,49 @@ describe("updateVendorSchema", () => {
   it("needs a field besides the version", () => {
     expect(updateVendorSchema.safeParse({ version: 2 }).success).toBe(false);
     expect(updateVendorSchema.safeParse({ notes: "", version: 2 }).success).toBe(true);
+  });
+});
+
+describe("discoverySearchQuerySchema", () => {
+  it("needs a category; a blank place or keywords mean not given", () => {
+    expect(discoverySearchQuerySchema.safeParse({}).success).toBe(false);
+    expect(discoverySearchQuerySchema.parse({ category: "VENUE", near: "  ", query: "" })).toEqual({
+      category: "VENUE",
+      near: undefined,
+      query: undefined,
+    });
+    expect(
+      discoverySearchQuerySchema.parse({ category: "VENUE", near: " Jaipur ", query: " lawns " }),
+    ).toEqual({ category: "VENUE", near: "Jaipur", query: "lawns" });
+  });
+
+  it("refuses coordinates and a weddingId (the place is a name)", () => {
+    expect(
+      discoverySearchQuerySchema.safeParse({ category: "VENUE", latitude: "28.6" }).success,
+    ).toBe(false);
+    expect(
+      discoverySearchQuerySchema.safeParse({ category: "VENUE", weddingId: "x" }).success,
+    ).toBe(false);
+  });
+});
+
+describe("Google place ids", () => {
+  it.each(["ChIJN1t_tDeuEmsRUsoyG83frY4", "fake-place-1"])("accepts %s", (placeId) => {
+    expect(placeIdParams.safeParse({ placeId }).success).toBe(true);
+  });
+
+  it.each(["", "a/b", "../x", "id with space", "x".repeat(301)])("refuses %j", (placeId) => {
+    expect(placeIdParams.safeParse({ placeId }).success).toBe(false);
+  });
+});
+
+describe("addVendorFromPlaceSchema", () => {
+  it("is the vendor form plus the place id, and nothing the server sets", () => {
+    const form = { googlePlaceId: "ChIJ-1", name: "Pixel", category: "PHOTOGRAPHER" };
+    expect(addVendorFromPlaceSchema.parse(form)).toMatchObject({ ...form, eventIds: [] });
+    expect(addVendorFromPlaceSchema.safeParse({ name: "Pixel", category: "DJ" }).success).toBe(
+      false,
+    );
+    expect(addVendorFromPlaceSchema.safeParse({ ...form, source: "MANUAL" }).success).toBe(false);
   });
 });

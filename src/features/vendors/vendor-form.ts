@@ -17,13 +17,15 @@ import {
   VENDOR_PHONE_MAX_LENGTH,
   VENDOR_PHONE_PATTERN,
   VENDOR_WEBSITE_MAX_LENGTH,
+  type VendorCategory,
 } from "@/modules/vendors/vendor.constants";
 import {
   normaliseWebsite,
+  type addVendorFromPlaceSchema,
   type createVendorSchema,
   type updateVendorSchema,
 } from "@/modules/vendors/vendor.schemas";
-import type { VendorDto } from "@/modules/vendors/vendor.types";
+import type { DiscoveredPlaceDetailsDto, VendorDto } from "@/modules/vendors/vendor.types";
 
 import { VENDORS } from "./vendors-content";
 
@@ -75,6 +77,7 @@ export type VendorFormValues = z.input<typeof vendorFormSchema>;
 type ParsedVendorForm = z.output<typeof vendorFormSchema>;
 export type CreateVendorBody = z.input<typeof createVendorSchema>;
 export type UpdateVendorBody = z.input<typeof updateVendorSchema>;
+export type AddVendorFromPlaceBody = z.input<typeof addVendorFromPlaceSchema>;
 
 /** API field names for VALIDATION_ERROR details → the form's fields. */
 export const VENDOR_SERVER_FIELDS = {
@@ -102,6 +105,21 @@ export function emptyVendorForm(): VendorFormValues {
     agreedCost: "",
     eventIds: [],
     notes: "",
+  };
+}
+
+/** The add form pre-filled from Google; the family reviews it before saving. */
+export function placeToForm(
+  place: DiscoveredPlaceDetailsDto,
+  category: VendorCategory,
+): VendorFormValues {
+  return {
+    ...emptyVendorForm(),
+    name: place.name,
+    category,
+    phone: place.phone ?? "",
+    website: place.website ?? "",
+    address: place.address ?? "",
   };
 }
 

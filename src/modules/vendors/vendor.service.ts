@@ -2,9 +2,11 @@ import "server-only";
 
 import type { PageResult } from "@/lib/pagination";
 import type { MemberContext } from "@/server/auth";
-import { AppError, notImplemented } from "@/server/errors";
+import { isDuplicateKeyError } from "@/server/db/errors";
+import { AppError } from "@/server/errors";
 import { buildPagePagination } from "@/server/http/pagination";
 import { logger } from "@/server/logging/logger";
+import { getVendorDiscoveryService } from "@/server/places";
 
 import { eventsService } from "@/modules/events";
 
@@ -24,6 +26,7 @@ import type {
 const EVENTS_FIELD = "eventIds";
 
 const ARCHIVED = "This vendor is archived, so it can't be changed.";
+const ALREADY_ADDED = "This place is already in My Vendors.";
 
 /** Blank optional text is stored as null ("not set"). */
 const orNull = (value: string | null | undefined) => value || null;
@@ -61,16 +64,7 @@ export const vendorsService = {
       await eventsService.assertActiveEventsInWedding(ctx.weddingId, input.eventIds, EVENTS_FIELD);
     }
     const vendor = await vendorRepository.create(ctx.weddingId, {
-      name: input.name,
-      category: input.category,
-      contactPerson: orNull(input.contactPerson),
-      phone: orNull(input.phone),
-      email: orNull(input.email),
-      address: orNull(input.address),
-      website: orNull(input.website),
-      totalAgreedCostPaise: input.totalAgreedCostPaise ?? null,
-      eventIds: input.eventIds,
-      notes: orNull(input.notes),
+      ...vendorFields(input),
       source: "MANUAL",
       googlePlaceId: null,
     });
@@ -83,11 +77,47 @@ export const vendorsService = {
   },
 
   /**
-   * Fetches trusted details server-side via getVendorDiscoveryService().getPlaceDetails
-   * — never trusts client metadata. source = GOOGLE_PLACES; duplicate place → CONFLICT. API §61.
+   * A vendor found on Google, saved from the add form the family reviewed
+   * (decided 2026-11-18). The place is checked with Google server-side; a place
+   * Google no longer lists is refused. source = GOOGLE_PLACES, and only the
+   * place id is kept as Google's. The same place twice in a wedding (archived
+   * included) is CONFLICT. API §61.
    */
   async createFromPlace(ctx: MemberContext, input: AddVendorFromPlaceInput): Promise<VendorDto> {
-    return notImplemented("API_DESIGN §61 (Phase 4: Financial & Vendors)");
+    const [existing] = await vendorRepository.findByPlaceIds(ctx.weddingId, [input.googlePlaceId]);
+    if (existing) throw new AppError("CONFLICT", ALREADY_ADDED);
+    if (input.eventIds.length > 0) {
+      await eventsService.assertActiveEventsInWedding(ctx.weddingId, input.eventIds, EVENTS_FIELD);
+    }
+    try {
+      await getVendorDiscoveryService().getPlaceDetails(input.googlePlaceId);
+    } catch (error) {
+      if (error instanceof AppError && error.code === "NOT_FOUND") {
+        throw new AppError("VALIDATION_ERROR", undefined, {
+          details: { googlePlaceId: "Google no longer lists this place. Add it by hand instead." },
+        });
+      }
+      throw error;
+    }
+
+    let vendor: VendorRecord;
+    try {
+      vendor = await vendorRepository.create(ctx.weddingId, {
+        ...vendorFields(input),
+        source: "GOOGLE_PLACES",
+        googlePlaceId: input.googlePlaceId,
+      });
+    } catch (error) {
+      // Two members adding the same place at once: the unique index decides.
+      if (isDuplicateKeyError(error)) throw new AppError("CONFLICT", ALREADY_ADDED);
+      throw error;
+    }
+    logger.info("Vendor added from Google", {
+      requestId: ctx.requestId,
+      weddingId: ctx.weddingId,
+      vendorId: vendor._id.toString(),
+    });
+    return toSingleDto(ctx.weddingId, vendor);
   },
 
   /** `_id + weddingId`; cross-wedding → NOT_FOUND. Archived vendors stay readable. API §62. */
@@ -196,6 +226,22 @@ export const vendorsService = {
     return vendorRepository.countActive(weddingId);
   },
 };
+
+/** Form input → stored fields: blank optional text is null. */
+function vendorFields(input: CreateVendorInput): VendorFields {
+  return {
+    name: input.name,
+    category: input.category,
+    contactPerson: orNull(input.contactPerson),
+    phone: orNull(input.phone),
+    email: orNull(input.email),
+    address: orNull(input.address),
+    website: orNull(input.website),
+    totalAgreedCostPaise: input.totalAgreedCostPaise ?? null,
+    eventIds: input.eventIds,
+    notes: orNull(input.notes),
+  };
+}
 
 /** Resolves linked-event summaries (archived ones included) in one batched lookup. */
 async function toVendorDtos(

@@ -1,25 +1,39 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { RefreshCw } from "lucide-react";
+import { Info, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { primaryButton, secondaryButton } from "@/components/ui/button-styles";
 import { Dialog } from "@/components/ui/dialog";
 import { EventChecklist, type EventChoice } from "@/components/ui/event-checklist";
-import { MoneyField, OptionalTag, TextAreaField, TextField } from "@/components/ui/form-controls";
+import {
+  FormAlert,
+  MoneyField,
+  OptionalTag,
+  TextAreaField,
+  TextField,
+} from "@/components/ui/form-controls";
 import { SaveProblem } from "@/components/ui/save-problem";
 import { SelectField } from "@/components/ui/select-field";
 import { useEvents } from "@/features/events/api";
 import { ApiError } from "@/lib/api-client";
 import type { EventDto } from "@/modules/events/event.types";
-import { VENDOR_CATEGORIES } from "@/modules/vendors/vendor.constants";
-import type { VendorDto } from "@/modules/vendors/vendor.types";
+import { VENDOR_CATEGORIES, type VendorCategory } from "@/modules/vendors/vendor.constants";
+import type { DiscoveredPlaceDetailsDto, VendorDto } from "@/modules/vendors/vendor.types";
 
-import { useCreateVendor, useReloadVendor, useUpdateVendor } from "../api";
+import {
+  useAddVendorFromPlace,
+  useCreateVendor,
+  useDiscoveredPlace,
+  useReloadVendor,
+  useUpdateVendor,
+} from "../api";
 import {
   emptyVendorForm,
+  placeToForm,
   toCreateVendorBody,
   toUpdateVendorBody,
   VENDOR_SERVER_FIELDS,
@@ -27,7 +41,7 @@ import {
   vendorToForm,
   type VendorFormValues,
 } from "../vendor-form";
-import { categoryLabel, VENDORS } from "../vendors-content";
+import { categoryLabel, DISCOVER, VENDORS, VENDORS_ROUTES } from "../vendors-content";
 
 const FORM = VENDORS.form;
 const FIELDS = FORM.fields;
@@ -39,6 +53,11 @@ export interface VendorFormDialogProps {
   vendor?: VendorDto;
   timeZone: string;
   onSaved: (vendor: VendorDto) => void;
+  /**
+   * Adds a vendor found on Google: the form opens pre-filled from the place's
+   * details and the family reviews it before saving (decided 2026-11-18).
+   */
+  place?: { placeId: string; category: VendorCategory };
 }
 
 /**
@@ -46,15 +65,27 @@ export interface VendorFormDialogProps {
  * what changed, with the version the form was loaded at.
  */
 export function VendorFormDialog(props: Readonly<VendorFormDialogProps>) {
-  const { open, onClose, vendor } = props;
+  const { open, onClose, vendor, place } = props;
   const events = useEvents();
+  const details = useDiscoveredPlace(open && place && !vendor ? place.placeId : null);
+  const fromGoogle = place !== undefined && vendor === undefined;
   const reloadVendor = useReloadVendor();
   // A copy fetched by "Reload vendor" after a CONFLICT; `count` starts a fresh form.
   const [reloaded, setReloaded] = useState<{ vendor: VendorDto; count: number } | null>(null);
   const current = reloaded && vendor && reloaded.vendor.id === vendor.id ? reloaded.vendor : vendor;
 
   let body;
-  if (events.isError) {
+  if (fromGoogle && details.isError) {
+    body = (
+      <div role="alert" className="flex flex-col items-start gap-3">
+        <p className="text-body-md text-destructive">{DISCOVER.prefill.loadError}</p>
+        <button type="button" onClick={() => void details.refetch()} className={secondaryButton}>
+          <RefreshCw aria-hidden className="size-4" />
+          {DISCOVER.prefill.retry}
+        </button>
+      </div>
+    );
+  } else if (events.isError) {
     body = (
       <div role="alert" className="flex flex-col items-start gap-3">
         <p className="text-body-md text-destructive">{FORM.optionsError}</p>
@@ -64,7 +95,7 @@ export function VendorFormDialog(props: Readonly<VendorFormDialogProps>) {
         </button>
       </div>
     );
-  } else if (events.data) {
+  } else if (events.data && (!fromGoogle || details.data)) {
     body = (
       // Keyed by id only: a newer copy arriving in the background must not wipe
       // what is being typed. Saving then answers CONFLICT, and "Reload vendor"
@@ -73,6 +104,9 @@ export function VendorFormDialog(props: Readonly<VendorFormDialogProps>) {
         key={current ? `${current.id}:${reloaded?.count ?? 0}` : "new"}
         {...props}
         vendor={current}
+        prefill={
+          fromGoogle && place ? { details: details.data!, category: place.category } : undefined
+        }
         events={events.data}
         onReload={async () => {
           if (!current) return;
@@ -104,16 +138,31 @@ function VendorForm({
   onSaved,
   events,
   onReload,
+  prefill,
 }: Readonly<
-  VendorFormDialogProps & { events: readonly EventDto[]; onReload: () => Promise<void> }
+  VendorFormDialogProps & {
+    events: readonly EventDto[];
+    onReload: () => Promise<void>;
+    prefill?: { details: DiscoveredPlaceDetailsDto; category: VendorCategory };
+  }
 >) {
+  const router = useRouter();
   // The copy this form was opened with: its values and version are what an edit
   // is based on, even if a newer copy arrives meanwhile.
   const [vendor] = useState(vendorProp);
-  const [initial] = useState(() => (vendor ? vendorToForm(vendor) : emptyVendorForm()));
+  const [initial] = useState(() => {
+    if (vendor) return vendorToForm(vendor);
+    return prefill ? placeToForm(prefill.details, prefill.category) : emptyVendorForm();
+  });
   const create = useCreateVendor();
   const update = useUpdateVendor();
-  const mutation = vendor ? update : create;
+  const addFromPlace = useAddVendorFromPlace();
+  let mutation: typeof create | typeof update | typeof addFromPlace = create;
+  if (vendor) mutation = update;
+  else if (prefill) mutation = addFromPlace;
+  // The place itself was refused (Google no longer lists it): not a field of the form.
+  const placeProblem =
+    mutation.error instanceof ApiError ? mutation.error.details?.googlePlaceId : undefined;
   const [reloadFailed, setReloadFailed] = useState(false);
 
   const form = useForm({ resolver: zodResolver(vendorFormSchema), defaultValues: initial });
@@ -132,6 +181,11 @@ function VendorForm({
       const body = toUpdateVendorBody(values, initial, vendor.version);
       if (!body) return onClose();
       update.mutate({ vendorId: vendor.id, body }, { onSuccess: onSaved, onError });
+    } else if (prefill) {
+      addFromPlace.mutate(
+        { ...toCreateVendorBody(values), googlePlaceId: prefill.details.googlePlaceId },
+        { onSuccess: onSaved, onError },
+      );
     } else {
       create.mutate(toCreateVendorBody(values), { onSuccess: onSaved, onError });
     }
@@ -154,10 +208,21 @@ function VendorForm({
 
   return (
     <form noValidate onSubmit={onSubmit} className="flex flex-col gap-5">
+      {prefill && (
+        <p className="flex gap-2 rounded-xl bg-sand/60 p-3 text-body-sm text-graphite">
+          <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-gold-deep" />
+          {DISCOVER.prefill.note}
+        </p>
+      )}
+      {placeProblem && <FormAlert title={DISCOVER.prefill.error.title}>{placeProblem}</FormAlert>}
       <SaveProblem
         error={reloadFailed ? new ApiError(404, "NOT_FOUND", "") : mutation.error}
-        onReload={() => void onReload().catch(() => setReloadFailed(true))}
-        copy={FORM}
+        onReload={() => {
+          // From Google, CONFLICT means the place is already saved: show My Vendors.
+          if (prefill) return router.push(VENDORS_ROUTES.list);
+          void onReload().catch(() => setReloadFailed(true));
+        }}
+        copy={prefill ? DISCOVER.prefill : FORM}
       />
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">

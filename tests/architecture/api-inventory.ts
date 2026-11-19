@@ -2,6 +2,7 @@
  * The complete API surface: API_DESIGN §106 (endpoint inventory) + §83 cover
  * uploads (route tree §105) + GET /api/photos/:photoId/download (2026-09-18
  * notes) + POST /api/members/invitations/:id/resend (PROJECT_STATUS 2026-10-29)
+ * + GET /api/vendor-discovery/places/:placeId (PROJECT_STATUS 2026-11-19)
  * + GET /api/health (scaffold only). docs/CODEBASE_ARCHITECTURE.md
  * renders the same table. `tests/architecture/api-routes.test.ts` asserts that
  * every entry exists with exactly these methods and auth levels.
@@ -498,7 +499,14 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     doc: "API §60",
     implemented: true,
   },
-  { method: "POST", path: "/api/vendors/from-place", auth: "member", phase: P4, doc: "API §61" },
+  {
+    method: "POST",
+    path: "/api/vendors/from-place",
+    auth: "member",
+    phase: P4,
+    doc: "API §61",
+    implemented: true,
+  },
   {
     method: "GET",
     path: "/api/vendors/[vendorId]",
@@ -529,6 +537,16 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "member",
     phase: P4,
     doc: "API §65–66",
+    implemented: true,
+  },
+  // Not in API_DESIGN (added 2026-11-19): pre-fills the add form from Google.
+  {
+    method: "GET",
+    path: "/api/vendor-discovery/places/[placeId]",
+    auth: "member",
+    phase: P4,
+    doc: "PROJECT_STATUS 2026-11-19",
+    implemented: true,
   },
 
   // ── Website, livestream, covers (API §67–72, §83) ──────────────────────────

@@ -104,6 +104,24 @@ export const vendorRepository = {
       .exec();
   },
 
+  /** Vendors of this wedding (archived included) for these Google places. */
+  async findByPlaceIds(
+    weddingId: string,
+    googlePlaceIds: readonly string[],
+  ): Promise<Pick<VendorRecord, "_id" | "googlePlaceId" | "archivedAt">[]> {
+    if (googlePlaceIds.length === 0) return [];
+    await connectToDatabase();
+    return VendorModel.find(
+      {
+        weddingId: toObjectId(weddingId, "weddingId"),
+        googlePlaceId: { $in: [...googlePlaceIds] },
+      },
+      { _id: 1, googlePlaceId: 1, archivedAt: 1 },
+    )
+      .lean<Pick<VendorRecord, "_id" | "googlePlaceId" | "archivedAt">[]>()
+      .exec();
+  },
+
   async create(
     weddingId: string,
     input: VendorFields & { source: VendorSource; googlePlaceId: string | null },

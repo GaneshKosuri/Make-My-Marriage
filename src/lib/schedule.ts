@@ -89,10 +89,19 @@ export function eventSchedule(
   return { date, time: `${time(event.startsAt)} – ${endDate}, ${time(event.endsAt!)}` };
 }
 
-/** A Google Maps search for the venue and address (no API key needed). */
-export function mapsSearchUrl(event: { venueName: string | null; address: string | null }) {
-  const query = [event.venueName, event.address].filter(Boolean).join(", ");
-  return query
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
-    : null;
+/**
+ * A Google Maps search for the venue and address (no API key needed). With a
+ * Google place id, Maps opens that exact place.
+ */
+export function mapsSearchUrl(place: {
+  venueName: string | null;
+  address: string | null;
+  googlePlaceId?: string | null;
+}) {
+  const query = [place.venueName, place.address].filter(Boolean).join(", ");
+  if (!query) return null;
+  const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  return place.googlePlaceId
+    ? `${url}&query_place_id=${encodeURIComponent(place.googlePlaceId)}`
+    : url;
 }

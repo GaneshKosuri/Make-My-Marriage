@@ -5,7 +5,9 @@ import type { z } from "zod";
 
 import type { VendorCategory, VendorSource } from "./vendor.constants";
 import type {
+  addVendorFromPlaceSchema,
   createVendorSchema,
+  discoverySearchQuerySchema,
   listVendorsQuerySchema,
   updateVendorSchema,
 } from "./vendor.schemas";
@@ -43,25 +45,31 @@ export type ListVendorsQuery = z.output<typeof listVendorsQuerySchema>;
 export type CreateVendorInput = z.output<typeof createVendorSchema>;
 export type UpdateVendorInput = z.output<typeof updateVendorSchema>;
 
-export interface AddVendorFromPlaceInput {
-  googlePlaceId: string;
-  category?: VendorCategory;
+export type AddVendorFromPlaceInput = z.output<typeof addVendorFromPlaceSchema>;
+export type VendorDiscoveryQuery = z.output<typeof discoverySearchQuerySchema>;
+
+/** The wedding's vendor for a Google place, archived or not (one place per wedding). */
+export interface MyVendorRef {
+  id: string;
+  archived: boolean;
 }
 
-export interface VendorDiscoveryQuery {
-  category: VendorCategory;
-  query?: string;
-  latitude?: number;
-  longitude?: number;
-}
-
-/** GET /api/vendor-discovery/search item (API_DESIGN §66). */
+/**
+ * GET /api/vendor-discovery/search item (API_DESIGN §66). No coordinates: no
+ * map or distance is shown (decided 2026-11-18).
+ */
 export interface DiscoveredVendorDto {
   googlePlaceId: string;
   name: string;
   rating: number | null;
   ratingCount: number | null;
   address: string | null;
-  latitude: number | null;
-  longitude: number | null;
+  /** Set when this place is already in My Vendors. */
+  myVendor: MyVendorRef | null;
+}
+
+/** GET /api/vendor-discovery/places/:placeId — what pre-fills the add form. */
+export interface DiscoveredPlaceDetailsDto extends DiscoveredVendorDto {
+  phone: string | null;
+  website: string | null;
 }

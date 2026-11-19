@@ -12,8 +12,8 @@ const availability = {
   familyMembers: "live", // Phase 1
   organiserGallery: "coming-soon", // Phase 6
   expenses: "live", // Phase 4 (expense tracker)
-  vendors: "live", // Phase 4 (My Vendors; discovery follows)
-  vendorDiscovery: "coming-soon",
+  vendors: "live", // Phase 4 (My Vendors)
+  vendorDiscovery: "live", // Phase 4 (search Google, add to My Vendors)
   website: "coming-soon",
   livestream: "coming-soon",
   guestPhotoUploads: "coming-soon",
