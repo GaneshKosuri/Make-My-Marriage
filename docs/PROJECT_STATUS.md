@@ -1,8 +1,8 @@
 # Project Status — Make My Marriage
 
-**Last updated:** 2026-11-19
-**Current phase:** Phase 4 — Financial and Vendors (PRD §16): all five slices built (Vendors API, My Vendors screens, Expenses API, expense screens 18 Nov; vendor discovery 19 Nov), awaiting the Phase 4 code review and QA. Phase 3 built, reviewed and QA-fixed, awaiting the QA re-test of bulk email (M10–M16, Q6); Phases 1 and 2 complete and QA-verified
-**Next up:** the Phase 4 code review and QA hand-off; `GOOGLE_PLACES_API_KEY` in Vercel before shipping discovery. Open decision: D7 (time zone change and event clock times)
+**Last updated:** 2026-11-20
+**Current phase:** Phase 6 — Memories (PRD §16; Phase 5 skipped for now, product owner 20 Nov): slice 1 (gallery API) built 20 Nov. Phase 4 — Financial and Vendors: all five slices built (Vendors API, My Vendors screens, Expenses API, expense screens 18 Nov; vendor discovery 19 Nov), awaiting the Phase 4 code review and QA. Phase 3 built, reviewed and QA-fixed, awaiting the QA re-test of bulk email (M10–M16, Q6); Phases 1 and 2 complete and QA-verified
+**Next up:** Phase 6 slice 2 (gallery screens; needs a development R2 bucket), then slices 3–6. Phase 4 code review and QA hand-off pending; `GOOGLE_PLACES_API_KEY` in Vercel before shipping discovery. Open decision: D7 (time zone change and event clock times)
 
 This file tracks what has been built and what comes next. Update it whenever a feature lands or new
 work starts: move items between the tables, add a row to the change log and refresh the header.
@@ -74,11 +74,11 @@ Status key: ✅ Done · 🚧 In progress · ⏳ Not started (scaffold stub only)
 | Themes | ⏳ | |
 | YouTube livestream | ⏳ | |
 
-### Phase 6 — Memories ⏳
+### Phase 6 — Memories 🚧
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| Gallery and albums | ⏳ | |
+| Gallery and albums | 🚧 | Slice 1, 20 Nov: API for the family (upload URL, confirm, album lists, download, delete) with grid previews. Screens next (slice 2) |
 | Guest photo uploads | ⏳ | |
 | Private sharing and QR code | ⏳ | |
 
@@ -190,6 +190,12 @@ monitoring.
   Decisions). If batches back up, add a free external scheduler (e.g. GitHub Actions every 10
   minutes) calling `GET /api/internal/jobs/email` with `Authorization: Bearer <CRON_SECRET>`, or move
   to Vercel Pro and restore `*/5 * * * *`.
+- **R2 for development and production (Phase 6, 20 Nov).** `R2_*` is empty in `.env.local`, so
+  development uses the in-memory fake and browser uploads can't work. Needed before checking the
+  gallery screens: a development bucket (separate from production), an API token limited to it, a
+  CORS rule allowing `PUT` and `GET` with `Content-Type` from `http://localhost:3000` and the Vercel
+  domain, and a lifecycle rule deleting `staging/` objects after 2 days (abandoned uploads).
+  Production needs the same in Vercel before Phase 6 ships.
 - **Legal pages.** Privacy policy and terms are needed before production. Until they exist, the home
   footer, the auth footer and the sign-up form leave out the "Privacy · Terms" links and the
   "By continuing you agree…" line shown in the designs.
@@ -264,6 +270,8 @@ monitoring.
 | 2026-11-18 | Expense screens: the summary shows the total and a bar per category scaled to the largest category (shares of what was spent; no budget, balance or percentage). A new expense is dated today in the wedding's time zone. Choosing a vendor fills the category only while none is chosen (Photographer → Photography, Caterer → Catering, DJ and Choreographer → Entertainment, Florist and Decorator → Decoration, Makeup and Mehendi artists → Makeup, Transport → Travel, others → Other), with a note saying so. The vendor page's "Expenses for this vendor" card shows "Recorded so far" (totalled only when all of the vendor's expenses come back in one request of 100) and the latest five, with "Add expense" opening the form with that vendor chosen (`/app/expenses?new=1&vendorId=…`). The date-range filter has its own row (two typed dates don't fit a dropdown's column). Home page "Expenses" badge live |
 | 2026-11-19 | Vendor discovery (slice 5): `GET /api/vendor-discovery/search?category&near&query` replaces API §65's latitude/longitude with `near`, a place name defaulting to the wedding's city and state (a field error when the wedding has neither and none is typed). Results carry only what the UI shows (no coordinates) plus `myVendor` (`{ id, archived }` when the place is already saved). New `GET /api/vendor-discovery/places/:placeId` (not in API_DESIGN) returns one place's details to pre-fill the form; Google's phone and website are dropped when the form wouldn't accept them. `POST /api/vendors/from-place` takes the reviewed vendor form plus `googlePlaceId` (API §61 has only the id): the server checks the place with Google (a place Google no longer lists is a field error), stores what the family saved with `source GOOGLE_PLACES`, and refuses a place already in My Vendors, archived included (`CONFLICT`, "This place is already in My Vendors."). Limits: 30 searches and 60 place lookups (details and saves) per wedding per hour (placeholders). Search results are cached for 30 minutes in the browser and never refetched on their own; saving a vendor marks it in the results instead of searching again. Google vendors' "Open in Google Maps" links open the exact place (`query_place_id`). Home page "Vendor discovery" badge live |
 | 2026-11-19 | Vendor discovery stays on Google Places (product owner). Free alternatives were compared: Ola Maps, Geoapify, OpenStreetMap Overpass and Foursquare are weaker on Indian wedding vendors (no ratings, few phones) or have unclear limits. maps.guru (Pune; open-data geocoding, commercial use allowed on its free tier) was trialled with a real key: every search answered 502 ("Pelias returned 530") on three checks, and it has no ratings or category search. Google's per-SKU free allowance (1,000 Enterprise / 5,000 Pro calls a month) covers development and early launch; dropping ratings would move searches to the Pro allowance |
+| 2026-11-20 | Phase 6 plan (product owner approved; Phase 5 skipped for now): slices 1 gallery API, 2 gallery screens, 3 gallery settings and QR, 4 public gallery API, 5 guest gallery page, 6 clean-up and dashboard; then code review and QA. Stitch screens (Gallery, Gallery QR, Guest Gallery; desktop and mobile) are for layout only. Decisions: the browser uploads a small preview (about 640 px WebP or JPEG, up to 512 KB) with each photo for the grid, and the original stays untouched for the viewer and downloads (location data in originals is kept; previews carry none; the guest page says photos are shared as they are); guest uploads get a placeholder limit of 500 photos per wedding per day on top of the per-IP limits; any member can delete any photo, guests can't; the gallery link never changes (switching the gallery off is the kill switch); the QR is drawn in the browser with `qrcode` (API §84 Option A); single-photo downloads only; the website's gallery section and covers wait for Phase 5 |
+| 2026-11-20 | Gallery API rules beyond API_DESIGN §75–78 and the 2026-09-18 notes: the upload request may ask for a preview PUT (`preview: { mimeType, sizeBytes }`); the response carries `preview` (a second signed PUT) or null. Confirmation verifies the preview like the photo (size, type, signature) and publishes it to `weddings/{id}/gallery/previews/…`; a missing or invalid preview never fails the photo. Photos carry `previewUrl` (null without a preview). Confirmation answers 201 with the photo, including when retried. Only the member who started an upload can confirm it; other members, other weddings and deleted photos get 404. The photo model gains `previewUploadKey`, `previewObjectKey`, `previewMimeType`, `previewSizeBytes` (not in DATABASE_DESIGN) |
 
 ## 5. Change log
 
@@ -316,3 +324,4 @@ monitoring.
 | 2026-11-18 | Expenses API (Phase 4, slice 3): GET/POST `/api/expenses`, GET `/api/expenses/summary`, GET/PATCH/DELETE `/api/expenses/:id` (API §53–58); `version` on expense DTOs, event and vendor summaries embedded. 30 integration tests (including cross-wedding 404s and the dashboard total), 10 unit tests |
 | 2026-11-18 | Expense screens (Phase 4, slice 4): `/app/expenses` with the total and category bars, filters kept in the address (category, event, vendor, dates), list with vendor links, add/edit sheet (₹ amount, date, vendor → category, event, notes, delete after confirming, conflict reload); "+" sheet opens the form; vendor page "Expenses for this vendor" card. 8 screen tests, 2 vendor-card tests, 3 form tests |
 | 2026-11-19 | Vendor discovery (Phase 4, slice 5): Google Places (New) adapter (Text Search and Place Details over REST, key in a header, field masks, 8 s timeout, provider errors → `EXTERNAL_SERVICE_ERROR`, unknown place → 404); GET `/api/vendor-discovery/search`, GET `/api/vendor-discovery/places/:placeId`, POST `/api/vendors/from-place`; `/app/vendors/discover` with category chips, Near and Keywords, result cards, Google prefill in the vendor form, unavailable and rate-limited states. Checked in the browser at desktop and 360 px (fake provider). 17 integration tests, 12 adapter tests, 10 schema tests, 8 screen tests |
+| 2026-11-20 | Gallery API (Phase 6, slice 1): POST `/api/photos/upload-url`, POST `/api/photos` (confirm), GET `/api/photos` (albums, cursor pages, totals), GET `/api/photos/:id/download`, DELETE `/api/photos/:id` (API §75–78 + 2026-09-18 notes), shared upload lifecycle for slice 4's guest uploads, grid previews. 20 integration tests (including cross-wedding 404s and the per-member limit), 14 unit tests |

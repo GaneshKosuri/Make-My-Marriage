@@ -8,6 +8,7 @@ import { OBJECT_ID_PATTERN } from "@/lib/object-id";
  * R2 object keys (DATABASE_DESIGN §102–103):
  *
  *   weddings/{weddingId}/gallery/{random}.{ext}
+ *   weddings/{weddingId}/gallery/previews/{random}.{ext}   ← grid previews (2026-11-20)
  *   weddings/{weddingId}/covers/{random}.{ext}
  *   weddings/{weddingId}/events/{eventId}/{random}.{ext}
  *   staging/weddings/{weddingId}/{purpose}/{random}.{ext}   ← browser PUT target
@@ -41,6 +42,11 @@ export function weddingPrefix(weddingId: string): string {
 
 export function galleryObjectKey(weddingId: string, mimeType: ImageMimeType): string {
   return `${weddingPrefix(weddingId)}gallery/${randomName(mimeType)}`;
+}
+
+/** A gallery photo's small grid copy (decided 2026-11-20). */
+export function galleryPreviewKey(weddingId: string, mimeType: ImageMimeType): string {
+  return `${weddingPrefix(weddingId)}gallery/previews/${randomName(mimeType)}`;
 }
 
 export function weddingCoverKey(weddingId: string, mimeType: ImageMimeType): string {
