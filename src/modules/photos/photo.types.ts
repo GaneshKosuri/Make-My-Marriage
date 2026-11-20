@@ -49,9 +49,12 @@ export interface PhotoDownloadDto {
   url: string;
 }
 
-/** GET /api/public/galleries/:token (API_DESIGN §80). */
+/**
+ * GET /api/public/galleries/:token (API_DESIGN §80). `timeZone` (not in the
+ * doc) dates guests' photos the way the family sees them.
+ */
 export interface PublicGalleryDto {
-  wedding: { brideName: string; groomName: string; weddingDate: string };
+  wedding: { brideName: string; groomName: string; weddingDate: string; timeZone: string };
   guestUploadsEnabled: boolean;
   events: { id: string; name: string }[];
 }

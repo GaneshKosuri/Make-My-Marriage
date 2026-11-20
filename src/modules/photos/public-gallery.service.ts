@@ -2,8 +2,14 @@ import "server-only";
 
 import type { CursorResult } from "@/lib/pagination";
 import type { PublicContext } from "@/server/auth";
-import { notImplemented } from "@/server/errors";
+import { AppError } from "@/server/errors";
+import { getRateLimiter, policies } from "@/server/security/rate-limit";
 
+import { eventsService } from "@/modules/events";
+import { gallerySettingsService, type GalleryAccess } from "@/modules/weddings";
+
+import { listAlbumPhotos } from "./photo-albums";
+import { confirmPhotoUpload, issuePhotoUpload } from "./photo-upload";
 import type {
   ConfirmPhotoUploadInput,
   ListPhotosQuery,
@@ -13,43 +19,89 @@ import type {
   PublicGalleryDto,
 } from "./photo.types";
 
+const GUEST = { type: "GUEST" } as const;
+const UPLOADS_OFF = "The family has turned off uploads.";
+
+/**
+ * The open gallery: an unknown token, a deleted wedding and a gallery that is
+ * switched off all look the same (NOT_FOUND), so a link reveals nothing.
+ */
+async function openGallery(token: string): Promise<GalleryAccess> {
+  const access = await gallerySettingsService.resolveGalleryToken(token);
+  if (!access?.isEnabled) throw new AppError("NOT_FOUND");
+  return access;
+}
+
+/** The gallery is open and the family lets guests add photos. */
+async function openForUploads(token: string): Promise<GalleryAccess> {
+  const access = await openGallery(token);
+  if (!access.guestUploadsEnabled) throw new AppError("FORBIDDEN", UPLOADS_OFF);
+  return access;
+}
+
+/** Guests see no file names (they can carry people's names). */
+const forGuests = (photo: PhotoDto): PhotoDto => ({ ...photo, originalFilename: null });
+
 /**
  * Guest gallery via the wedding-level gallery token (PRD §9.22–9.23;
- * SYSTEM_DESIGN §24–25, §39–40; API_DESIGN §79–82). Phase 6.
- * weddingId is derived from the token (gallerySettingsService.resolveGalleryToken),
- * never from the client. Invalid token → generic NOT_FOUND; disabled gallery or
- * guest uploads → FORBIDDEN/NOT_FOUND per final UX.
+ * SYSTEM_DESIGN §24–25, §39–40; API_DESIGN §79–82). Phase 6. The wedding comes
+ * from the token, never from the client. Guests view and upload; they can't
+ * delete or download through the app (PRD §9.20).
  */
 export const publicGalleryService = {
-  /** API §80. */
-  async getGallery(ctx: PublicContext, token: string): Promise<PublicGalleryDto> {
-    return notImplemented("API_DESIGN §80 (Phase 6: Memories)");
+  /** The couple, whether guests can upload, and the albums. API §80. */
+  async getGallery(_ctx: PublicContext, token: string): Promise<PublicGalleryDto> {
+    const access = await openGallery(token);
+    return {
+      wedding: {
+        brideName: access.brideName,
+        groomName: access.groomName,
+        weddingDate: access.weddingDate,
+        timeZone: access.timeZone,
+      },
+      guestUploadsEnabled: access.guestUploadsEnabled,
+      events: await eventsService.listAlbumNames(access.weddingId),
+    };
   },
 
-  /** Gallery-safe photo objects; cursor pagination. API §79. */
+  /** Gallery-safe photos by album, cursor pages. API §79. */
   async listPhotos(
-    ctx: PublicContext,
+    _ctx: PublicContext,
     token: string,
     query: ListPhotosQuery,
   ): Promise<CursorResult<PhotoDto>> {
-    return notImplemented("API_DESIGN §79 (Phase 6: Memories)");
+    const access = await openGallery(token);
+    const page = await listAlbumPhotos(access.weddingId, query);
+    return { ...page, items: page.items.map(forGuests) };
   },
 
-  /** Gallery + guest uploads enabled; uploaderType GUEST. Rate limited. API §81. */
+  /**
+   * A signed PUT for one guest photo. The event must be an active event of the
+   * wedding; then the wedding's daily guest allowance is used (500 a day,
+   * decided 2026-11-20) on top of the per-IP route limit. API §81.
+   */
   async requestUploadUrl(
-    ctx: PublicContext,
+    _ctx: PublicContext,
     token: string,
     input: PhotoUploadRequestInput,
   ): Promise<PhotoUploadUrlDto> {
-    return notImplemented("API_DESIGN §81 (Phase 6: Memories)");
+    const access = await openForUploads(token);
+    if (input.eventId) {
+      await eventsService.assertActiveEventsInWedding(access.weddingId, [input.eventId], "eventId");
+    }
+    await getRateLimiter().enforce([
+      { policy: policies.guestPhotoUploadPerWedding, subject: access.weddingId },
+    ]);
+    return issuePhotoUpload(access.weddingId, GUEST, input);
   },
 
-  /** No moderation stage. Rate limited. API §82. */
+  /** Verifies and publishes a guest upload (uploaderType GUEST); no moderation. API §82. */
   async confirmUpload(
-    ctx: PublicContext,
+    _ctx: PublicContext,
     token: string,
     input: ConfirmPhotoUploadInput,
   ): Promise<PhotoDto> {
-    return notImplemented("API_DESIGN §82 (Phase 6: Memories)");
+    const access = await openForUploads(token);
+    return forGuests(await confirmPhotoUpload(access.weddingId, GUEST, input));
   },
 };

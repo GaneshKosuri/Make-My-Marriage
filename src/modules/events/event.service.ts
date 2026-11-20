@@ -190,6 +190,12 @@ export const eventsService = {
       .map(toPublicEventDto);
   },
 
+  /** Guest gallery albums (API_DESIGN §80): active events, id and name, in start order. */
+  async listAlbumNames(weddingId: string): Promise<{ id: string; name: string }[]> {
+    const events = await eventRepository.list(weddingId, { includeArchived: false });
+    return events.map((event) => ({ id: event._id.toString(), name: event.name }));
+  },
+
   /** Dashboard: events that are not archived (DATABASE_DESIGN §88). */
   async countActive(weddingId: string): Promise<number> {
     return eventRepository.countActive(weddingId);

@@ -577,9 +577,30 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
   },
 
   // ── Gallery + photos (API §73–82, 2026-09-18 notes) ────────────────────────
-  { method: "GET", path: "/api/gallery/settings", auth: "member", phase: P6, doc: "API §73" },
-  { method: "PATCH", path: "/api/gallery/settings", auth: "member", phase: P6, doc: "API §74" },
-  { method: "GET", path: "/api/gallery/qr", auth: "member", phase: P6, doc: "API §84" },
+  {
+    method: "GET",
+    path: "/api/gallery/settings",
+    auth: "member",
+    phase: P6,
+    doc: "API §73",
+    implemented: true,
+  },
+  {
+    method: "PATCH",
+    path: "/api/gallery/settings",
+    auth: "member",
+    phase: P6,
+    doc: "API §74",
+    implemented: true,
+  },
+  {
+    method: "GET",
+    path: "/api/gallery/qr",
+    auth: "member",
+    phase: P6,
+    doc: "API §84",
+    implemented: true,
+  },
   {
     method: "GET",
     path: "/api/photos",
@@ -626,6 +647,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "public",
     phase: P6,
     doc: "API §80",
+    implemented: true,
   },
   {
     method: "GET",
@@ -633,6 +655,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "public",
     phase: P6,
     doc: "API §79",
+    implemented: true,
   },
   {
     method: "POST",
@@ -640,6 +663,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "public",
     phase: P6,
     doc: "API §82",
+    implemented: true,
   },
   {
     method: "POST",
@@ -647,5 +671,6 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "public",
     phase: P6,
     doc: "API §81",
+    implemented: true,
   },
 ];

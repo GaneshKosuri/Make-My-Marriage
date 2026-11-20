@@ -1,8 +1,8 @@
 # Project Status — Make My Marriage
 
 **Last updated:** 2026-11-20
-**Current phase:** Phase 6 — Memories (PRD §16; Phase 5 skipped for now, product owner 20 Nov): slice 1 (gallery API) built 20 Nov. Phase 4 — Financial and Vendors: all five slices built (Vendors API, My Vendors screens, Expenses API, expense screens 18 Nov; vendor discovery 19 Nov), awaiting the Phase 4 code review and QA. Phase 3 built, reviewed and QA-fixed, awaiting the QA re-test of bulk email (M10–M16, Q6); Phases 1 and 2 complete and QA-verified
-**Next up:** Phase 6 slice 2 (gallery screens; needs a development R2 bucket), then slices 3–6. Phase 4 code review and QA hand-off pending; `GOOGLE_PLACES_API_KEY` in Vercel before shipping discovery. Open decision: D7 (time zone change and event clock times)
+**Current phase:** Phase 6 — Memories (PRD §16; Phase 5 skipped for now, product owner 20 Nov): all six slices built 20 Nov (gallery API, gallery screens, settings and QR, public gallery API, guest gallery page, sharing and badges), awaiting R2 and a browser check of uploads, then the Phase 6 code review and QA. Phase 4 — Financial and Vendors: all five slices built (Vendors API, My Vendors screens, Expenses API, expense screens 18 Nov; vendor discovery 19 Nov), awaiting the Phase 4 code review and QA. Phase 3 built, reviewed and QA-fixed, awaiting the QA re-test of bulk email (M10–M16, Q6); Phases 1 and 2 complete and QA-verified
+**Next up:** R2 development bucket (see Open items), then a browser check of real uploads and the Phase 6 code review and QA hand-off. Phase 4 code review and QA hand-off pending; `GOOGLE_PLACES_API_KEY` in Vercel before shipping discovery. Open decision: D7 (time zone change and event clock times)
 
 This file tracks what has been built and what comes next. Update it whenever a feature lands or new
 work starts: move items between the tables, add a row to the change log and refresh the header.
@@ -74,13 +74,13 @@ Status key: ✅ Done · 🚧 In progress · ⏳ Not started (scaffold stub only)
 | Themes | ⏳ | |
 | YouTube livestream | ⏳ | |
 
-### Phase 6 — Memories 🚧
+### Phase 6 — Memories ✅
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| Gallery and albums | 🚧 | Slice 1, 20 Nov: API for the family (upload URL, confirm, album lists, download, delete) with grid previews. Screens next (slice 2) |
-| Guest photo uploads | ⏳ | |
-| Private sharing and QR code | ⏳ | |
+| Gallery and albums | ✅ | 20 Nov: API (slice 1) and `/app/photos` (slice 2): album chips (All, each active event, Wedding Memories) kept in the address, grid of previews with Guest tags, Load more, full-screen viewer (arrow keys), download, delete after confirming, upload dialog (up to 20, album choice, one at a time with progress, Try again). "+" sheet opens the upload dialog. Real uploads need R2 |
+| Guest photo uploads | ✅ | 20 Nov: public API (slice 4) and `/gallery/[token]` (slice 5): couple hero, "Add your photos" sheet with optional event, thank-you screen, album chips, viewer without download or delete, uploads-off note, closed page. 60 upload requests per visitor per 15 minutes and 500 guest photos per wedding per day |
+| Private sharing and QR code | ✅ | 20 Nov (slice 3): `/app/photos/qr` with the two switches, the stable link (copy, WhatsApp), the QR card drawn in the browser, PNG/SVG downloads and Print card (only the card prints) |
 
 ### Phase 7 — Production Readiness ⏳
 
@@ -196,6 +196,15 @@ monitoring.
   CORS rule allowing `PUT` and `GET` with `Content-Type` from `http://localhost:3000` and the Vercel
   domain, and a lifecycle rule deleting `staging/` objects after 2 days (abandoned uploads).
   Production needs the same in Vercel before Phase 6 ships.
+- **Abandoned photo uploads (Phase 6, 20 Nov).** An upload that is never confirmed leaves a hidden
+  PENDING row and a `staging/` object. The R2 lifecycle rule removes the objects; the rows stay
+  (small, never listed). Removing them needs a query across weddings, which the tenant rules don't
+  allow outside token, identity and email-worker code: decide in Phase 7 (e.g. a guarded internal job).
+- **Phase 6 not yet checked in a browser with real storage (20 Nov).** Component and integration
+  tests cover the screens and API with fake storage. Once R2 is set up: upload from desktop and a
+  phone (JPEG, PNG, HEIC from an iPhone arrives as JPEG), previews, viewer, download, delete, guest
+  upload by QR. The dev server also needs a restart: it was serving an old compiled copy of the
+  gallery settings code (501).
 - **Legal pages.** Privacy policy and terms are needed before production. Until they exist, the home
   footer, the auth footer and the sign-up form leave out the "Privacy · Terms" links and the
   "By continuing you agree…" line shown in the designs.
@@ -272,6 +281,7 @@ monitoring.
 | 2026-11-19 | Vendor discovery stays on Google Places (product owner). Free alternatives were compared: Ola Maps, Geoapify, OpenStreetMap Overpass and Foursquare are weaker on Indian wedding vendors (no ratings, few phones) or have unclear limits. maps.guru (Pune; open-data geocoding, commercial use allowed on its free tier) was trialled with a real key: every search answered 502 ("Pelias returned 530") on three checks, and it has no ratings or category search. Google's per-SKU free allowance (1,000 Enterprise / 5,000 Pro calls a month) covers development and early launch; dropping ratings would move searches to the Pro allowance |
 | 2026-11-20 | Phase 6 plan (product owner approved; Phase 5 skipped for now): slices 1 gallery API, 2 gallery screens, 3 gallery settings and QR, 4 public gallery API, 5 guest gallery page, 6 clean-up and dashboard; then code review and QA. Stitch screens (Gallery, Gallery QR, Guest Gallery; desktop and mobile) are for layout only. Decisions: the browser uploads a small preview (about 640 px WebP or JPEG, up to 512 KB) with each photo for the grid, and the original stays untouched for the viewer and downloads (location data in originals is kept; previews carry none; the guest page says photos are shared as they are); guest uploads get a placeholder limit of 500 photos per wedding per day on top of the per-IP limits; any member can delete any photo, guests can't; the gallery link never changes (switching the gallery off is the kill switch); the QR is drawn in the browser with `qrcode` (API §84 Option A); single-photo downloads only; the website's gallery section and covers wait for Phase 5 |
 | 2026-11-20 | Gallery API rules beyond API_DESIGN §75–78 and the 2026-09-18 notes: the upload request may ask for a preview PUT (`preview: { mimeType, sizeBytes }`); the response carries `preview` (a second signed PUT) or null. Confirmation verifies the preview like the photo (size, type, signature) and publishes it to `weddings/{id}/gallery/previews/…`; a missing or invalid preview never fails the photo. Photos carry `previewUrl` (null without a preview). Confirmation answers 201 with the photo, including when retried. Only the member who started an upload can confirm it; other members, other weddings and deleted photos get 404. The photo model gains `previewUploadKey`, `previewObjectKey`, `previewMimeType`, `previewSizeBytes` (not in DATABASE_DESIGN) |
+| 2026-11-20 | Gallery screens and sharing: the family grid shows previews (originals when a photo has none); tile download/delete buttons appear on hover or keyboard focus and not on touch screens (the viewer has them). Album chips list active events in date order; photos of archived events stay under All and show "(archived)" in the viewer. Upload: files are checked in the browser first (JPEG, PNG or WebP, 10 MB); the file input's `accept` list makes iPhones hand over JPEGs instead of HEIC; previews are made in the browser (WebP, or JPEG where WebP isn't supported) and dropped quietly if they can't be made. Guests see no file names. The gallery switches: uploads can only be switched on while the gallery is on; switching the gallery off closes the guest page (404, "This gallery is closed") without changing the link. The QR card prints on its own (print styles in `globals.css`). `PublicGalleryDto.wedding` also carries `timeZone`; new endpoint-free helpers: `eventsService.listAlbumNames`. New rate-limit policies (placeholders): `publicGalleryView` 120/min per IP, `guestPhotoUploadPerWedding` 500/day per wedding. The dashboard has no photo count (API §20 doesn't list one). Home page "Photo gallery" and "Guest uploads" badges live |
 
 ## 5. Change log
 
@@ -325,3 +335,4 @@ monitoring.
 | 2026-11-18 | Expense screens (Phase 4, slice 4): `/app/expenses` with the total and category bars, filters kept in the address (category, event, vendor, dates), list with vendor links, add/edit sheet (₹ amount, date, vendor → category, event, notes, delete after confirming, conflict reload); "+" sheet opens the form; vendor page "Expenses for this vendor" card. 8 screen tests, 2 vendor-card tests, 3 form tests |
 | 2026-11-19 | Vendor discovery (Phase 4, slice 5): Google Places (New) adapter (Text Search and Place Details over REST, key in a header, field masks, 8 s timeout, provider errors → `EXTERNAL_SERVICE_ERROR`, unknown place → 404); GET `/api/vendor-discovery/search`, GET `/api/vendor-discovery/places/:placeId`, POST `/api/vendors/from-place`; `/app/vendors/discover` with category chips, Near and Keywords, result cards, Google prefill in the vendor form, unavailable and rate-limited states. Checked in the browser at desktop and 360 px (fake provider). 17 integration tests, 12 adapter tests, 10 schema tests, 8 screen tests |
 | 2026-11-20 | Gallery API (Phase 6, slice 1): POST `/api/photos/upload-url`, POST `/api/photos` (confirm), GET `/api/photos` (albums, cursor pages, totals), GET `/api/photos/:id/download`, DELETE `/api/photos/:id` (API §75–78 + 2026-09-18 notes), shared upload lifecycle for slice 4's guest uploads, grid previews. 20 integration tests (including cross-wedding 404s and the per-member limit), 14 unit tests |
+| 2026-11-20 | Phase 6 slices 2–6: `/app/photos` gallery (albums, previews, viewer, download, delete, upload dialog), GET/PATCH `/api/gallery/settings` and GET `/api/gallery/qr` (API §73–74, §84) with `/app/photos/qr` (switches, link, WhatsApp, QR card, PNG/SVG, print), public gallery API GET `/api/public/galleries/:token`, GET/POST `…/photos`, POST `…/upload-url` (API §79–82) with `/gallery/[token]` for guests; `qrcode` 1.5.4 added (production audit clean). 13 integration tests, 14 component tests |

@@ -1,20 +1,18 @@
-import { notImplemented, route } from "@/server/http";
+import { ok, route } from "@/server/http";
+import { gallerySettingsService } from "@/modules/weddings";
+import { updateGallerySettingsSchema } from "@/modules/weddings/wedding.schemas";
 
-/**
- * /api/gallery/settings — stub (GET API §73, PATCH API §74).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 6: Memories.
- */
+/** /api/gallery/settings (GET API §73, PATCH API §74). */
 
-/** GET — API §73. */
+/** GET — the gallery switches and the stable gallery link. */
 export const GET = route({
   auth: "member",
-  // Phase 6: Memories: ok(await gallerySettingsService.getSettings(ctx))
-  handler: () => notImplemented("Phase 6: Memories"),
+  handler: async ({ ctx }) => ok(await gallerySettingsService.getSettings(ctx)),
 });
 
-/** PATCH — API §74. */
+/** PATCH — turn the gallery or guest uploads on or off. */
 export const PATCH = route({
   auth: "member",
-  // Phase 6: Memories: ok(await gallerySettingsService.updateSettings(ctx, body))
-  handler: () => notImplemented("Phase 6: Memories"),
+  body: updateGallerySettingsSchema,
+  handler: async ({ ctx, body }) => ok(await gallerySettingsService.updateSettings(ctx, body)),
 });

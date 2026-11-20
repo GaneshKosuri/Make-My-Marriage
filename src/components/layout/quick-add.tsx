@@ -55,7 +55,7 @@ export const QUICK_ADD_ITEMS: readonly {
   {
     label: "Upload photos",
     hint: "Add to your private gallery",
-    href: "/app/photos",
+    href: "/app/photos?new=1",
     icon: Camera,
   },
 ];

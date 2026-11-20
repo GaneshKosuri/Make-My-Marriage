@@ -244,3 +244,23 @@
     }
   }
 }
+
+/* "Print card" on /app/photos/qr: only the QR card, centred, with its colours. */
+@media print {
+  body:has([data-print-card]) * {
+    visibility: hidden;
+  }
+  [data-print-card],
+  [data-print-card] * {
+    visibility: visible;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  [data-print-card] {
+    position: fixed;
+    top: 1.5cm;
+    left: 50%;
+    width: 11cm;
+    transform: translateX(-50%);
+  }
+}

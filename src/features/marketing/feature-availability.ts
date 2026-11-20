@@ -10,13 +10,13 @@ const availability = {
   tasks: "live", // Phase 2
   guests: "live", // Phase 3 (guest list, invitation links and RSVP)
   familyMembers: "live", // Phase 1
-  organiserGallery: "coming-soon", // Phase 6
+  organiserGallery: "live", // Phase 6 (private gallery, albums, QR)
   expenses: "live", // Phase 4 (expense tracker)
   vendors: "live", // Phase 4 (My Vendors)
   vendorDiscovery: "live", // Phase 4 (search Google, add to My Vendors)
   website: "coming-soon",
   livestream: "coming-soon",
-  guestPhotoUploads: "coming-soon",
+  guestPhotoUploads: "live", // Phase 6 (guest uploads by QR code)
   emailInvitations: "live", // Phase 3 (email invitations and RSVP reminders)
 } satisfies Record<string, FeatureAvailability>;
 

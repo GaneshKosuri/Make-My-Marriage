@@ -91,6 +91,12 @@ export const policies = {
     scope: "token",
   },
   rsvpGlobal: { name: "public.rsvp.global", limit: 300, windowMs: MINUTE, scope: "global" },
+  publicGalleryView: {
+    name: "public.gallery.view",
+    limit: 120,
+    windowMs: MINUTE,
+    scope: "ip",
+  }, // placeholder
   galleryUploadUrl: {
     name: "public.gallery.upload-url",
     limit: 60,
@@ -116,6 +122,14 @@ export const policies = {
     name: "vendor-discovery.place",
     limit: 60,
     windowMs: 60 * MINUTE,
+    scope: "wedding",
+  }, // placeholder
+  // Guest photo uploads per wedding (decided 2026-11-20): a ceiling on storage use
+  // from the open guest link, on top of the per-IP limits. Placeholder.
+  guestPhotoUploadPerWedding: {
+    name: "public.gallery.upload.wedding",
+    limit: 500,
+    windowMs: 24 * 60 * MINUTE,
     scope: "wedding",
   }, // placeholder
   // 2026-09-18 notes: 120 per member, then 600 per wedding, per 15 minutes.

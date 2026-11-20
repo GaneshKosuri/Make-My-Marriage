@@ -129,6 +129,19 @@ export const updateWeddingSchema = z
  *     - updateWebsiteSettingsSchema API_DESIGN §68 { theme, welcomeMessage, isPublished }
  *     - updateLivestreamSchema      API_DESIGN §71–72 { youtubeUrl (YouTube formats only) | null, isEnabled }
  *     - coverUploadRequestSchema    API_DESIGN §83 { mimeType, sizeBytes }
- *   Phase 6: Memories
- *     - updateGallerySettingsSchema API_DESIGN §74 { isEnabled, guestUploadsEnabled }
  */
+
+/**
+ * PATCH /api/gallery/settings (API_DESIGN §74): either switch, or both. The
+ * guest page needs both on to take uploads; the gallery link never changes.
+ */
+export const updateGallerySettingsSchema = z
+  .object({
+    isEnabled: z.boolean().optional(),
+    guestUploadsEnabled: z.boolean().optional(),
+  })
+  .strict()
+  .refine(
+    (input) => input.isEnabled !== undefined || input.guestUploadsEnabled !== undefined,
+    "Send at least one setting to change",
+  );
