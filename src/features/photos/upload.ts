@@ -7,7 +7,8 @@
  * in the browser and sent alongside (decided 2026-11-20). Shared by the family
  * gallery and the guest gallery; only the two endpoints differ.
  */
-import { ApiError, apiFetch } from "@/lib/api-client";
+import { apiFetch } from "@/lib/api-client";
+import { putToStorage } from "@/lib/direct-upload";
 import {
   ALLOWED_PHOTO_MIME_TYPES,
   MAX_PHOTO_PREVIEW_SIZE_BYTES,
@@ -16,7 +17,7 @@ import {
   type PhotoMimeType,
   type PhotoPreviewMimeType,
 } from "@/modules/photos/photo.constants";
-import type { PhotoDto, PhotoUploadUrlDto, SignedUploadDto } from "@/modules/photos/photo.types";
+import type { PhotoDto, PhotoUploadUrlDto } from "@/modules/photos/photo.types";
 
 import { UPLOAD } from "./gallery-content";
 
@@ -71,30 +72,6 @@ export async function makePreview(file: File): Promise<Blob | null> {
   } catch {
     return null;
   }
-}
-
-/** PUT straight to storage, reporting progress (fetch can't report upload progress). */
-export function putToStorage(
-  target: SignedUploadDto,
-  body: Blob,
-  onProgress?: (fraction: number) => void,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const request = new XMLHttpRequest();
-    request.open("PUT", target.uploadUrl);
-    for (const [name, value] of Object.entries(target.headers)) {
-      request.setRequestHeader(name, value);
-    }
-    request.upload.onprogress = (event) => {
-      if (event.lengthComputable) onProgress?.(event.loaded / event.total);
-    };
-    request.onload = () =>
-      request.status >= 200 && request.status < 300
-        ? resolve()
-        : reject(new ApiError(request.status, "UPLOAD_ERROR", "The upload didn't finish."));
-    request.onerror = () => reject(new ApiError(0, "UPLOAD_ERROR", "The upload didn't finish."));
-    request.send(body);
-  });
 }
 
 /**

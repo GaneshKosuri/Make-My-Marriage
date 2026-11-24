@@ -40,7 +40,7 @@ describe("feature availability", () => {
     expect(upcomingFeaturesSentence(availability())).toBeNull();
   });
 
-  it("matches what is built today: everything but the wedding website and livestream is live", () => {
+  it("matches what is built today: every feature is live", () => {
     for (const feature of [
       "familyMembers",
       "events",
@@ -52,11 +52,11 @@ describe("feature availability", () => {
       "expenses",
       "organiserGallery",
       "guestPhotoUploads",
+      "website",
+      "livestream",
     ] as const) {
       expect(isComingSoon(feature)).toBe(false);
     }
-    for (const feature of ["website", "livestream"] as const) {
-      expect(isComingSoon(feature)).toBe(true);
-    }
+    expect(upcomingFeaturesSentence()).toBeNull();
   });
 });
