@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   eventCoverKey,
   galleryObjectKey,
+  galleryPreviewKey,
   isKeyInWeddingNamespace,
   stagingKey,
   weddingCoverKey,
@@ -16,6 +17,9 @@ describe("object keys (DATABASE_DESIGN §102)", () => {
   it("builds namespaced, random keys", () => {
     expect(galleryObjectKey(weddingId, "image/jpeg")).toMatch(
       new RegExp(`^weddings/${weddingId}/gallery/[a-f0-9]{32}\\.jpg$`),
+    );
+    expect(galleryPreviewKey(weddingId, "image/webp")).toMatch(
+      new RegExp(`^weddings/${weddingId}/gallery/previews/[a-f0-9]{32}\.webp$`),
     );
     expect(weddingCoverKey(weddingId, "image/png")).toMatch(/\/covers\/[a-f0-9]{32}\.png$/);
     expect(eventCoverKey(weddingId, otherWedding, "image/webp")).toMatch(

@@ -5,7 +5,11 @@
 import type { z } from "zod";
 
 import type { WebsiteTheme } from "./wedding.constants";
-import type { createWeddingSchema, updateWeddingSchema } from "./wedding.schemas";
+import type {
+  createWeddingSchema,
+  updateGallerySettingsSchema,
+  updateWeddingSchema,
+} from "./wedding.schemas";
 
 export interface WeddingLocationDto {
   formattedAddress: string | null;
@@ -78,10 +82,7 @@ export interface GallerySettingsDto {
   qrUrl: string;
 }
 
-export interface UpdateGallerySettingsInput {
-  isEnabled?: boolean;
-  guestUploadsEnabled?: boolean;
-}
+export type UpdateGallerySettingsInput = z.output<typeof updateGallerySettingsSchema>;
 
 /** GET /api/gallery/qr — option A: the frontend renders the QR (API_DESIGN §84). */
 export interface GalleryQrDto {

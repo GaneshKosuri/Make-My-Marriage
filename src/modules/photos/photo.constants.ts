@@ -27,3 +27,15 @@ export const PHOTO_CONFIRMATION_GRACE_HOURS = 24;
 
 /** `eventId=other` selects unassigned "Wedding Memories" photos. */
 export const PHOTO_EVENT_FILTER_OTHER = "other";
+
+/**
+ * Grid previews (decided 2026-11-20): the browser also uploads a small copy
+ * (about 640 px, WebP or JPEG) so the grid doesn't load 10 MB originals. The
+ * original stays untouched for the viewer and downloads. Optional: a photo
+ * without a preview shows its original.
+ */
+export const PHOTO_PREVIEW_MIME_TYPES = ["image/webp", "image/jpeg"] as const;
+export type PhotoPreviewMimeType = (typeof PHOTO_PREVIEW_MIME_TYPES)[number];
+export const MAX_PHOTO_PREVIEW_SIZE_BYTES = 512 * 1024;
+/** The longest edge the browser scales previews to. */
+export const PHOTO_PREVIEW_MAX_EDGE = 640;

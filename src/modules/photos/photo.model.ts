@@ -8,11 +8,14 @@ import { tenantGuardPlugin } from "@/server/db/plugins/tenant-guard";
 import {
   ALLOWED_PHOTO_MIME_TYPES,
   MAX_PHOTO_SIZE_BYTES,
+  MAX_PHOTO_PREVIEW_SIZE_BYTES,
   MIN_PHOTO_SIZE_BYTES,
   PHOTO_ORIGINAL_FILENAME_MAX_LENGTH,
+  PHOTO_PREVIEW_MIME_TYPES,
   PHOTO_STATUSES,
   UPLOADER_TYPES,
   type PhotoMimeType,
+  type PhotoPreviewMimeType,
   type PhotoStatus,
   type UploaderType,
 } from "./photo.constants";
@@ -44,6 +47,15 @@ export interface PhotoDoc {
   sizeBytes: number;
   uploaderType: UploaderType;
   uploadedByMembershipId: Types.ObjectId | null;
+  /**
+   * Grid preview (decided 2026-11-20; not in DATABASE_DESIGN). Like the
+   * original: `previewUploadKey` is the reserved staging key, `previewObjectKey`
+   * the final key once verified. All null when the photo has no preview.
+   */
+  previewUploadKey: string | null;
+  previewObjectKey: string | null;
+  previewMimeType: PhotoPreviewMimeType | null;
+  previewSizeBytes: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -76,6 +88,15 @@ const photoSchema = new Schema<PhotoDoc>(
     uploadedByMembershipId: {
       type: Schema.Types.ObjectId,
       ref: "WeddingMembership",
+      default: null,
+    },
+    previewUploadKey: { type: String, default: null },
+    previewObjectKey: { type: String, default: null },
+    previewMimeType: { type: String, enum: [...PHOTO_PREVIEW_MIME_TYPES, null], default: null },
+    previewSizeBytes: {
+      type: Number,
+      min: MIN_PHOTO_SIZE_BYTES,
+      max: MAX_PHOTO_PREVIEW_SIZE_BYTES,
       default: null,
     },
   },

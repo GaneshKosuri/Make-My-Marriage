@@ -1,15 +1,13 @@
-import { notImplemented, route } from "@/server/http";
+import { ok, route } from "@/server/http";
+import { photosService } from "@/modules/photos";
 import { photoIdParams } from "@/modules/photos/photo.schemas";
 
 /**
- * /api/photos/[photoId]/download — stub (GET API 2026-09-18 notes).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 6: Memories.
+ * /api/photos/:photoId/download (GET, 2026-09-18 notes): a short-lived signed
+ * link that downloads the original; the app never proxies the photo.
  */
-
-/** GET — API 2026-09-18 notes. */
 export const GET = route({
   auth: "member",
   params: photoIdParams,
-  // Phase 6: Memories: ok(await photosService.getDownloadUrl(ctx, params.photoId))
-  handler: () => notImplemented("Phase 6: Memories"),
+  handler: async ({ ctx, params }) => ok(await photosService.getDownloadUrl(ctx, params.photoId)),
 });

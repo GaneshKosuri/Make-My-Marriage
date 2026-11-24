@@ -1,15 +1,15 @@
-import { notImplemented, route } from "@/server/http";
+import { ok, route } from "@/server/http";
+import { photosService } from "@/modules/photos";
 import { photoIdParams } from "@/modules/photos/photo.schemas";
 
-/**
- * /api/photos/[photoId] — stub (DELETE API §78).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 6: Memories.
- */
+/** /api/photos/:photoId (DELETE API §78 + 2026-09-18 notes). */
 
-/** DELETE — API §78. */
+/** DELETE — removes the photo from storage, then from the gallery. */
 export const DELETE = route({
   auth: "member",
   params: photoIdParams,
-  // Phase 6: Memories: await photosService.delete(ctx, params.photoId); return ok({ success: true })
-  handler: () => notImplemented("Phase 6: Memories"),
+  handler: async ({ ctx, params }) => {
+    await photosService.delete(ctx, params.photoId);
+    return ok({ success: true });
+  },
 });

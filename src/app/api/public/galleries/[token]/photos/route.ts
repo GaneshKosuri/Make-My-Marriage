@@ -1,25 +1,29 @@
-import { notImplemented, route, tokenParams } from "@/server/http";
+import { created, cursorPaginated, policies, route, tokenParams } from "@/server/http";
+import { publicGalleryService } from "@/modules/photos";
+import { confirmPhotoUploadSchema, listPhotosQuerySchema } from "@/modules/photos/photo.schemas";
 
-/**
- * /api/public/galleries/[token]/photos — stub (GET API §79, POST API §82).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 6: Memories.
- */
+/** /api/public/galleries/:token/photos (GET API §79, POST API §82). */
 
-/** GET — API §79. */
+/** GET — gallery-safe photos by album, cursor pages. */
 export const GET = route({
   auth: "public",
   params: tokenParams,
   invalidParams: "NOT_FOUND",
-  // Phase 6: Memories: cursorPaginated(...(await publicGalleryService.listPhotos(ctx, params.token, query)))
-  handler: () => notImplemented("Phase 6: Memories"),
+  query: listPhotosQuerySchema,
+  rateLimit: policies.publicGalleryView,
+  handler: async ({ ctx, params, query }) => {
+    const { items, pagination } = await publicGalleryService.listPhotos(ctx, params.token, query);
+    return cursorPaginated(items, pagination);
+  },
 });
 
-/** POST — API §82. */
+/** POST — confirm a guest's direct upload (uploaderType GUEST). */
 export const POST = route({
   auth: "public",
   params: tokenParams,
   invalidParams: "NOT_FOUND",
-  // Phase 6: Memories: rateLimit: policies.galleryPhotoConfirm
-  // Phase 6: Memories: created(await publicGalleryService.confirmUpload(ctx, params.token, body))
-  handler: () => notImplemented("Phase 6: Memories"),
+  body: confirmPhotoUploadSchema,
+  rateLimit: policies.galleryPhotoConfirm,
+  handler: async ({ ctx, params, body }) =>
+    created(await publicGalleryService.confirmUpload(ctx, params.token, body)),
 });

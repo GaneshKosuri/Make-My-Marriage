@@ -1,20 +1,22 @@
-import { notImplemented, route } from "@/server/http";
+import { created, cursorPaginated, route } from "@/server/http";
+import { photosService } from "@/modules/photos";
+import { confirmPhotoUploadSchema, listPhotosQuerySchema } from "@/modules/photos/photo.schemas";
 
-/**
- * /api/photos — stub (GET API §75, POST API §77).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 6: Memories.
- */
+/** /api/photos (GET API §75, POST API §77 + 2026-09-18 notes). */
 
-/** GET — API §75. */
+/** GET — API §75: READY photos newest first, by album (`eventId`, `other`), cursor pages. */
 export const GET = route({
   auth: "member",
-  // Phase 6: Memories: cursorPaginated(...(await photosService.list(ctx, query)))
-  handler: () => notImplemented("Phase 6: Memories"),
+  query: listPhotosQuerySchema,
+  handler: async ({ ctx, query }) => {
+    const { items, pagination } = await photosService.list(ctx, query);
+    return cursorPaginated(items, pagination);
+  },
 });
 
-/** POST — API §77. */
+/** POST — API §77: confirm a direct upload; verified, then published. Idempotent. */
 export const POST = route({
   auth: "member",
-  // Phase 6: Memories: created(await photosService.confirmUpload(ctx, body))
-  handler: () => notImplemented("Phase 6: Memories"),
+  body: confirmPhotoUploadSchema,
+  handler: async ({ ctx, body }) => created(await photosService.confirmUpload(ctx, body)),
 });

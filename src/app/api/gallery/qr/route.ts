@@ -1,13 +1,8 @@
-import { notImplemented, route } from "@/server/http";
+import { ok, route } from "@/server/http";
+import { gallerySettingsService } from "@/modules/weddings";
 
-/**
- * /api/gallery/qr — stub (GET API §84).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 6: Memories.
- */
-
-/** GET — API §84. */
+/** /api/gallery/qr (GET API §84, Option A): the link the browser draws the QR for. */
 export const GET = route({
   auth: "member",
-  // Phase 6: Memories: ok(await gallerySettingsService.getQr(ctx))
-  handler: () => notImplemented("Phase 6: Memories"),
+  handler: async ({ ctx }) => ok(await gallerySettingsService.getQr(ctx)),
 });

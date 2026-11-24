@@ -1,15 +1,14 @@
-import { notImplemented, route, tokenParams } from "@/server/http";
+import { ok, policies, route, tokenParams } from "@/server/http";
+import { publicGalleryService } from "@/modules/photos";
 
 /**
- * /api/public/galleries/[token] — stub (GET API §80).
- * Answers 501 NOT_IMPLEMENTED once auth and params pass; implemented in Phase 6: Memories.
+ * /api/public/galleries/:token (GET API §80): the couple, whether guests can
+ * upload, and the albums. A closed or unknown gallery is 404.
  */
-
-/** GET — API §80. */
 export const GET = route({
   auth: "public",
   params: tokenParams,
   invalidParams: "NOT_FOUND",
-  // Phase 6: Memories: ok(await publicGalleryService.getGallery(ctx, params.token))
-  handler: () => notImplemented("Phase 6: Memories"),
+  rateLimit: policies.publicGalleryView,
+  handler: async ({ ctx, params }) => ok(await publicGalleryService.getGallery(ctx, params.token)),
 });
