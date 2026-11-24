@@ -574,10 +574,15 @@ export function TimeField({
         onOpenChange={setOpen}
         placement="bottom start"
         offset={8}
-        className={cn(popoverClass, "w-[var(--trigger-width)] max-w-[240px] p-1.5")}
+        // Only the list scrolls: the popover clips instead of scrolling too, and the
+        // list shrinks when React Aria caps the popover to the space on screen.
+        className={cn(
+          popoverClass,
+          "flex w-[var(--trigger-width)] max-w-[240px] flex-col overflow-hidden p-1.5",
+        )}
       >
         {/* A list straight in the popover (no Dialog, which would take focus from it). */}
-        <div className="outline-none">
+        <div className="flex min-h-0 flex-col outline-none">
           <TimeList
             current={value}
             focusKey={focusKey}
@@ -587,7 +592,7 @@ export function TimeField({
             }}
           />
           {clearable && value && (
-            <div className="mt-1 border-t border-sand pt-1">
+            <div className="mt-1 shrink-0 border-t border-sand pt-1">
               <Button
                 className={cn(footerButtonClass, "w-full text-left")}
                 onPress={() => {
@@ -621,20 +626,31 @@ function TimeList({
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    // React Aria renders the options in a second pass, and the popover focuses
-    // itself on open; so look the option up a frame later, then scroll and focus it.
-    let frame = window.requestAnimationFrame(() => {
-      frame = window.requestAnimationFrame(() => {
-        const list = listRef.current;
-        const option = list?.querySelector<HTMLElement>(`[data-key="${focusKey}"]`);
-        if (!list || !option) return;
-        // Centre it by setting the list's own scroll: the popover locks page scrolling,
-        // which also stops scrollIntoView from moving a list inside it.
+    // React Aria renders the options in a second pass, the popover focuses itself
+    // on open, and it is positioned (and its height capped) a little later; so keep
+    // trying, a frame at a time, until the option sits in the middle of the list.
+    let frame = 0;
+    let tries = 0;
+    let focused = false;
+    const centre = () => {
+      tries += 1;
+      const list = listRef.current;
+      const option = list?.querySelector<HTMLElement>(`[data-key="${focusKey}"]`);
+      if (list && option && !focused) {
+        option.focus({ preventScroll: true });
+        focused = true;
+      }
+      if (list && option && list.clientHeight > 0) {
+        // Set the list's own scroll: the popover locks page scrolling, which also
+        // stops scrollIntoView from moving a list inside it.
         const offset = option.getBoundingClientRect().top - list.getBoundingClientRect().top;
         list.scrollTop += offset - (list.clientHeight - option.offsetHeight) / 2;
-        option.focus({ preventScroll: true });
-      });
-    });
+        const top = option.getBoundingClientRect().top - list.getBoundingClientRect().top;
+        if (top >= 0 && top + option.offsetHeight <= list.clientHeight) return;
+      }
+      if (tries < 30) frame = window.requestAnimationFrame(centre);
+    };
+    frame = window.requestAnimationFrame(centre);
     return () => window.cancelAnimationFrame(frame);
   }, [focusKey]);
 
@@ -643,7 +659,7 @@ function TimeList({
       ref={listRef}
       aria-label="Times"
       onAction={(key) => onPick(String(key))}
-      className="max-h-64 overflow-y-auto outline-none"
+      className="max-h-64 min-h-0 overflow-y-auto overscroll-contain outline-none"
     >
       {TIME_OPTIONS.map((option) => {
         const isCurrent = option === current;

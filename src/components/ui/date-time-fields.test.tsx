@@ -198,6 +198,18 @@ describe("TimeField", () => {
     expect(shown()).toBe("18:00");
   });
 
+  it("scrolls the list only, never the popover around it as well", async () => {
+    const user = userEvent.setup();
+    render(<ControlledTime initial="18:00" clearable />);
+    await user.click(screen.getByRole("button", { name: "Choose a time" }));
+    const list = await screen.findByRole("listbox", { name: "Times" });
+    expect(list).toHaveClass("overflow-y-auto");
+    // Every box between the list and the page clips instead of scrolling.
+    for (let box = list.parentElement; box && box !== document.body; box = box.parentElement) {
+      expect(box.className).not.toMatch(/overflow-(y-)?(auto|scroll)/);
+    }
+  });
+
   it("opens an empty list focused where it is scrolled: 6:00 PM (review D5)", async () => {
     const user = userEvent.setup();
     render(<ControlledTime />);
