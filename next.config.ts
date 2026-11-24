@@ -20,7 +20,10 @@ const baselineSecurityHeaders = [
   },
   {
     key: "Content-Security-Policy",
-    value: "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'",
+    // frame-src: the only frame the app shows is the YouTube livestream player,
+    // through its privacy-enhanced domain (PRD §9.24, decided 2026-11-24).
+    value:
+      "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; frame-src https://www.youtube-nocookie.com",
   },
 ];
 

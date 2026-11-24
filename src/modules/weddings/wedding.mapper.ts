@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { IdentityWedding } from "@/server/auth/identity";
+import { youTubeEmbedUrl, youTubeVideoId } from "@/lib/youtube";
 import { getEnv } from "@/server/config/env";
 
 import type { WeddingRecord } from "./wedding.model";
@@ -22,6 +23,12 @@ export function toIdentityWedding(wedding: WeddingRecord): IdentityWedding {
     city: wedding.location?.city ?? null,
     state: wedding.location?.state ?? null,
   };
+}
+
+/** The privacy-enhanced YouTube player for a stored livestream link. */
+function embedUrlFor(youtubeUrl: string | null): string | null {
+  const videoId = youtubeUrl ? youTubeVideoId(youtubeUrl) : null;
+  return videoId ? youTubeEmbedUrl(videoId) : null;
 }
 
 /** The public website address (`/w/<slug>`), from NEXT_PUBLIC_APP_URL. */
@@ -64,6 +71,7 @@ export function toWeddingDto(wedding: WeddingRecord): WeddingDto {
     livestream: {
       youtubeUrl: wedding.livestream?.youtubeUrl ?? null,
       isEnabled: wedding.livestream?.isEnabled ?? false,
+      embedUrl: embedUrlFor(wedding.livestream?.youtubeUrl ?? null),
     },
   };
 }

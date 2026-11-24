@@ -191,7 +191,7 @@ describe("GET /api/public/weddings/:slug", () => {
         },
       ],
       gallery: { enabled: false, url: null },
-      livestream: { enabled: false, youtubeUrl: null },
+      livestream: { enabled: false, youtubeUrl: null, embedUrl: null },
     });
   });
 
@@ -219,7 +219,7 @@ describe("GET /api/public/weddings/:slug", () => {
         .livestream;
 
     await WeddingModel.updateOne({ _id: wedding._id }, { $set: { "livestream.isEnabled": true } });
-    expect(await livestream()).toEqual({ enabled: false, youtubeUrl: null });
+    expect(await livestream()).toEqual({ enabled: false, youtubeUrl: null, embedUrl: null });
     await WeddingModel.updateOne(
       { _id: wedding._id },
       { $set: { "livestream.youtubeUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" } },
@@ -227,6 +227,7 @@ describe("GET /api/public/weddings/:slug", () => {
     expect(await livestream()).toEqual({
       enabled: true,
       youtubeUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      embedUrl: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1",
     });
   });
 

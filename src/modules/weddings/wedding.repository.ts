@@ -75,6 +75,26 @@ export const weddingRepository = {
       .exec();
   },
 
+  /** Sets the livestream link and switch; null when the wedding is missing or deleted. */
+  async updateLivestream(
+    weddingId: string,
+    livestream: { youtubeUrl: string | null; isEnabled: boolean },
+  ): Promise<WeddingRecord | null> {
+    await connectToDatabase();
+    return WeddingModel.findOneAndUpdate(
+      { _id: toObjectId(weddingId, "weddingId"), deletedAt: null },
+      {
+        $set: {
+          "livestream.youtubeUrl": livestream.youtubeUrl,
+          "livestream.isEnabled": livestream.isEnabled,
+        },
+      },
+      { returnDocument: "after", runValidators: true },
+    )
+      .lean<WeddingRecord>()
+      .exec();
+  },
+
   /** Sets website fields on an active wedding; null when it is missing or deleted. */
   async updateWebsite(
     weddingId: string,

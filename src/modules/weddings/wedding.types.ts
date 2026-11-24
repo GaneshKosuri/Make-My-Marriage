@@ -8,6 +8,7 @@ import type { WebsiteTheme } from "./wedding.constants";
 import type {
   createWeddingSchema,
   updateGallerySettingsSchema,
+  updateLivestreamSchema,
   updateWebsiteSettingsSchema,
   updateWeddingSchema,
 } from "./wedding.schemas";
@@ -66,14 +67,14 @@ export type UpdateWebsiteSettingsInput = z.output<typeof updateWebsiteSettingsSc
 
 /** GET/PATCH /api/wedding/livestream (API_DESIGN §70–72). */
 export interface LivestreamSettingsDto {
+  /** The stored link, always `https://www.youtube.com/watch?v=<id>`. */
   youtubeUrl: string | null;
   isEnabled: boolean;
+  /** The privacy-enhanced player for that video; null without a link. */
+  embedUrl: string | null;
 }
 
-export interface UpdateLivestreamInput {
-  youtubeUrl?: string | null;
-  isEnabled?: boolean;
-}
+export type UpdateLivestreamInput = z.output<typeof updateLivestreamSchema>;
 
 /** GET /api/gallery/settings (API_DESIGN §73). */
 export interface GallerySettingsDto {
@@ -136,5 +137,6 @@ export interface PublicWeddingDto {
   events: PublicWebsiteEventDto[];
   /** The gallery button: only when the gallery is on and the family shows it. */
   gallery: { enabled: boolean; url: string | null };
-  livestream: { enabled: boolean; youtubeUrl: string | null };
+  /** The player shows only while switched on with a link (decided 2026-11-24). */
+  livestream: { enabled: boolean; youtubeUrl: string | null; embedUrl: string | null };
 }

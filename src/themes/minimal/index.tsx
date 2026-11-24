@@ -1,7 +1,7 @@
 import { coupleDisplayName } from "@/lib/couple";
 import { formatDateOnly } from "@/lib/dates";
 
-import { formatEventTime, GalleryAndLivestreamPlaceholders } from "../shared";
+import { formatEventTime, LivestreamAndGallery } from "../shared";
 import type { ThemeProps } from "../types";
 
 /** "Minimal Elegant": clean typography, elegant layout (PRD §9.19). Placeholder styling. */
@@ -30,10 +30,7 @@ export function MinimalTheme({ wedding }: Readonly<ThemeProps>) {
             ))}
           </ul>
         </section>
-        <GalleryAndLivestreamPlaceholders
-          galleryEnabled={wedding.gallery.enabled}
-          livestreamEnabled={wedding.livestream.enabled}
-        />
+        <LivestreamAndGallery wedding={wedding} />
       </div>
     </div>
   );

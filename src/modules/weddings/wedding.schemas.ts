@@ -5,6 +5,7 @@
 import { z } from "zod";
 
 import { dateOnlyInTimeZone, isValidDateOnly, isValidTimeZone } from "@/lib/dates";
+import { youTubeVideoId, youTubeWatchUrl } from "@/lib/youtube";
 
 import {
   COUPLE_NAME_MAX_LENGTH,
@@ -19,6 +20,7 @@ import {
   WEDDING_TITLE_MAX_LENGTH,
   WEBSITE_THEMES,
   WELCOME_MESSAGE_MAX_LENGTH,
+  YOUTUBE_URL_MAX_LENGTH,
 } from "./wedding.constants";
 
 export const weddingSlug = z
@@ -128,7 +130,6 @@ export const updateWeddingSchema = z
 /*
  * TODO — define with `.strict()`:
  *   Phase 5: Wedding Experience
- *     - updateLivestreamSchema      API_DESIGN §71–72 { youtubeUrl (YouTube formats only) | null, isEnabled }
  *     - coverUploadRequestSchema    API_DESIGN §83 { mimeType, sizeBytes }
  */
 
@@ -169,4 +170,37 @@ export const updateWebsiteSettingsSchema = z
   .refine(
     (input) => Object.values(input).some((value) => value !== undefined),
     "Send at least one setting to change",
+  );
+
+export const YOUTUBE_LINK_MESSAGE =
+  "This isn't a YouTube video or live stream link. Channel links don't work: open the stream and copy its link.";
+
+/**
+ * PATCH /api/wedding/livestream (API_DESIGN §71–72). A pasted link is stored
+ * in one canonical form (`https://www.youtube.com/watch?v=<id>`); `null` (or a
+ * blank link) removes it. Only video and live stream links are accepted.
+ */
+export const updateLivestreamSchema = z
+  .object({
+    youtubeUrl: z
+      .string()
+      .trim()
+      .max(YOUTUBE_URL_MAX_LENGTH, YOUTUBE_LINK_MESSAGE)
+      .transform((value, ctx) => {
+        if (!value) return null;
+        const id = youTubeVideoId(value);
+        if (!id) {
+          ctx.addIssue({ code: "custom", message: YOUTUBE_LINK_MESSAGE });
+          return z.NEVER;
+        }
+        return youTubeWatchUrl(id);
+      })
+      .nullable()
+      .optional(),
+    isEnabled: z.boolean().optional(),
+  })
+  .strict()
+  .refine(
+    (input) => input.youtubeUrl !== undefined || input.isEnabled !== undefined,
+    "Send the link or the switch",
   );

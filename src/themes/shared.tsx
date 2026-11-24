@@ -1,5 +1,6 @@
 import { formatInstant } from "@/lib/dates";
-import type { PublicWebsiteEventDto } from "@/modules/weddings/wedding.types";
+import { YouTubePlayer } from "@/components/ui/youtube-player";
+import type { PublicWebsiteEventDto, PublicWeddingDto } from "@/modules/weddings/wedding.types";
 
 /** "Sat, 13 Feb 2027, 7:30 pm" in the wedding's time zone. */
 export function formatEventTime(event: PublicWebsiteEventDto, timeZone: string): string {
@@ -16,23 +17,36 @@ export function formatEventTime(event: PublicWebsiteEventDto, timeZone: string):
   return `${start} – ${end}`;
 }
 
-/** Section stubs every theme shows, so all themes stay content-identical. */
-export function GalleryAndLivestreamPlaceholders({
-  galleryEnabled,
-  livestreamEnabled,
-}: Readonly<{ galleryEnabled: boolean; livestreamEnabled: boolean }>) {
+/** The livestream and gallery sections every theme shows, so all themes stay content-identical. */
+export function LivestreamAndGallery({ wedding }: Readonly<{ wedding: PublicWeddingDto }>) {
   return (
     <>
-      {galleryEnabled && (
-        <section aria-label="Gallery" className="opacity-80">
-          <h2 className="text-lg font-semibold">Gallery</h2>
-          <p className="text-sm">Shared photos appear here (Phase 6: Memories).</p>
+      {wedding.livestream.enabled && wedding.livestream.embedUrl && (
+        <section aria-labelledby="website-livestream" className="space-y-3">
+          <h2 id="website-livestream" className="font-serif text-2xl">
+            Watch live
+          </h2>
+          <p className="text-sm">Can&apos;t be there? Watch the ceremony live.</p>
+          <YouTubePlayer
+            embedUrl={wedding.livestream.embedUrl}
+            title={`${wedding.title ?? "Wedding"} livestream`}
+            className="rounded-xl"
+          />
         </section>
       )}
-      {livestreamEnabled && (
-        <section aria-label="Live stream" className="opacity-80">
-          <h2 className="text-lg font-semibold">Live stream</h2>
-          <p className="text-sm">The YouTube player appears here (Phase 5: Wedding Experience).</p>
+      {wedding.gallery.enabled && wedding.gallery.url && (
+        <section aria-labelledby="website-photos" className="space-y-3">
+          <h2 id="website-photos" className="font-serif text-2xl">
+            Wedding photos
+          </h2>
+          <p className="text-sm">See the photos and add your own.</p>
+          <a
+            href={wedding.gallery.url}
+            rel="noreferrer"
+            className="inline-flex h-11 items-center rounded-full bg-burgundy px-5 text-sm font-semibold text-ivory"
+          >
+            See and add photos
+          </a>
         </section>
       )}
     </>

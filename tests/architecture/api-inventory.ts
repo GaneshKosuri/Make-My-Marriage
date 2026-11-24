@@ -574,13 +574,21 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     doc: "API §69",
     implemented: true,
   },
-  { method: "GET", path: "/api/wedding/livestream", auth: "member", phase: P5, doc: "API §70" },
+  {
+    method: "GET",
+    path: "/api/wedding/livestream",
+    auth: "member",
+    phase: P5,
+    doc: "API §70",
+    implemented: true,
+  },
   {
     method: "PATCH",
     path: "/api/wedding/livestream",
     auth: "member",
     phase: P5,
     doc: "API §71–72",
+    implemented: true,
   },
   {
     method: "POST",

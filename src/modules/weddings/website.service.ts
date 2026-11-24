@@ -1,6 +1,7 @@
 import "server-only";
 
 import { coupleDisplayName, weddingPlace } from "@/lib/couple";
+import { youTubeEmbedUrl, youTubeVideoId } from "@/lib/youtube";
 import type { MemberContext, PublicContext } from "@/server/auth";
 import { getEnv } from "@/server/config/env";
 import { AppError } from "@/server/errors";
@@ -56,7 +57,10 @@ async function toPublicWedding(wedding: WeddingRecord): Promise<PublicWeddingDto
     galleryLink(wedding),
     coverUrl(wedding),
   ]);
-  const livestreamOn = Boolean(wedding.livestream?.isEnabled && wedding.livestream.youtubeUrl);
+  const videoId = wedding.livestream?.youtubeUrl
+    ? youTubeVideoId(wedding.livestream.youtubeUrl)
+    : null;
+  const livestreamOn = Boolean(wedding.livestream?.isEnabled && videoId);
   return {
     brideName: wedding.brideName,
     groomName: wedding.groomName,
@@ -76,6 +80,7 @@ async function toPublicWedding(wedding: WeddingRecord): Promise<PublicWeddingDto
     livestream: {
       enabled: livestreamOn,
       youtubeUrl: livestreamOn ? (wedding.livestream.youtubeUrl ?? null) : null,
+      embedUrl: livestreamOn && videoId ? youTubeEmbedUrl(videoId) : null,
     },
   };
 }

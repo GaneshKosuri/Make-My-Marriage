@@ -1,15 +1,10 @@
 import type { Metadata } from "next";
 
-import { PagePlaceholder } from "@/components/layout/page-placeholder";
+import { LivestreamScreen } from "@/features/livestream/components/livestream-screen";
 
-export const metadata: Metadata = { title: "Live Stream" };
+export const metadata: Metadata = { title: "Livestream" };
 
+/** /app/livestream (PRD §9.24): the YouTube livestream shown on the wedding website. */
 export default function LivestreamPage() {
-  return (
-    <PagePlaceholder
-      title="Live Stream"
-      phase="Phase 5: Wedding Experience"
-      description="Add, update or remove the YouTube Live URL."
-    />
-  );
+  return <LivestreamScreen />;
 }

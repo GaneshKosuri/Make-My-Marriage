@@ -1,7 +1,7 @@
 import { coupleDisplayName } from "@/lib/couple";
 import { formatDateOnly } from "@/lib/dates";
 
-import { formatEventTime, GalleryAndLivestreamPlaceholders } from "../shared";
+import { formatEventTime, LivestreamAndGallery } from "../shared";
 import type { ThemeProps } from "../types";
 
 /** "Modern Celebration": contemporary, colourful (PRD §9.19). Placeholder styling. */
@@ -34,10 +34,7 @@ export function ModernTheme({ wedding }: Readonly<ThemeProps>) {
           ))}
         </section>
         <div className="space-y-6 rounded-3xl bg-white/70 p-6">
-          <GalleryAndLivestreamPlaceholders
-            galleryEnabled={wedding.gallery.enabled}
-            livestreamEnabled={wedding.livestream.enabled}
-          />
+          <LivestreamAndGallery wedding={wedding} />
         </div>
       </div>
     </div>

@@ -231,7 +231,7 @@ describe("GET /api/wedding", () => {
         url: `${TEST_APP_URL}/w/${wedding.website.slug}`,
       },
       gallery: { isEnabled: false, guestUploadsEnabled: false },
-      livestream: { youtubeUrl: null, isEnabled: false },
+      livestream: { youtubeUrl: null, isEnabled: false, embedUrl: null },
     });
     expect(JSON.stringify(result.body)).not.toContain(wedding.gallery.token);
   });
