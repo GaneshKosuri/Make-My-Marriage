@@ -311,7 +311,7 @@ describe("POST /api/vendors/from-place", () => {
     });
   });
 
-  it("refuses the same place twice, even when the first is archived", async () => {
+  it("refuses the same place twice while it is in My Vendors", async () => {
     const { cookie } = await setup();
     const first = await fromPlace(cookie, reviewed);
     expect(first.status).toBe(201);
@@ -322,11 +322,56 @@ describe("POST /api/vendors/from-place", () => {
       code: "CONFLICT",
       message: "This place is already in My Vendors.",
     });
+  });
 
+  it("restores an archived vendor with the reviewed details (QA D1)", async () => {
+    const { cookie, wedding } = await setup();
+    const first = await fromPlace(cookie, reviewed);
     const vendorId = (first.body.data as { id: string }).id;
     await call(archiveVendor, { method: "DELETE", params: { vendorId }, cookie });
+    const [haldi] = await EventModel.create([
+      { weddingId: wedding._id, name: "Haldi", startsAt: new Date("2027-02-13T05:00:00Z") },
+    ]);
+
+    const restored = await fromPlace(cookie, {
+      ...reviewed,
+      name: "Pixel Photography",
+      totalAgreedCostPaise: 18_000_000,
+      eventIds: [haldi!._id.toString()],
+    });
+
+    expect(restored.status).toBe(201);
+    expect(restored.body.data).toMatchObject({
+      id: vendorId,
+      name: "Pixel Photography",
+      totalAgreedCostPaise: 18_000_000,
+      source: "GOOGLE_PLACES",
+      googlePlaceId: "fake-place-1",
+      archivedAt: null,
+      events: [expect.objectContaining({ name: "Haldi" })],
+      version: 2,
+    });
+    expect(
+      await VendorModel.countDocuments({ weddingId: wedding._id, googlePlaceId: "fake-place-1" }),
+    ).toBe(1);
+    const found = (await search(cookie, "?category=PHOTOGRAPHER")).body.data as Found[];
+    expect(found[0]!.myVendor).toEqual({ id: vendorId, archived: false });
+    // Restored once; now it is in My Vendors again.
     expect((await fromPlace(cookie, reviewed)).status).toBe(409);
   });
+
+  it("doesn't spend the place-details limit on a refused add (QA CL)", async () => {
+    const { cookie } = await setup();
+    expect((await fromPlace(cookie, reviewed)).status).toBe(201);
+
+    // More duplicates than the hourly place-details limit (60 per wedding).
+    for (let i = 0; i < 61; i++) {
+      expect((await fromPlace(cookie, reviewed)).status).toBe(409);
+    }
+    expect((await fromPlace(cookie, { ...reviewed, googlePlaceId: "fake-place-2" })).status).toBe(
+      201,
+    );
+  }, 60_000);
 
   it("lets two weddings add the same place", async () => {
     const one = await setup();

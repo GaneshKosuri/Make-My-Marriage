@@ -205,4 +205,32 @@ describe("saving the cover with PATCH /api/wedding/website", () => {
     }
     expect(storage.objects.has(theirs.objectKey)).toBe(true);
   });
+
+  it("saving the same upload twice succeeds both times (QA W4)", async () => {
+    const { cookie } = await setup();
+    const { issued, saved } = await uploadCover(cookie);
+    expect(saved.status).toBe(200);
+
+    const again = await saveCover(cookie, issued.objectKey);
+
+    expect(again.status).toBe(200);
+    expect(again.body.data).toMatchObject({ coverImageUrl: expect.stringContaining("/covers/") });
+    expect([...storage.objects.keys()].filter((key) => key.includes("/covers/"))).toHaveLength(1);
+  });
+
+  it("two saves at once leave exactly one cover in storage (QA W4)", async () => {
+    const { cookie, wedding } = await setup();
+    const uploads = [await requestCover(cookie), await requestCover(cookie)];
+    for (const upload of uploads) {
+      storage.putObject(upload.objectKey, bytesOf(JPEG, 4096), "image/jpeg");
+    }
+
+    const results = await Promise.all(uploads.map((upload) => saveCover(cookie, upload.objectKey)));
+
+    expect(results.map((result) => result.status).sort()).toEqual([200, 409]);
+    const covers = [...storage.objects.keys()].filter((key) => key.startsWith("weddings/"));
+    expect(covers).toHaveLength(1);
+    const stored = (await WeddingModel.findById(wedding._id).lean())!.coverImageObjectKey;
+    expect(covers).toEqual([stored]);
+  });
 });

@@ -9,7 +9,8 @@ import { logger } from "@/server/logging/logger";
 
 import { eventsService } from "@/modules/events";
 
-import { coverUrl, publishCover, removeCoverObject } from "./cover";
+import { coverUrl, finalCoverKeyFor, publishCover, removeCoverObject } from "./cover";
+import { WEDDING_SLUG_PATTERN } from "./wedding.constants";
 import { websiteUrlFor } from "./wedding.mapper";
 import type { WeddingRecord } from "./wedding.model";
 import { weddingRepository } from "./wedding.repository";
@@ -18,6 +19,9 @@ import type {
   UpdateWebsiteSettingsInput,
   WebsiteSettingsDto,
 } from "./wedding.types";
+
+const COVER_CHANGED =
+  "The cover photo was just changed by someone else. Reload to see it, then try again.";
 
 async function toSettings(wedding: WeddingRecord): Promise<WebsiteSettingsDto> {
   return {
@@ -92,14 +96,39 @@ export const websiteService = {
     let wedding = await weddingRepository.findActiveById(ctx.weddingId);
     if (!wedding) throw new AppError("NOT_FOUND");
     // The cover first: a bad upload changes nothing else (API §83).
-    if (coverImageObjectKey !== undefined) {
-      const previous = wedding.coverImageObjectKey ?? null;
+    const previous = wedding.coverImageObjectKey ?? null;
+    const finalKey = coverImageObjectKey
+      ? finalCoverKeyFor(ctx.weddingId, coverImageObjectKey)
+      : null;
+    const alreadySaved =
+      coverImageObjectKey !== undefined &&
+      (coverImageObjectKey === null
+        ? previous === null
+        : finalKey !== null && previous === finalKey);
+    // A repeated save of the same upload (a lost response, a second tab) is
+    // already done: answer success without touching storage (QA W4).
+    if (coverImageObjectKey !== undefined && !alreadySaved) {
       const next =
         coverImageObjectKey === null
           ? null
           : await publishCover(ctx.weddingId, coverImageObjectKey);
-      wedding = await weddingRepository.setCover(ctx.weddingId, next);
-      if (!wedding) throw new AppError("NOT_FOUND");
+      let saved: WeddingRecord | null;
+      try {
+        saved = await weddingRepository.setCover(ctx.weddingId, next, previous);
+      } catch (error) {
+        if (next) await removeCoverObject(next);
+        throw error;
+      }
+      if (!saved) {
+        // Someone else changed the cover meanwhile: ours is not referenced, so
+        // it goes, and theirs stays.
+        if (next) await removeCoverObject(next);
+        if (!(await weddingRepository.findActiveById(ctx.weddingId))) {
+          throw new AppError("NOT_FOUND");
+        }
+        throw new AppError("CONFLICT", COVER_CHANGED);
+      }
+      wedding = saved;
       if (previous && previous !== next) await removeCoverObject(previous);
       logger.info(next ? "Cover photo set" : "Cover photo removed", {
         requestId: ctx.requestId,
@@ -128,6 +157,15 @@ export const websiteService = {
     const wedding = await weddingRepository.findPublishedBySlug(slug);
     if (!wedding) throw new AppError("NOT_FOUND");
     return toPublicWedding(wedding);
+  },
+
+  /**
+   * A cheap "is this a published website?" check, so `src/proxy.ts` can answer
+   * 404 before the page starts streaming (QA W1). Malformed slugs are false.
+   */
+  async isPublished(slug: string): Promise<boolean> {
+    if (!WEDDING_SLUG_PATTERN.test(slug)) return false;
+    return weddingRepository.publishedSlugExists(slug);
   },
 
   /** The same website for the family, published or not (the members-only preview). */

@@ -10,7 +10,7 @@ import { authenticate } from "@/server/auth/authenticate";
 import type { AuthLevel, ContextFor } from "@/server/auth/types";
 import { AppError, isAppError, type ErrorCode } from "@/server/errors";
 import { logger, sanitizePath } from "@/server/logging/logger";
-import { getRateLimiter, type RateLimitPolicy } from "@/server/security/rate-limit";
+import { getRateLimiter, rateLimitPair, type RateLimitPolicy } from "@/server/security/rate-limit";
 
 import { MAX_JSON_BODY_BYTES, readJsonBody } from "./body";
 import { getClientIp } from "./client-ip";
@@ -247,6 +247,12 @@ function rateLimitSubject(
       break;
     case "token":
       subject = typeof rawParams.token === "string" ? rawParams.token : undefined;
+      break;
+    case "ip+token":
+      subject =
+        typeof rawParams.token === "string"
+          ? rateLimitPair(getClientIp(request), rawParams.token)
+          : undefined;
       break;
     case "user":
       subject = context.userId;

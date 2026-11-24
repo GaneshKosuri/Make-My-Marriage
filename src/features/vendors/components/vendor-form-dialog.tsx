@@ -20,6 +20,7 @@ import { SaveProblem } from "@/components/ui/save-problem";
 import { SelectField } from "@/components/ui/select-field";
 import { useEvents } from "@/features/events/api";
 import { ApiError } from "@/lib/api-client";
+import { useReloadedCopy } from "@/lib/use-reloaded-copy";
 import type { EventDto } from "@/modules/events/event.types";
 import { VENDOR_CATEGORIES, type VendorCategory } from "@/modules/vendors/vendor.constants";
 import type { DiscoveredPlaceDetailsDto, VendorDto } from "@/modules/vendors/vendor.types";
@@ -57,7 +58,7 @@ export interface VendorFormDialogProps {
    * Adds a vendor found on Google: the form opens pre-filled from the place's
    * details and the family reviews it before saving (decided 2026-11-18).
    */
-  place?: { placeId: string; category: VendorCategory };
+  place?: { placeId: string; category: VendorCategory; restore?: boolean };
 }
 
 /**
@@ -70,12 +71,22 @@ export function VendorFormDialog(props: Readonly<VendorFormDialogProps>) {
   const details = useDiscoveredPlace(open && place && !vendor ? place.placeId : null);
   const fromGoogle = place !== undefined && vendor === undefined;
   const reloadVendor = useReloadVendor();
-  // A copy fetched by "Reload vendor" after a CONFLICT; `count` starts a fresh form.
-  const [reloaded, setReloaded] = useState<{ vendor: VendorDto; count: number } | null>(null);
-  const current = reloaded && vendor && reloaded.vendor.id === vendor.id ? reloaded.vendor : vendor;
+  const { current, formKey, setReloaded } = useReloadedCopy(vendor, open);
 
   let body;
-  if (fromGoogle && details.isError) {
+  if (current?.archivedAt) {
+    // Someone archived it meanwhile: "Reload" brought back an archived copy, which
+    // can't be changed (QA V1). Say so instead of offering a save that always fails.
+    body = (
+      <div role="alert" className="flex flex-col items-start gap-3">
+        <p className="text-body-md font-semibold text-graphite">{FORM.archived.title}</p>
+        <p className="text-body-md text-plum">{FORM.archived.description}</p>
+        <button type="button" onClick={onClose} className={secondaryButton}>
+          {FORM.cancel}
+        </button>
+      </div>
+    );
+  } else if (fromGoogle && details.isError) {
     body = (
       <div role="alert" className="flex flex-col items-start gap-3">
         <p className="text-body-md text-destructive">{DISCOVER.prefill.loadError}</p>
@@ -101,17 +112,19 @@ export function VendorFormDialog(props: Readonly<VendorFormDialogProps>) {
       // what is being typed. Saving then answers CONFLICT, and "Reload vendor"
       // starts a fresh form from the latest copy.
       <VendorForm
-        key={current ? `${current.id}:${reloaded?.count ?? 0}` : "new"}
+        key={formKey}
         {...props}
         vendor={current}
         prefill={
-          fromGoogle && place ? { details: details.data!, category: place.category } : undefined
+          fromGoogle && place
+            ? { details: details.data!, category: place.category, restore: place.restore ?? false }
+            : undefined
         }
         events={events.data}
         onReload={async () => {
           if (!current) return;
           const fresh = await reloadVendor(current.id);
-          setReloaded((last) => ({ vendor: fresh, count: (last?.count ?? 0) + 1 }));
+          setReloaded(fresh);
         }}
       />
     );
@@ -143,7 +156,7 @@ function VendorForm({
   VendorFormDialogProps & {
     events: readonly EventDto[];
     onReload: () => Promise<void>;
-    prefill?: { details: DiscoveredPlaceDetailsDto; category: VendorCategory };
+    prefill?: { details: DiscoveredPlaceDetailsDto; category: VendorCategory; restore: boolean };
   }
 >) {
   const router = useRouter();
@@ -211,7 +224,7 @@ function VendorForm({
       {prefill && (
         <p className="flex gap-2 rounded-xl bg-sand/60 p-3 text-body-sm text-graphite">
           <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-gold-deep" />
-          {DISCOVER.prefill.note}
+          {prefill.restore ? DISCOVER.prefill.restoreNote : DISCOVER.prefill.note}
         </p>
       )}
       {placeProblem && <FormAlert title={DISCOVER.prefill.error.title}>{placeProblem}</FormAlert>}

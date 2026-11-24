@@ -212,10 +212,19 @@ export const eventsService = {
     }));
   },
 
-  /** Guest gallery albums (API_DESIGN §80): active events, id and name, in start order. */
-  async listAlbumNames(weddingId: string): Promise<{ id: string; name: string }[]> {
-    const events = await eventRepository.list(weddingId, { includeArchived: false });
-    return events.map((event) => ({ id: event._id.toString(), name: event.name }));
+  /**
+   * Guest gallery albums (API_DESIGN §80): every event in start order, archived
+   * ones marked, so photos of an archived event keep its name (QA CL).
+   */
+  async listAlbumNames(
+    weddingId: string,
+  ): Promise<{ id: string; name: string; archived: boolean }[]> {
+    const events = await eventRepository.list(weddingId, { includeArchived: true });
+    return events.map((event) => ({
+      id: event._id.toString(),
+      name: event.name,
+      archived: event.archivedAt !== null,
+    }));
   },
 
   /** Dashboard: events that are not archived (DATABASE_DESIGN §88). */

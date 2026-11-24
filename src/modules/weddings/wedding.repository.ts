@@ -75,16 +75,39 @@ export const weddingRepository = {
       .exec();
   },
 
-  /** Sets (or clears) the cover photo's final key; null when the wedding is missing or deleted. */
-  async setCover(weddingId: string, objectKey: string | null): Promise<WeddingRecord | null> {
+  /**
+   * Sets (or clears) the cover photo's final key, only while the cover is still
+   * `expectedPrevious` (QA W4); null when it changed meanwhile, or the wedding
+   * is missing or deleted.
+   */
+  async setCover(
+    weddingId: string,
+    objectKey: string | null,
+    expectedPrevious: string | null,
+  ): Promise<WeddingRecord | null> {
     await connectToDatabase();
     return WeddingModel.findOneAndUpdate(
-      { _id: toObjectId(weddingId, "weddingId"), deletedAt: null },
+      {
+        _id: toObjectId(weddingId, "weddingId"),
+        deletedAt: null,
+        coverImageObjectKey: expectedPrevious,
+      },
       { $set: { coverImageObjectKey: objectKey } },
       { returnDocument: "after" },
     )
       .lean<WeddingRecord>()
       .exec();
+  },
+
+  /** True when a published, not deleted wedding has this website slug (the /w/ 404 check). */
+  async publishedSlugExists(slug: string): Promise<boolean> {
+    await connectToDatabase();
+    const found = await WeddingModel.exists({
+      "website.slug": slug,
+      "website.isPublished": true,
+      deletedAt: null,
+    }).exec();
+    return found !== null;
   },
 
   /** Sets the livestream link and switch; null when the wedding is missing or deleted. */
@@ -153,6 +176,7 @@ export const weddingRepository = {
   async updateGallery(
     weddingId: string,
     changes: { isEnabled?: boolean; guestUploadsEnabled?: boolean },
+    options: { requireEnabled?: boolean } = {},
   ): Promise<WeddingRecord | null> {
     await connectToDatabase();
     const set: Record<string, boolean> = {};
@@ -161,7 +185,12 @@ export const weddingRepository = {
       set["gallery.guestUploadsEnabled"] = changes.guestUploadsEnabled;
     }
     return WeddingModel.findOneAndUpdate(
-      { _id: toObjectId(weddingId, "weddingId"), deletedAt: null },
+      {
+        _id: toObjectId(weddingId, "weddingId"),
+        deletedAt: null,
+        // Checked in the same write, so a concurrent "gallery off" can't slip past.
+        ...(options.requireEnabled && { "gallery.isEnabled": true }),
+      },
       { $set: set },
       { returnDocument: "after" },
     )

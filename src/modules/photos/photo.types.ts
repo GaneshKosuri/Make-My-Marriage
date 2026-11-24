@@ -56,5 +56,6 @@ export interface PhotoDownloadDto {
 export interface PublicGalleryDto {
   wedding: { brideName: string; groomName: string; weddingDate: string; timeZone: string };
   guestUploadsEnabled: boolean;
-  events: { id: string; name: string }[];
+  /** Albums: archived events are only for naming photos (no chip, no uploads). */
+  events: { id: string; name: string; archived: boolean }[];
 }

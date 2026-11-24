@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { WebsiteSettingsDto } from "@/modules/weddings/wedding.types";
 
+import { websiteKeys } from "../query-keys";
 import { THEME_CHOICES, WEBSITE } from "../website-content";
 import { WebsiteScreen } from "./website-screen";
 
@@ -18,12 +19,22 @@ const URL_ = "https://makemymarriage.example/w/akshay-princi-14022027";
 let settings: WebsiteSettingsDto;
 const calls: { method: string; path: string; body: unknown }[] = [];
 const puts: string[] = [];
+/** "METHOD path" → an error the fake server answers with once. */
+let failures: Record<string, { status: number; code: string; message: string }>;
 
 const fetchMock = vi.fn(async (url: string, init: RequestInit) => {
   const method = init.method ?? "GET";
   const path = new URL(url, "http://localhost").pathname;
   const body = init.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : undefined;
   calls.push({ method, path, body });
+  const failure = failures[`${method} ${path}`];
+  if (failure) {
+    delete failures[`${method} ${path}`];
+    return new Response(
+      JSON.stringify({ error: { code: failure.code, message: failure.message } }),
+      { status: failure.status, headers: { "content-type": "application/json" } },
+    );
+  }
   let data: unknown = settings;
   if (path === "/api/wedding/cover/upload-url") {
     data = {
@@ -66,8 +77,9 @@ class FakeXhr {
   }
 }
 
+let client: QueryClient;
 function renderScreen() {
-  const client = new QueryClient({
+  client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return render(
@@ -76,6 +88,17 @@ function renderScreen() {
     </QueryClientProvider>,
   );
 }
+
+/** Another member saved: the next refetch brings this copy. */
+const serverCopy = (change: Partial<WebsiteSettingsDto>) =>
+  act(async () => {
+    client.setQueryData<WebsiteSettingsDto>(websiteKeys.settings(), (last) => ({
+      ...last!,
+      ...change,
+    }));
+    // TanStack Query tells components on the next tick.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
 
 const ready = () =>
   screen.findByRole("textbox", { name: WEBSITE.status.address }, { timeout: 5000 });
@@ -93,6 +116,7 @@ beforeEach(() => {
   };
   calls.length = 0;
   puts.length = 0;
+  failures = {};
   vi.stubGlobal("fetch", fetchMock);
   vi.stubGlobal("XMLHttpRequest", FakeXhr);
 });
@@ -199,6 +223,34 @@ describe("<WebsiteScreen />", () => {
     expect(await screen.findByText(WEBSITE.cover.removed)).toBeInTheDocument();
   });
 
+  it("says why a cover upload or removal was refused (QA CL)", async () => {
+    settings.coverImageUrl = "https://storage.example/cover.jpg";
+    failures["POST /api/wedding/cover/upload-url"] = {
+      status: 429,
+      code: "RATE_LIMITED",
+      message: "Too many cover uploads. Try again in an hour.",
+    };
+    renderScreen();
+    await ready();
+
+    fireEvent.change(screen.getByLabelText(WEBSITE.cover.add, { selector: "input" }), {
+      target: { files: [new File([new Uint8Array(500)], "us.jpg", { type: "image/jpeg" })] },
+    });
+    expect(
+      await screen.findByText("Too many cover uploads. Try again in an hour."),
+    ).toBeInTheDocument();
+
+    failures["PATCH /api/wedding/website"] = {
+      status: 409,
+      code: "CONFLICT",
+      message: "The cover photo was changed meanwhile.",
+    };
+    fireEvent.click(screen.getByRole("button", { name: WEBSITE.cover.remove }));
+    expect(await screen.findByText("The cover photo was changed meanwhile.")).toBeInTheDocument();
+    // Shown by the cover, not as a save-bar error.
+    expect(screen.queryByText(WEBSITE.saveBar.error)).toBeNull();
+  });
+
   it("refuses a cover that isn't a JPEG, PNG or WebP without uploading", async () => {
     renderScreen();
     await ready();
@@ -209,5 +261,40 @@ describe("<WebsiteScreen />", () => {
 
     expect(await screen.findByText(WEBSITE.cover.invalid)).toBeInTheDocument();
     expect(calls.filter((call) => call.method !== "GET")).toEqual([]);
+  });
+
+  it("follows another member's saved changes when there are no unsaved edits (QA W2)", async () => {
+    renderScreen();
+    await ready();
+
+    await serverCopy({ theme: "MODERN", welcomeMessage: "Hello from Princi", showGallery: true });
+
+    expect(
+      screen.getByRole("radio", { name: new RegExp(THEME_CHOICES.MODERN.name) }),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("textbox", { name: WEBSITE.welcome.label })).toHaveValue(
+      "Hello from Princi",
+    );
+    expect(screen.queryByText(WEBSITE.saveBar.unsaved)).toBeNull();
+
+    // Choosing Classic again is now a change that can be saved.
+    fireEvent.click(screen.getByRole("radio", { name: new RegExp(THEME_CHOICES.CLASSIC.name) }));
+    fireEvent.click(screen.getByRole("button", { name: WEBSITE.saveBar.save }));
+    await waitFor(() => expect(patches()).toEqual([{ theme: "CLASSIC" }]));
+  });
+
+  it("keeps what is being typed when another member saves meanwhile (QA W2)", async () => {
+    renderScreen();
+    await ready();
+    fireEvent.change(screen.getByRole("textbox", { name: WEBSITE.welcome.label }), {
+      target: { value: "My own words" },
+    });
+
+    await serverCopy({ welcomeMessage: "Their words" });
+
+    expect(screen.getByRole("textbox", { name: WEBSITE.welcome.label })).toHaveValue(
+      "My own words",
+    );
+    expect(screen.getByText(WEBSITE.saveBar.unsaved)).toBeInTheDocument();
   });
 });

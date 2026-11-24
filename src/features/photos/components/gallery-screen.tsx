@@ -69,6 +69,7 @@ export function GalleryScreen({ timeZone }: Readonly<{ timeZone: string }>) {
   const total = usePhotoTotal();
   const invalidate = useInvalidatePhotos();
   const remove = useDeletePhoto();
+  const [viewing, setViewing] = useState<number | null>(null);
   const download = useDownloadPhoto();
 
   const startUpload = searchParams.get(UPLOAD_PARAM) === "1";
@@ -78,6 +79,12 @@ export function GalleryScreen({ timeZone }: Readonly<{ timeZone: string }>) {
   if (searchParams.toString() !== lastSearch) {
     setLastSearch(searchParams.toString());
     if (startUpload) setUploading(true);
+    // A link to /app/photos or /app/photos?album=<id> shows that album (QA G6).
+    const linked = readAlbum(searchParams);
+    if (linked !== album) {
+      setAlbum(linked);
+      setViewing(null);
+    }
   }
   // Then drop ?new=1, so a reload or Back doesn't open the dialog again.
   useEffect(() => {
@@ -91,7 +98,6 @@ export function GalleryScreen({ timeZone }: Readonly<{ timeZone: string }>) {
       rest ? `${GALLERY_ROUTES.gallery}?${rest}` : GALLERY_ROUTES.gallery,
     );
   }, [startUpload]);
-  const [viewing, setViewing] = useState<number | null>(null);
   const [deleting, setDeleting] = useState<PhotoDto | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -122,6 +128,11 @@ export function GalleryScreen({ timeZone }: Readonly<{ timeZone: string }>) {
     }
   }, [viewing, loaded.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  const askToDelete = (photo: PhotoDto) => {
+    remove.reset();
+    setDeleting(photo);
+  };
+
   const photoActions = (photo: PhotoDto, inViewer: boolean) => {
     const name = GALLERY.photoName(photo.originalFilename);
     if (inViewer) {
@@ -136,7 +147,7 @@ export function GalleryScreen({ timeZone }: Readonly<{ timeZone: string }>) {
             <Download aria-hidden className="size-4" />
             {GALLERY.download}
           </button>
-          <button type="button" onClick={() => setDeleting(photo)} className={viewerDangerButton}>
+          <button type="button" onClick={() => askToDelete(photo)} className={viewerDangerButton}>
             <Trash2 aria-hidden className="size-4" />
             {GALLERY.delete}
           </button>
@@ -148,7 +159,7 @@ export function GalleryScreen({ timeZone }: Readonly<{ timeZone: string }>) {
         <TileAction label={GALLERY.downloadLabel(name)} onClick={() => download.mutate(photo.id)}>
           <Download aria-hidden className="size-4" />
         </TileAction>
-        <TileAction label={GALLERY.deleteLabel(name)} danger onClick={() => setDeleting(photo)}>
+        <TileAction label={GALLERY.deleteLabel(name)} danger onClick={() => askToDelete(photo)}>
           <Trash2 aria-hidden className="size-4" />
         </TileAction>
       </>

@@ -7,6 +7,7 @@ import { AppError } from "@/server/errors";
 import { buildPagePagination } from "@/server/http/pagination";
 import { logger } from "@/server/logging/logger";
 import { getVendorDiscoveryService } from "@/server/places";
+import { getRateLimiter, policies } from "@/server/security/rate-limit";
 
 import { eventsService } from "@/modules/events";
 
@@ -80,15 +81,19 @@ export const vendorsService = {
    * A vendor found on Google, saved from the add form the family reviewed
    * (decided 2026-11-18). The place is checked with Google server-side; a place
    * Google no longer lists is refused. source = GOOGLE_PLACES, and only the
-   * place id is kept as Google's. The same place twice in a wedding (archived
-   * included) is CONFLICT. API §61.
+   * place id is kept as Google's. A place already in My Vendors is CONFLICT;
+   * an archived one is restored with the reviewed details (QA D1). Only a
+   * request that reaches Google counts against the place-details limit. API §61.
    */
   async createFromPlace(ctx: MemberContext, input: AddVendorFromPlaceInput): Promise<VendorDto> {
     const [existing] = await vendorRepository.findByPlaceIds(ctx.weddingId, [input.googlePlaceId]);
-    if (existing) throw new AppError("CONFLICT", ALREADY_ADDED);
+    if (existing && !existing.archivedAt) throw new AppError("CONFLICT", ALREADY_ADDED);
     if (input.eventIds.length > 0) {
       await eventsService.assertActiveEventsInWedding(ctx.weddingId, input.eventIds, EVENTS_FIELD);
     }
+    await getRateLimiter().enforce([
+      { policy: policies.vendorDiscoveryPlace, subject: ctx.weddingId },
+    ]);
     try {
       await getVendorDiscoveryService().getPlaceDetails(input.googlePlaceId);
     } catch (error) {
@@ -98,6 +103,22 @@ export const vendorsService = {
         });
       }
       throw error;
+    }
+
+    if (existing) {
+      const restored = await vendorRepository.restoreFromPlace(
+        ctx.weddingId,
+        existing._id.toString(),
+        vendorFields(input),
+      );
+      // Someone else restored it a moment ago.
+      if (!restored) throw new AppError("CONFLICT", ALREADY_ADDED);
+      logger.info("Archived vendor restored from Google", {
+        requestId: ctx.requestId,
+        weddingId: ctx.weddingId,
+        vendorId: restored._id.toString(),
+      });
+      return toSingleDto(ctx.weddingId, restored);
     }
 
     let vendor: VendorRecord;

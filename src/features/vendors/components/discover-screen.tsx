@@ -8,6 +8,7 @@ import {
   PenLine,
   Plus,
   RefreshCw,
+  RotateCcw,
   Search,
   Star,
 } from "lucide-react";
@@ -54,8 +55,16 @@ export function DiscoverScreen({
   const searchParams = useSearchParams();
   const fromUrl = readDiscoverUrl(Object.fromEntries(searchParams));
   const [submitted, setSubmitted] = useState<DiscoverSearch | null>(fromUrl);
-  const [adding, setAdding] = useState<{ placeId: string; category: VendorCategory } | null>(null);
-  const [notice, setNotice] = useState<{ name: string; vendorId: string } | null>(null);
+  const [adding, setAdding] = useState<{
+    placeId: string;
+    category: VendorCategory;
+    restore: boolean;
+  } | null>(null);
+  const [notice, setNotice] = useState<{
+    name: string;
+    vendorId: string;
+    restored: boolean;
+  } | null>(null);
   const results = useVendorDiscovery(submitted);
 
   const search = (next: DiscoverSearch) => {
@@ -99,7 +108,9 @@ export function DiscoverScreen({
           className="flex flex-wrap items-center gap-2 rounded-2xl border border-sand bg-white p-4 text-body-md text-graphite"
         >
           <CheckCircle2 aria-hidden className="size-5 shrink-0 text-gold-deep" />
-          <span className="min-w-0 flex-1 wrap-break-word">{DISCOVER.added(notice.name)}</span>
+          <span className="min-w-0 flex-1 wrap-break-word">
+            {notice.restored ? DISCOVER.restored(notice.name) : DISCOVER.added(notice.name)}
+          </span>
           <Link href={VENDORS_ROUTES.vendor(notice.vendorId)} className={textLink}>
             {DISCOVER.view}
           </Link>
@@ -112,7 +123,13 @@ export function DiscoverScreen({
         serverNearError={serverNearError}
         onAdd={(place) => {
           setNotice(null);
-          if (submitted) setAdding({ placeId: place.googlePlaceId, category: submitted.category });
+          if (submitted) {
+            setAdding({
+              placeId: place.googlePlaceId,
+              category: submitted.category,
+              restore: place.myVendor?.archived === true,
+            });
+          }
         }}
       />
 
@@ -122,8 +139,8 @@ export function DiscoverScreen({
         place={adding ?? undefined}
         timeZone={timeZone}
         onSaved={(vendor) => {
+          setNotice({ name: vendor.name, vendorId: vendor.id, restored: adding?.restore ?? false });
           setAdding(null);
-          setNotice({ name: vendor.name, vendorId: vendor.id });
         }}
       />
     </div>
@@ -372,6 +389,18 @@ function PlaceCard({ place, onAdd }: Readonly<{ place: DiscoveredVendorDto; onAd
             >
               {DISCOVER.view}
             </Link>
+            {/* Adding an archived place brings it back (decided 2026-11-24, QA D1). */}
+            {place.myVendor.archived && (
+              <button
+                type="button"
+                onClick={onAdd}
+                aria-label={DISCOVER.restoreLabel(place.name)}
+                className={primaryButton}
+              >
+                <RotateCcw aria-hidden className="size-4" />
+                {DISCOVER.restore}
+              </button>
+            )}
           </>
         ) : (
           <button

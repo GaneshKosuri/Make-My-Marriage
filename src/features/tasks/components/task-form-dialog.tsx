@@ -22,6 +22,7 @@ import { timeZoneLabel } from "@/features/weddings/create-wedding-content";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import type { DateOnly } from "@/lib/dates";
+import { useReloadedCopy } from "@/lib/use-reloaded-copy";
 import {
   TASK_PRIORITIES,
   TASK_PRIORITY_LABELS,
@@ -69,9 +70,7 @@ export function TaskFormDialog(props: Readonly<TaskFormDialogProps>) {
   const members = useMembers();
   const events = useEvents();
   const reloadTask = useReloadTask();
-  // A copy fetched by "Reload task" after a CONFLICT; `count` starts a fresh form.
-  const [reloaded, setReloaded] = useState<{ task: TaskDto; count: number } | null>(null);
-  const current = reloaded && task && reloaded.task.id === task.id ? reloaded.task : task;
+  const { current, formKey, setReloaded } = useReloadedCopy(task, open);
 
   // The selects need their options before the form sets their values, or the
   // browser falls back to the first option.
@@ -99,7 +98,7 @@ export function TaskFormDialog(props: Readonly<TaskFormDialogProps>) {
       // what is being typed. Saving then answers CONFLICT, and "Reload task"
       // starts a fresh form from the latest copy.
       <TaskForm
-        key={current ? `${current.id}:${reloaded?.count ?? 0}` : "new"}
+        key={formKey}
         {...props}
         task={current}
         members={members.data}
@@ -107,7 +106,7 @@ export function TaskFormDialog(props: Readonly<TaskFormDialogProps>) {
         onReload={async () => {
           if (!current) return;
           const fresh = await reloadTask(current.id);
-          setReloaded((last) => ({ task: fresh, count: (last?.count ?? 0) + 1 }));
+          setReloaded(fresh);
         }}
       />
     );

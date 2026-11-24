@@ -18,6 +18,7 @@ import { useRef, useState } from "react";
 import { focusRing, primaryButton, secondaryButton, textLink } from "@/components/ui/button-styles";
 import { Dialog } from "@/components/ui/dialog";
 import { TextAreaField } from "@/components/ui/form-controls";
+import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { buildWhatsAppShareUrl } from "@/lib/whatsapp";
 import {
@@ -38,6 +39,21 @@ import { ThemeThumbnail } from "./theme-thumbnail";
  * share its address, choose the theme, set the cover photo and welcome
  * message, and decide whether the gallery button shows.
  */
+/**
+ * The server's own words when they help (a refused photo, too many uploads, a
+ * cover changed elsewhere); otherwise the general "try again" (QA CL).
+ */
+function coverFailure(error: unknown): string {
+  if (
+    error instanceof ApiError &&
+    (error.code === "UPLOAD_ERROR" || error.code === "RATE_LIMITED" || error.code === "CONFLICT") &&
+    error.message
+  ) {
+    return error.message;
+  }
+  return WEBSITE.cover.failed;
+}
+
 export function WebsiteScreen({ coupleName }: Readonly<{ coupleName: string }>) {
   const settings = useWebsiteSettings();
 
@@ -74,6 +90,11 @@ interface FormState {
   showGallery: boolean;
 }
 
+const sameForm = (a: FormState, b: FormState) =>
+  a.theme === b.theme &&
+  a.welcomeMessage.trim() === b.welcomeMessage.trim() &&
+  a.showGallery === b.showGallery;
+
 const formOf = (settings: WebsiteSettingsDto): FormState => ({
   theme: settings.theme,
   welcomeMessage: settings.welcomeMessage ?? "",
@@ -88,6 +109,16 @@ function WebsiteSettings({
   const cover = useUploadCover();
   const [saved, setSaved] = useState<FormState>(() => formOf(settings));
   const [form, setForm] = useState<FormState>(saved);
+
+  // A newer copy from the server (another member saved, a refetch on focus):
+  // it becomes the saved state, and replaces the form unless the form has
+  // unsaved edits, which are kept (QA W2, as for events in Phase 2 R4).
+  const server = formOf(settings);
+  if (!sameForm(server, saved)) {
+    const editing = !sameForm(form, saved);
+    setSaved(server);
+    if (!editing) setForm(server);
+  }
   const [notice, setNotice] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [coverProblem, setCoverProblem] = useState<string | null>(null);
@@ -104,7 +135,12 @@ function WebsiteSettings({
   const dirty = Object.keys(changes).length > 0;
   const tooLong = form.welcomeMessage.length > WELCOME_MESSAGE_MAX_LENGTH;
 
-  const patch = (body: WebsiteChange, done: string, after?: (next: WebsiteSettingsDto) => void) => {
+  const patch = (
+    body: WebsiteChange,
+    done: string,
+    after?: (next: WebsiteSettingsDto) => void,
+    fail: (error: Error) => void = () => setProblem(WEBSITE.saveBar.error),
+  ) => {
     setNotice(null);
     setProblem(null);
     update.mutate(body, {
@@ -112,7 +148,7 @@ function WebsiteSettings({
         setNotice(done);
         after?.(next);
       },
-      onError: () => setProblem(WEBSITE.saveBar.error),
+      onError: fail,
     });
   };
 
@@ -137,8 +173,15 @@ function WebsiteSettings({
     }
     cover.mutate(file, {
       onSuccess: () => setNotice(WEBSITE.cover.saved),
-      onError: () => setCoverProblem(WEBSITE.cover.failed),
+      onError: (error) => setCoverProblem(coverFailure(error)),
     });
+  };
+
+  const removeCover = () => {
+    setCoverProblem(null);
+    patch({ coverImageObjectKey: null }, WEBSITE.cover.removed, undefined, (error) =>
+      setCoverProblem(coverFailure(error)),
+    );
   };
 
   const copy = async () => {
@@ -349,7 +392,7 @@ function WebsiteSettings({
             <button
               type="button"
               disabled={busy}
-              onClick={() => patch({ coverImageObjectKey: null }, WEBSITE.cover.removed)}
+              onClick={removeCover}
               className={cn(secondaryButton, "text-destructive")}
             >
               <Trash2 aria-hidden className="size-4" />

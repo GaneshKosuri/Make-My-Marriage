@@ -103,11 +103,18 @@ function renderScreen() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  return render(
+  const tree = () => (
     <QueryClientProvider client={client}>
       <GalleryScreen timeZone="Asia/Kolkata" />
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
+  const result = render(tree());
+  /** The same mounted screen after the address changed (a nav link). */
+  const navigate = (query: string) => {
+    search = query;
+    result.rerender(tree());
+  };
+  return { ...result, navigate };
 }
 
 const grid = () => within(screen.getByRole("region", { name: GALLERY.title }));
@@ -167,6 +174,28 @@ describe("<GalleryScreen />", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("3 of 3")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: GALLERY.loadMore })).toBeNull();
+  });
+
+  it("follows the address while the screen stays mounted (QA G6)", async () => {
+    const { navigate } = renderScreen();
+    await screen.findByRole("button", { name: GALLERY.open("IMG_1.jpg") }, { timeout: 5000 });
+
+    navigate("album=other");
+    expect(await screen.findByText("No Wedding Memories photos yet")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: GALLERY.albums.memories })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    // The nav link back to /app/photos shows every album again.
+    navigate("");
+    expect(
+      await screen.findByRole("button", { name: GALLERY.open("IMG_1.jpg") }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: GALLERY.albums.all })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 
   it("switches albums, keeping the album in the address", async () => {

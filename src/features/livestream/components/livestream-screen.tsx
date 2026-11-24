@@ -92,7 +92,9 @@ function LivestreamSettings({ settings }: Readonly<{ settings: LivestreamSetting
     setFailed(false);
     update.mutate(body, {
       onSuccess: (saved) => {
-        setLink(saved.youtubeUrl ?? "");
+        // Only a link save or a removal changes the field: the "Show on the
+        // website" switch must not wipe a link being pasted (QA W3).
+        if (body.youtubeUrl !== undefined) setLink(saved.youtubeUrl ?? "");
         setNotice(done);
       },
       onError,

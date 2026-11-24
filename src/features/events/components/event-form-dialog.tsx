@@ -14,6 +14,7 @@ import { timeZoneLabel } from "@/features/weddings/create-wedding-content";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { isValidDateOnly, type DateOnly } from "@/lib/dates";
+import { useReloadedCopy } from "@/lib/use-reloaded-copy";
 import { EVENT_TYPE_LABELS, EVENT_TYPES, type EventType } from "@/modules/events/event.constants";
 import type { EventDto } from "@/modules/events/event.types";
 
@@ -61,9 +62,7 @@ export interface EventFormDialogProps {
 export function EventFormDialog(props: Readonly<EventFormDialogProps>) {
   const { open, onClose, event, timeZone } = props;
   const reloadEvent = useReloadEvent();
-  // A copy fetched by "Reload event" after a CONFLICT; `count` starts a fresh form.
-  const [reloaded, setReloaded] = useState<{ event: EventDto; count: number } | null>(null);
-  const current = reloaded && event && reloaded.event.id === event.id ? reloaded.event : event;
+  const { current, formKey, setReloaded } = useReloadedCopy(event, open);
   return (
     <Dialog
       open={open}
@@ -77,13 +76,13 @@ export function EventFormDialog(props: Readonly<EventFormDialogProps>) {
         starts a fresh form from the latest copy.
       */}
       <EventForm
-        key={current ? `${current.id}:${reloaded?.count ?? 0}` : "new"}
+        key={formKey}
         {...props}
         event={current}
         onReload={async () => {
           if (!current) return;
           const fresh = await reloadEvent(current.id);
-          setReloaded((last) => ({ event: fresh, count: (last?.count ?? 0) + 1 }));
+          setReloaded(fresh);
         }}
       />
     </Dialog>

@@ -12,7 +12,17 @@ import { hashToken } from "./tokens";
  * (SYSTEM_DESIGN §67, API_DESIGN §99).
  */
 
-export type RateLimitScope = "ip" | "token" | "user" | "membership" | "wedding" | "global";
+/**
+ * `ip+token`: one counter per network AND link, so guests sharing a venue's
+ * Wi-Fi or a mobile carrier's address count per gallery (QA G4).
+ */
+export type RateLimitScope =
+  "ip" | "token" | "ip+token" | "user" | "membership" | "wedding" | "global";
+
+/** The subject of an `ip+token` policy (hashed into the key, never stored). */
+export function rateLimitPair(ip: string, token: string): string {
+  return `${ip}|${token}`;
+}
 
 export interface RateLimitPolicy {
   /** Stable name; part of the counter key. Renaming a policy resets its counters. */
@@ -104,23 +114,34 @@ export const policies = {
     windowMs: MINUTE,
     scope: "ip",
   }, // placeholder
-  publicGalleryView: {
-    name: "public.gallery.view",
+  // Guest gallery (decided 2026-11-24, QA G4): guests at a venue often share one
+  // address, so these count per address AND gallery link, and are generous; the
+  // real storage guard is guestPhotoUploadPerWedding (500 a day). Placeholders.
+  /** The /gallery/[token] page itself. */
+  publicGalleryPage: {
+    name: "public.gallery.page",
     limit: 120,
     windowMs: MINUTE,
-    scope: "ip",
+    scope: "ip+token",
+  }, // placeholder
+  /** The guest gallery API's reads (gallery info, photo pages). */
+  publicGalleryView: {
+    name: "public.gallery.view",
+    limit: 600,
+    windowMs: MINUTE,
+    scope: "ip+token",
   }, // placeholder
   galleryUploadUrl: {
     name: "public.gallery.upload-url",
-    limit: 60,
+    limit: 300,
     windowMs: 15 * MINUTE,
-    scope: "ip",
+    scope: "ip+token",
   }, // placeholder
   galleryPhotoConfirm: {
     name: "public.gallery.photo-confirm",
-    limit: 60,
+    limit: 300,
     windowMs: 15 * MINUTE,
-    scope: "ip",
+    scope: "ip+token",
   }, // placeholder
   // Vendor discovery (API §65–66): every call is a billed Google request. Placeholders
   // (decided 2026-11-18: 30 searches per wedding per hour).

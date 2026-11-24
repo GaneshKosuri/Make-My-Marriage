@@ -51,6 +51,9 @@ export function UploadQueueList({
           <div className="min-w-0 flex-1">
             <p className="truncate text-label-md text-graphite">{item.file.name}</p>
             <p className="text-body-sm text-plum">{megabytes(item.file.size)}</p>
+            {item.status === "failed" && item.problem && (
+              <p className="text-body-sm text-destructive">{item.problem}</p>
+            )}
             {item.status === "uploading" && (
               <div
                 role="progressbar"
@@ -105,25 +108,26 @@ function Status({
         <div className="flex shrink-0 flex-col items-end gap-1">
           <span className={cn(chip, "bg-destructive/10 text-destructive")}>
             <AlertCircle aria-hidden className="size-3.5" />
-            {item.problem ?? UPLOAD.status.failed}
+            {UPLOAD.status.failed}
           </span>
-          {item.problem ? (
+          <div className="flex items-center gap-1">
+            {item.retryable && (
+              <button
+                type="button"
+                disabled={running}
+                onClick={() => onRetry(item.id)}
+                aria-label={UPLOAD.retryLabel(item.file.name)}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded px-1 text-label-sm text-burgundy hover:underline disabled:opacity-50",
+                  focusRing,
+                )}
+              >
+                <RotateCcw aria-hidden className="size-3.5" />
+                {UPLOAD.retry}
+              </button>
+            )}
             <RemoveButton item={item} disabled={running} onRemove={onRemove} />
-          ) : (
-            <button
-              type="button"
-              disabled={running}
-              onClick={() => onRetry(item.id)}
-              aria-label={UPLOAD.retryLabel(item.file.name)}
-              className={cn(
-                "inline-flex items-center gap-1 rounded text-label-sm text-burgundy hover:underline disabled:opacity-50",
-                focusRing,
-              )}
-            >
-              <RotateCcw aria-hidden className="size-3.5" />
-              {UPLOAD.retry}
-            </button>
-          )}
+          </div>
         </div>
       );
     default:

@@ -96,6 +96,17 @@ describe("<LivestreamScreen />", () => {
     expect(patches.at(-1)).toEqual({ isEnabled: true });
   });
 
+  it("keeps a pasted, unsaved link when the switch is toggled (QA W3)", async () => {
+    settings = { youtubeUrl: WATCH, isEnabled: false, embedUrl: EMBED };
+    renderScreen();
+    fireEvent.change(await linkField(), { target: { value: "https://youtu.be/AAAAAAAAAAA" } });
+
+    fireEvent.click(showSwitch());
+
+    await waitFor(() => expect(showSwitch()).toHaveAttribute("aria-checked", "true"));
+    expect(await linkField()).toHaveValue("https://youtu.be/AAAAAAAAAAA");
+  });
+
   it("removes the livestream after confirming", async () => {
     settings = { youtubeUrl: WATCH, isEnabled: true, embedUrl: EMBED };
     renderScreen();

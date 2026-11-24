@@ -135,7 +135,8 @@ function ShareBody({
     if (!qrSvg) return;
     const url = URL.createObjectURL(new Blob([qrSvg], { type: "image/svg+xml" }));
     saveFile(url, `${SHARE.fileName}.svg`);
-    URL.revokeObjectURL(url);
+    // Some browsers start the download after click() returns (QA CL).
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   };
 
   return (

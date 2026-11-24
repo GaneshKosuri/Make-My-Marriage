@@ -270,6 +270,24 @@ describe("<VendorsScreen />", () => {
     expect(await dialog().findByDisplayValue("Drone and candid team")).toBeInTheDocument();
   });
 
+  it("explains a vendor someone archived meanwhile instead of offering a save that always fails (QA V1)", async () => {
+    routes[`PATCH /api/vendors/${pixel.id}`] = () => failure(409, "CONFLICT");
+    routes[`GET /api/vendors/${pixel.id}`] = () =>
+      data({ ...pixel, archivedAt: "2026-11-24T10:00:00.000Z", version: 4 });
+    renderWithClient(<VendorsScreen timeZone="Asia/Kolkata" />);
+    fireEvent.click(await screen.findByRole("button", { name: VENDORS.edit("Pixel Photography") }));
+    const form = dialog();
+    expect(await form.findByDisplayValue("2,00,000")).toBeInTheDocument();
+    fireEvent.change(form.getByLabelText(VENDORS.form.fields.agreedCost.label), {
+      target: { value: "2,50,000" },
+    });
+    fireEvent.click(form.getByRole("button", { name: VENDORS.form.save }));
+    fireEvent.click(await form.findByRole("button", { name: VENDORS.form.conflict.action }));
+
+    expect(await dialog().findByText(VENDORS.form.archived.title)).toBeInTheDocument();
+    expect(dialog().queryByRole("button", { name: VENDORS.form.save })).toBeNull();
+  });
+
   it("opens the add form from ?new=1 and drops the flag", async () => {
     search = "new=1";
     renderWithClient(<VendorsScreen timeZone="Asia/Kolkata" />);

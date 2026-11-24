@@ -2,13 +2,7 @@ import "server-only";
 
 import { AppError } from "@/server/errors";
 import { logger } from "@/server/logging/logger";
-import {
-  getStorageService,
-  hasImageSignature,
-  stagingKey,
-  weddingCoverKey,
-  weddingPrefix,
-} from "@/server/storage";
+import { getStorageService, hasImageSignature, stagingKey, weddingPrefix } from "@/server/storage";
 
 import {
   COVER_MAX_SIZE_BYTES,
@@ -35,6 +29,17 @@ const isCoverMime = (value: string | null): value is CoverMimeType =>
 function isCoverStagingKey(key: string, weddingId: string): boolean {
   const prefix = `staging/${weddingPrefix(weddingId)}covers/`;
   return key.startsWith(prefix) && /^[0-9a-f]{32}\.(jpg|png|webp)$/.test(key.slice(prefix.length));
+}
+
+/**
+ * The final key a staged cover is copied to: same random name, under the
+ * wedding's covers. Deriving it (instead of a new random name) lets a repeated
+ * save of the same upload recognise that it is already the cover (QA W4).
+ * Null for anything that isn't this wedding's cover staging key.
+ */
+export function finalCoverKeyFor(weddingId: string, stagedKey: string): string | null {
+  if (!isCoverStagingKey(stagedKey, weddingId)) return null;
+  return stagedKey.slice("staging/".length);
 }
 
 /** A signed PUT for a new cover (10 minutes), pinning type and length. */
@@ -82,7 +87,7 @@ export async function publishCover(weddingId: string, stagedKey: string): Promis
   if (!hasImageSignature(info.contentType, head)) {
     throw uploadProblem("This file isn't a JPEG, PNG or WebP photo.");
   }
-  const finalKey = weddingCoverKey(weddingId, info.contentType);
+  const finalKey = finalCoverKeyFor(weddingId, stagedKey)!;
   await storage.copy({ sourceKey: stagedKey, destinationKey: finalKey, ifMatch: info.etag });
   await storage.delete(stagedKey).catch(() => undefined);
   return finalKey;

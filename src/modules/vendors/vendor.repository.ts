@@ -154,6 +154,28 @@ export const vendorRepository = {
       .exec();
   },
 
+  /**
+   * Brings an archived vendor back with the fields the family just reviewed
+   * (decided 2026-11-24, QA D1); null when it isn't archived any more.
+   */
+  async restoreFromPlace(
+    weddingId: string,
+    vendorId: string,
+    fields: VendorFields,
+  ): Promise<VendorRecord | null> {
+    await connectToDatabase();
+    return VendorModel.findOneAndUpdate(
+      { ...byId(weddingId, vendorId), archivedAt: { $ne: null } },
+      {
+        $set: { ...toDocFields(fields), source: "GOOGLE_PLACES", archivedAt: null },
+        $inc: { __v: 1 },
+      },
+      { returnDocument: "after", runValidators: true },
+    )
+      .lean<VendorRecord>()
+      .exec();
+  },
+
   /** Sets archivedAt once; false when missing or already archived. */
   async archive(weddingId: string, vendorId: string, at: Date): Promise<boolean> {
     await connectToDatabase();

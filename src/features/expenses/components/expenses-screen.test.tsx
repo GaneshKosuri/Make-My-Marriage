@@ -282,6 +282,34 @@ describe("<ExpensesScreen />", () => {
     await waitFor(() => expect(window.location.search).toBe(`?vendorId=${PIXEL}`));
   });
 
+  it("keeps a vendor beyond the first 100: preset kept, never shown as archived (QA V3)", async () => {
+    // The vendor list's first page doesn't include Pixel (more than 100 vendors).
+    routes["GET /api/vendors?limit=100"] = () => page([]);
+    routes[`GET /api/vendors/${PIXEL}`] = () => data(pixel);
+    search = `new=1&vendorId=${PIXEL}`;
+    routes[`${LIST}&vendorId=${PIXEL}`] = () => page([advance]);
+    renderWithClient(<ExpensesScreen today="2026-11-18" />);
+
+    const form = within(await screen.findByRole("dialog", { name: EXPENSES.form.addTitle }));
+    await waitFor(() =>
+      expect(selectedOption(EXPENSES.form.fields.vendor.label, form)).toBe("Pixel Photography"),
+    );
+    expect(selectedOption(EXPENSES.form.fields.category.label, form)).toBe("Photography");
+  });
+
+  it("labels an expense's active vendor by name even when it isn't in the first 100 (QA V3)", async () => {
+    routes["GET /api/vendors?limit=100"] = () => page([]);
+    renderWithClient(<ExpensesScreen today="2026-11-18" />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: EXPENSES.edit("Photographer advance") }),
+    );
+
+    const form = within(await screen.findByRole("dialog", { name: EXPENSES.form.editTitle }));
+    await waitFor(() =>
+      expect(selectedOption(EXPENSES.form.fields.vendor.label, form)).toBe("Pixel Photography"),
+    );
+  });
+
   it("invites the first expense when there are none", async () => {
     routes[LIST] = () => page([]);
     routes["GET /api/expenses/summary"] = () =>
