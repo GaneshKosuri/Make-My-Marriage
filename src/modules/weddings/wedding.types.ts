@@ -6,6 +6,7 @@ import type { z } from "zod";
 
 import type { WebsiteTheme } from "./wedding.constants";
 import type {
+  coverUploadRequestSchema,
   createWeddingSchema,
   updateGallerySettingsSchema,
   updateLivestreamSchema,
@@ -33,7 +34,8 @@ export interface WeddingDto {
   weddingDate: string;
   timeZone: string;
   location: WeddingLocationDto;
-  website: WebsiteSettingsDto;
+  /** The website settings, without the signed cover link (that is on GET /api/wedding/website). */
+  website: Omit<WebsiteSettingsDto, "coverImageUrl">;
   gallery: { isEnabled: boolean; guestUploadsEnabled: boolean };
   livestream: LivestreamSettingsDto;
 }
@@ -61,6 +63,8 @@ export interface WebsiteSettingsDto {
   showGallery: boolean;
   /** The website's address, from NEXT_PUBLIC_APP_URL. */
   url: string;
+  /** A short-lived signed link to the cover photo; null without one. */
+  coverImageUrl: string | null;
 }
 
 export type UpdateWebsiteSettingsInput = z.output<typeof updateWebsiteSettingsSchema>;
@@ -92,10 +96,7 @@ export interface GalleryQrDto {
 }
 
 /** POST /api/wedding/cover/upload-url, /api/events/:id/cover/upload-url (API_DESIGN §83). */
-export interface CoverUploadRequestInput {
-  mimeType: string;
-  sizeBytes: number;
-}
+export type CoverUploadRequestInput = z.output<typeof coverUploadRequestSchema>;
 
 export interface CoverUploadUrlDto {
   uploadUrl: string;

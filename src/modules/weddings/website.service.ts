@@ -6,10 +6,10 @@ import type { MemberContext, PublicContext } from "@/server/auth";
 import { getEnv } from "@/server/config/env";
 import { AppError } from "@/server/errors";
 import { logger } from "@/server/logging/logger";
-import { getStorageService } from "@/server/storage";
 
 import { eventsService } from "@/modules/events";
 
+import { coverUrl, publishCover, removeCoverObject } from "./cover";
 import { websiteUrlFor } from "./wedding.mapper";
 import type { WeddingRecord } from "./wedding.model";
 import { weddingRepository } from "./wedding.repository";
@@ -19,10 +19,7 @@ import type {
   WebsiteSettingsDto,
 } from "./wedding.types";
 
-/** Signed cover links last as long as gallery photo links. */
-const COVER_URL_TTL_SECONDS = 15 * 60;
-
-function toSettings(wedding: WeddingRecord): WebsiteSettingsDto {
+async function toSettings(wedding: WeddingRecord): Promise<WebsiteSettingsDto> {
   return {
     slug: wedding.website.slug,
     theme: wedding.website.theme,
@@ -30,6 +27,7 @@ function toSettings(wedding: WeddingRecord): WebsiteSettingsDto {
     welcomeMessage: wedding.website.welcomeMessage ?? null,
     showGallery: wedding.website.showGallery ?? false,
     url: websiteUrlFor(wedding.website.slug),
+    coverImageUrl: await coverUrl(wedding.coverImageObjectKey ?? null),
   };
 }
 
@@ -40,22 +38,13 @@ async function galleryLink(wedding: WeddingRecord): Promise<string | null> {
   return token ? new URL(`/gallery/${token}`, getEnv().NEXT_PUBLIC_APP_URL).toString() : null;
 }
 
-async function coverUrl(wedding: WeddingRecord): Promise<string | null> {
-  if (!wedding.coverImageObjectKey) return null;
-  const signed = await getStorageService().presignGet({
-    key: wedding.coverImageObjectKey,
-    expiresInSeconds: COVER_URL_TTL_SECONDS,
-  });
-  return signed.url;
-}
-
 /** The one DTO every theme renders (SYSTEM_DESIGN §28). */
 async function toPublicWedding(wedding: WeddingRecord): Promise<PublicWeddingDto> {
   const weddingId = wedding._id.toString();
   const [events, gallery, cover] = await Promise.all([
     eventsService.listWebsiteEvents(weddingId),
     galleryLink(wedding),
-    coverUrl(wedding),
+    coverUrl(wedding.coverImageObjectKey ?? null),
   ]);
   const videoId = wedding.livestream?.youtubeUrl
     ? youTubeVideoId(wedding.livestream.youtubeUrl)
@@ -99,8 +88,28 @@ export const websiteService = {
     ctx: MemberContext,
     input: UpdateWebsiteSettingsInput,
   ): Promise<WebsiteSettingsDto> {
-    const wedding = await weddingRepository.updateWebsite(ctx.weddingId, input);
+    const { coverImageObjectKey, ...website } = input;
+    let wedding = await weddingRepository.findActiveById(ctx.weddingId);
     if (!wedding) throw new AppError("NOT_FOUND");
+    // The cover first: a bad upload changes nothing else (API §83).
+    if (coverImageObjectKey !== undefined) {
+      const previous = wedding.coverImageObjectKey ?? null;
+      const next =
+        coverImageObjectKey === null
+          ? null
+          : await publishCover(ctx.weddingId, coverImageObjectKey);
+      wedding = await weddingRepository.setCover(ctx.weddingId, next);
+      if (!wedding) throw new AppError("NOT_FOUND");
+      if (previous && previous !== next) await removeCoverObject(previous);
+      logger.info(next ? "Cover photo set" : "Cover photo removed", {
+        requestId: ctx.requestId,
+        weddingId: ctx.weddingId,
+      });
+    }
+    if (Object.values(website).some((value) => value !== undefined)) {
+      wedding = await weddingRepository.updateWebsite(ctx.weddingId, website);
+      if (!wedding) throw new AppError("NOT_FOUND");
+    }
     logger.info("Website settings changed", {
       requestId: ctx.requestId,
       weddingId: ctx.weddingId,

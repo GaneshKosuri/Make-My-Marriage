@@ -91,6 +91,13 @@ export const policies = {
     scope: "token",
   },
   rsvpGlobal: { name: "public.rsvp.global", limit: 300, windowMs: MINUTE, scope: "global" },
+  // Cover photo uploads (API §83): a family changes it a few times. Placeholder.
+  coverUpload: {
+    name: "wedding.cover.upload-url",
+    limit: 30,
+    windowMs: 60 * MINUTE,
+    scope: "wedding",
+  }, // placeholder
   publicWebsiteView: {
     name: "public.website.view",
     limit: 120,

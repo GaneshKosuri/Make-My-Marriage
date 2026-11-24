@@ -9,6 +9,8 @@ import { youTubeVideoId, youTubeWatchUrl } from "@/lib/youtube";
 
 import {
   COUPLE_NAME_MAX_LENGTH,
+  COVER_MAX_SIZE_BYTES,
+  COVER_MIME_TYPES,
   DEFAULT_TIME_ZONE,
   FORMATTED_ADDRESS_MAX_LENGTH,
   GOOGLE_PLACE_ID_MAX_LENGTH,
@@ -127,12 +129,6 @@ export const updateWeddingSchema = z
   })
   .strict();
 
-/*
- * TODO — define with `.strict()`:
- *   Phase 5: Wedding Experience
- *     - coverUploadRequestSchema    API_DESIGN §83 { mimeType, sizeBytes }
- */
-
 /**
  * PATCH /api/gallery/settings (API_DESIGN §74): either switch, or both. The
  * guest page needs both on to take uploads; the gallery link never changes.
@@ -165,6 +161,11 @@ export const updateWebsiteSettingsSchema = z
       .optional(),
     isPublished: z.boolean().optional(),
     showGallery: z.boolean().optional(),
+    /**
+     * API §83: the key an upload URL was issued for saves the uploaded cover;
+     * null removes the cover.
+     */
+    coverImageObjectKey: z.string().trim().min(1).max(300).nullable().optional(),
   })
   .strict()
   .refine(
@@ -204,3 +205,15 @@ export const updateLivestreamSchema = z
     (input) => input.youtubeUrl !== undefined || input.isEnabled !== undefined,
     "Send the link or the switch",
   );
+
+/** POST /api/wedding/cover/upload-url (API_DESIGN §83). */
+export const coverUploadRequestSchema = z
+  .object({
+    mimeType: z.enum(COVER_MIME_TYPES, "Use a JPEG, PNG or WebP photo"),
+    sizeBytes: z
+      .number("Choose a photo")
+      .int("Choose a photo")
+      .min(1, "This photo is empty")
+      .max(COVER_MAX_SIZE_BYTES, "Photos can be up to 10 MB"),
+  })
+  .strict();

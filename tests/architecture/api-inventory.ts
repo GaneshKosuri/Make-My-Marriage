@@ -596,6 +596,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "member",
     phase: P5,
     doc: "API §83",
+    implemented: true,
   },
   {
     method: "POST",

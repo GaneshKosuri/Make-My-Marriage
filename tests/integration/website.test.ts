@@ -68,6 +68,7 @@ describe("GET/PATCH /api/wedding/website", () => {
       welcomeMessage: null,
       showGallery: false,
       url: `${TEST_APP_URL}/w/${slug}`,
+      coverImageUrl: null,
     });
   });
 
@@ -92,6 +93,7 @@ describe("GET/PATCH /api/wedding/website", () => {
       welcomeMessage: "We would love to celebrate with you.",
       showGallery: true,
       url: `${TEST_APP_URL}/w/${slug}`,
+      coverImageUrl: null,
     });
     const cleared = await call(patchWebsite, {
       method: "PATCH",

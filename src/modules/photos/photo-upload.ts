@@ -6,6 +6,7 @@ import {
   galleryObjectKey,
   galleryPreviewKey,
   getStorageService,
+  hasImageSignature,
   isKeyInWeddingNamespace,
   stagingKey,
   type StorageService,
@@ -48,23 +49,6 @@ export type Uploader =
   | { type: Extract<UploaderType, "GUEST"> };
 
 const GRACE_MS = PHOTO_CONFIRMATION_GRACE_HOURS * 60 * 60 * 1000;
-
-/** The first bytes of each allowed format (not full decoding or malware scanning). */
-export function hasImageSignature(mimeType: string, bytes: Uint8Array): boolean {
-  const starts = (...expected: number[]) => expected.every((byte, i) => bytes[i] === byte);
-  const ascii = (from: number, text: string) =>
-    [...text].every((char, i) => bytes[from + i] === char.charCodeAt(0));
-  switch (mimeType) {
-    case "image/jpeg":
-      return starts(0xff, 0xd8, 0xff);
-    case "image/png":
-      return starts(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a);
-    case "image/webp":
-      return ascii(0, "RIFF") && ascii(8, "WEBP");
-    default:
-      return false;
-  }
-}
 
 function uploadProblem(message: string): AppError {
   return new AppError("UPLOAD_ERROR", message);

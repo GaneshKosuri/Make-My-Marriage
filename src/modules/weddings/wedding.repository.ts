@@ -75,6 +75,18 @@ export const weddingRepository = {
       .exec();
   },
 
+  /** Sets (or clears) the cover photo's final key; null when the wedding is missing or deleted. */
+  async setCover(weddingId: string, objectKey: string | null): Promise<WeddingRecord | null> {
+    await connectToDatabase();
+    return WeddingModel.findOneAndUpdate(
+      { _id: toObjectId(weddingId, "weddingId"), deletedAt: null },
+      { $set: { coverImageObjectKey: objectKey } },
+      { returnDocument: "after" },
+    )
+      .lean<WeddingRecord>()
+      .exec();
+  },
+
   /** Sets the livestream link and switch; null when the wedding is missing or deleted. */
   async updateLivestream(
     weddingId: string,

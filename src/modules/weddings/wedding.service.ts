@@ -4,12 +4,14 @@ import type { IdentityWedding, MemberContext, UserContext } from "@/server/auth"
 import { isDuplicateKeyError } from "@/server/db/errors";
 import { toObjectId } from "@/server/db/object-id";
 import { withTransaction } from "@/server/db/transaction";
-import { AppError, notImplemented } from "@/server/errors";
+import { AppError } from "@/server/errors";
 import { logger } from "@/server/logging/logger";
+import { getRateLimiter, policies } from "@/server/security/rate-limit";
 import { generateToken } from "@/server/security/tokens";
 
 import { membersService } from "@/modules/members";
 
+import { issueCoverUpload } from "./cover";
 import { DEFAULT_WEBSITE_THEME } from "./wedding.constants";
 import { toCreatedWeddingDto, toIdentityWedding, toWeddingDto } from "./wedding.mapper";
 import type { WeddingLocation } from "./wedding.model";
@@ -152,12 +154,17 @@ export const weddingsService = {
     return toWeddingDto(updated);
   },
 
-  /** Direct-to-R2 cover upload; then PATCH coverImageObjectKey. API §83. */
+  /**
+   * A signed PUT for a new cover photo (10 minutes); then PATCH
+   * /api/wedding/website with its `coverImageObjectKey` saves it. Limited per
+   * wedding (placeholder 30 an hour). API §83.
+   */
   async requestCoverUploadUrl(
     ctx: MemberContext,
     input: CoverUploadRequestInput,
   ): Promise<CoverUploadUrlDto> {
-    return notImplemented("API_DESIGN §83 (Phase 5: Wedding Experience)");
+    await getRateLimiter().enforce([{ policy: policies.coverUpload, subject: ctx.weddingId }]);
+    return issueCoverUpload(ctx.weddingId, input);
   },
 
   // ── Cross-module operations ─────────────────────────────────────────────
