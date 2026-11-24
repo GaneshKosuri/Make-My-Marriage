@@ -91,6 +91,12 @@ export const policies = {
     scope: "token",
   },
   rsvpGlobal: { name: "public.rsvp.global", limit: 300, windowMs: MINUTE, scope: "global" },
+  publicWebsiteView: {
+    name: "public.website.view",
+    limit: 120,
+    windowMs: MINUTE,
+    scope: "ip",
+  }, // placeholder
   publicGalleryView: {
     name: "public.gallery.view",
     limit: 120,

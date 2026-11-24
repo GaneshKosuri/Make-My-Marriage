@@ -4,7 +4,6 @@ import type { ClientSession } from "mongoose";
 
 import { connectToDatabase } from "@/server/db/connection";
 import { toObjectId } from "@/server/db/object-id";
-import { notImplemented } from "@/server/errors";
 
 import type { WeddingDoc, WeddingRecord } from "./wedding.model";
 import { WeddingModel } from "./wedding.model";
@@ -66,7 +65,35 @@ export const weddingRepository = {
 
   /** Public website: published and not deleted (API_DESIGN §69). */
   async findPublishedBySlug(slug: string): Promise<WeddingRecord | null> {
-    return notImplemented("API_DESIGN §69 (Phase 5: Wedding Experience)");
+    await connectToDatabase();
+    return WeddingModel.findOne({
+      "website.slug": slug,
+      "website.isPublished": true,
+      deletedAt: null,
+    })
+      .lean<WeddingRecord>()
+      .exec();
+  },
+
+  /** Sets website fields on an active wedding; null when it is missing or deleted. */
+  async updateWebsite(
+    weddingId: string,
+    changes: Partial<
+      Pick<WeddingRecord["website"], "theme" | "welcomeMessage" | "isPublished" | "showGallery">
+    >,
+  ): Promise<WeddingRecord | null> {
+    await connectToDatabase();
+    const set: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(changes)) {
+      if (value !== undefined) set[`website.${key}`] = value;
+    }
+    return WeddingModel.findOneAndUpdate(
+      { _id: toObjectId(weddingId, "weddingId"), deletedAt: null },
+      { $set: set },
+      { returnDocument: "after", runValidators: true },
+    )
+      .lean<WeddingRecord>()
+      .exec();
   },
 
   /** Gallery token resolution (API_DESIGN §79–82): an active wedding with this token. */

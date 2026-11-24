@@ -46,6 +46,11 @@ export interface WeddingWebsite {
   theme: WebsiteTheme;
   isPublished: boolean;
   welcomeMessage: string | null;
+  /**
+   * Show a "See and add photos" button to the gallery on the website (decided
+   * 2026-11-24; not in DATABASE_DESIGN). Only while the gallery is on.
+   */
+  showGallery: boolean;
 }
 
 export interface WeddingGallery {
@@ -120,6 +125,7 @@ const websiteSchema = new Schema<WeddingWebsite>(
     },
     theme: { type: String, enum: WEBSITE_THEMES, required: true, default: DEFAULT_WEBSITE_THEME },
     isPublished: { type: Boolean, required: true, default: false },
+    showGallery: { type: Boolean, required: true, default: false },
     welcomeMessage: {
       type: String,
       trim: true,

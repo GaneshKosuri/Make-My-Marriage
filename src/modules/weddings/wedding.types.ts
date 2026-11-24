@@ -8,6 +8,7 @@ import type { WebsiteTheme } from "./wedding.constants";
 import type {
   createWeddingSchema,
   updateGallerySettingsSchema,
+  updateWebsiteSettingsSchema,
   updateWeddingSchema,
 } from "./wedding.schemas";
 
@@ -55,13 +56,13 @@ export interface WebsiteSettingsDto {
   theme: WebsiteTheme;
   isPublished: boolean;
   welcomeMessage: string | null;
+  /** Gallery button on the website (decided 2026-11-24). */
+  showGallery: boolean;
+  /** The website's address, from NEXT_PUBLIC_APP_URL. */
+  url: string;
 }
 
-export interface UpdateWebsiteSettingsInput {
-  theme?: WebsiteTheme;
-  welcomeMessage?: string | null;
-  isPublished?: boolean;
-}
+export type UpdateWebsiteSettingsInput = z.output<typeof updateWebsiteSettingsSchema>;
 
 /** GET/PATCH /api/wedding/livestream (API_DESIGN §70–72). */
 export interface LivestreamSettingsDto {
@@ -110,6 +111,7 @@ export interface PublicWebsiteEventDto {
   venueName: string | null;
   address: string | null;
   dressCode: string | null;
+  /** A Google Maps search for the venue and address; null without either. */
   mapUrl: string | null;
 }
 
@@ -125,9 +127,14 @@ export interface PublicWeddingDto {
   welcomeMessage: string | null;
   weddingDate: string;
   timeZone: string;
+  /** "Dehradun, Uttarakhand"; null when no place is set. */
+  place: string | null;
+  /** A short-lived signed link to the cover photo. */
   coverImageUrl: string | null;
   theme: WebsiteTheme;
+  /** Active events in start order (decided 2026-11-24: every active event shows). */
   events: PublicWebsiteEventDto[];
-  gallery: { enabled: boolean };
+  /** The gallery button: only when the gallery is on and the family shows it. */
+  gallery: { enabled: boolean; url: string | null };
   livestream: { enabled: boolean; youtubeUrl: string | null };
 }

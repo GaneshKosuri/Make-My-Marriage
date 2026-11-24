@@ -81,6 +81,7 @@ export const weddingsService = {
                 theme: DEFAULT_WEBSITE_THEME,
                 isPublished: false,
                 welcomeMessage: null,
+                showGallery: false,
               },
               gallery: { token: generateToken(), isEnabled: false, guestUploadsEnabled: false },
               livestream: { youtubeUrl: null, isEnabled: false },

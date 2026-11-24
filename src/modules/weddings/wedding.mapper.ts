@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { IdentityWedding } from "@/server/auth/identity";
+import { getEnv } from "@/server/config/env";
 
 import type { WeddingRecord } from "./wedding.model";
 import type { CreatedWeddingDto, WeddingDto } from "./wedding.types";
@@ -21,6 +22,11 @@ export function toIdentityWedding(wedding: WeddingRecord): IdentityWedding {
     city: wedding.location?.city ?? null,
     state: wedding.location?.state ?? null,
   };
+}
+
+/** The public website address (`/w/<slug>`), from NEXT_PUBLIC_APP_URL. */
+export function websiteUrlFor(slug: string): string {
+  return new URL(`/w/${slug}`, getEnv().NEXT_PUBLIC_APP_URL).toString();
 }
 
 /** GET /api/wedding (API_DESIGN §18): no gallery token, no internal fields. */
@@ -48,6 +54,8 @@ export function toWeddingDto(wedding: WeddingRecord): WeddingDto {
       theme: wedding.website.theme,
       isPublished: wedding.website.isPublished,
       welcomeMessage: wedding.website.welcomeMessage ?? null,
+      showGallery: wedding.website.showGallery ?? false,
+      url: websiteUrlFor(wedding.website.slug),
     },
     gallery: {
       isEnabled: wedding.gallery.isEnabled,

@@ -227,6 +227,8 @@ describe("GET /api/wedding", () => {
         theme: "CLASSIC",
         isPublished: false,
         welcomeMessage: null,
+        showGallery: false,
+        url: `${TEST_APP_URL}/w/${wedding.website.slug}`,
       },
       gallery: { isEnabled: false, guestUploadsEnabled: false },
       livestream: { youtubeUrl: null, isEnabled: false },

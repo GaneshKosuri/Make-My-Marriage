@@ -17,6 +17,8 @@ import {
   WEDDING_SLUG_MAX_LENGTH,
   WEDDING_SLUG_PATTERN,
   WEDDING_TITLE_MAX_LENGTH,
+  WEBSITE_THEMES,
+  WELCOME_MESSAGE_MAX_LENGTH,
 } from "./wedding.constants";
 
 export const weddingSlug = z
@@ -126,7 +128,6 @@ export const updateWeddingSchema = z
 /*
  * TODO — define with `.strict()`:
  *   Phase 5: Wedding Experience
- *     - updateWebsiteSettingsSchema API_DESIGN §68 { theme, welcomeMessage, isPublished }
  *     - updateLivestreamSchema      API_DESIGN §71–72 { youtubeUrl (YouTube formats only) | null, isEnabled }
  *     - coverUploadRequestSchema    API_DESIGN §83 { mimeType, sizeBytes }
  */
@@ -143,5 +144,29 @@ export const updateGallerySettingsSchema = z
   .strict()
   .refine(
     (input) => input.isEnabled !== undefined || input.guestUploadsEnabled !== undefined,
+    "Send at least one setting to change",
+  );
+
+/**
+ * PATCH /api/wedding/website (API_DESIGN §68): theme, welcome message, publish
+ * flag and the gallery button. The address (slug) is never editable. A blank
+ * welcome message clears it.
+ */
+export const updateWebsiteSettingsSchema = z
+  .object({
+    theme: z.enum(WEBSITE_THEMES, "Choose a theme").optional(),
+    welcomeMessage: z
+      .string()
+      .trim()
+      .max(WELCOME_MESSAGE_MAX_LENGTH, "Keep the welcome message under 1,000 characters")
+      .transform((value) => value || null)
+      .nullable()
+      .optional(),
+    isPublished: z.boolean().optional(),
+    showGallery: z.boolean().optional(),
+  })
+  .strict()
+  .refine(
+    (input) => Object.values(input).some((value) => value !== undefined),
     "Send at least one setting to change",
   );
