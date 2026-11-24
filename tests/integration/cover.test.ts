@@ -1,10 +1,11 @@
 import { NextRequest } from "next/server";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GET as publicWebsite } from "@/app/api/public/weddings/[slug]/route";
 import { POST as coverUploadUrl } from "@/app/api/wedding/cover/upload-url/route";
 import { GET as getWebsite, PATCH as patchWebsite } from "@/app/api/wedding/website/route";
 import { WeddingModel } from "@/modules/weddings/wedding.model";
+import { weddingRepository } from "@/modules/weddings/wedding.repository";
 import {
   createFakeStorageAdapter,
   setStorageServiceForTests,
@@ -218,6 +219,32 @@ describe("saving the cover with PATCH /api/wedding/website", () => {
     expect([...storage.objects.keys()].filter((key) => key.includes("/covers/"))).toHaveLength(1);
   });
 
+  it("a save that loses the race answers CONFLICT and cleans up its copy (QA W4)", async () => {
+    const { cookie, wedding } = await setup();
+    const [mine, theirs] = [await requestCover(cookie), await requestCover(cookie)];
+    for (const upload of [mine, theirs]) {
+      storage.putObject(upload.objectKey, bytesOf(JPEG, 4096), "image/jpeg");
+    }
+    // Another member's save lands between this save reading the cover and writing it.
+    const setCover = weddingRepository.setCover.bind(weddingRepository);
+    const spy = vi.spyOn(weddingRepository, "setCover").mockImplementationOnce(async (...args) => {
+      expect((await saveCover(cookie, theirs.objectKey)).status).toBe(200);
+      return setCover(...args);
+    });
+
+    try {
+      const result = await saveCover(cookie, mine.objectKey);
+      expect(result.status).toBe(409);
+      expect(result.body.error?.code).toBe("CONFLICT");
+    } finally {
+      spy.mockRestore();
+    }
+    const covers = [...storage.objects.keys()].filter((key) => key.startsWith("weddings/"));
+    expect(covers).toHaveLength(1);
+    const stored = (await WeddingModel.findById(wedding._id).lean())!.coverImageObjectKey;
+    expect(covers).toEqual([stored]);
+  });
+
   it("two saves at once leave exactly one cover in storage (QA W4)", async () => {
     const { cookie, wedding } = await setup();
     const uploads = [await requestCover(cookie), await requestCover(cookie)];
@@ -227,7 +254,13 @@ describe("saving the cover with PATCH /api/wedding/website", () => {
 
     const results = await Promise.all(uploads.map((upload) => saveCover(cookie, upload.objectKey)));
 
-    expect(results.map((result) => result.status).sort()).toEqual([200, 409]);
+    // Overlapping saves give 200 + 409; saves that happen to run one after the
+    // other both succeed (the second replaces the first). Either way: one cover.
+    const statuses = results.map((result) => result.status).sort();
+    expect([
+      [200, 200],
+      [200, 409],
+    ]).toContainEqual(statuses);
     const covers = [...storage.objects.keys()].filter((key) => key.startsWith("weddings/"));
     expect(covers).toHaveLength(1);
     const stored = (await WeddingModel.findById(wedding._id).lean())!.coverImageObjectKey;
