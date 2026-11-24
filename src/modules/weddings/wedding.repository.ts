@@ -4,7 +4,6 @@ import type { ClientSession } from "mongoose";
 
 import { connectToDatabase } from "@/server/db/connection";
 import { toObjectId } from "@/server/db/object-id";
-import { notImplemented } from "@/server/errors";
 
 import type { WeddingDoc, WeddingRecord } from "./wedding.model";
 import { WeddingModel } from "./wedding.model";
@@ -66,7 +65,90 @@ export const weddingRepository = {
 
   /** Public website: published and not deleted (API_DESIGN §69). */
   async findPublishedBySlug(slug: string): Promise<WeddingRecord | null> {
-    return notImplemented("API_DESIGN §69 (Phase 5: Wedding Experience)");
+    await connectToDatabase();
+    return WeddingModel.findOne({
+      "website.slug": slug,
+      "website.isPublished": true,
+      deletedAt: null,
+    })
+      .lean<WeddingRecord>()
+      .exec();
+  },
+
+  /**
+   * Sets (or clears) the cover photo's final key, only while the cover is still
+   * `expectedPrevious` (QA W4); null when it changed meanwhile, or the wedding
+   * is missing or deleted.
+   */
+  async setCover(
+    weddingId: string,
+    objectKey: string | null,
+    expectedPrevious: string | null,
+  ): Promise<WeddingRecord | null> {
+    await connectToDatabase();
+    return WeddingModel.findOneAndUpdate(
+      {
+        _id: toObjectId(weddingId, "weddingId"),
+        deletedAt: null,
+        coverImageObjectKey: expectedPrevious,
+      },
+      { $set: { coverImageObjectKey: objectKey } },
+      { returnDocument: "after" },
+    )
+      .lean<WeddingRecord>()
+      .exec();
+  },
+
+  /** True when a published, not deleted wedding has this website slug (the /w/ 404 check). */
+  async publishedSlugExists(slug: string): Promise<boolean> {
+    await connectToDatabase();
+    const found = await WeddingModel.exists({
+      "website.slug": slug,
+      "website.isPublished": true,
+      deletedAt: null,
+    }).exec();
+    return found !== null;
+  },
+
+  /** Sets the livestream link and switch; null when the wedding is missing or deleted. */
+  async updateLivestream(
+    weddingId: string,
+    livestream: { youtubeUrl: string | null; isEnabled: boolean },
+  ): Promise<WeddingRecord | null> {
+    await connectToDatabase();
+    return WeddingModel.findOneAndUpdate(
+      { _id: toObjectId(weddingId, "weddingId"), deletedAt: null },
+      {
+        $set: {
+          "livestream.youtubeUrl": livestream.youtubeUrl,
+          "livestream.isEnabled": livestream.isEnabled,
+        },
+      },
+      { returnDocument: "after", runValidators: true },
+    )
+      .lean<WeddingRecord>()
+      .exec();
+  },
+
+  /** Sets website fields on an active wedding; null when it is missing or deleted. */
+  async updateWebsite(
+    weddingId: string,
+    changes: Partial<
+      Pick<WeddingRecord["website"], "theme" | "welcomeMessage" | "isPublished" | "showGallery">
+    >,
+  ): Promise<WeddingRecord | null> {
+    await connectToDatabase();
+    const set: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(changes)) {
+      if (value !== undefined) set[`website.${key}`] = value;
+    }
+    return WeddingModel.findOneAndUpdate(
+      { _id: toObjectId(weddingId, "weddingId"), deletedAt: null },
+      { $set: set },
+      { returnDocument: "after", runValidators: true },
+    )
+      .lean<WeddingRecord>()
+      .exec();
   },
 
   /** Gallery token resolution (API_DESIGN §79–82): an active wedding with this token. */
@@ -94,6 +176,7 @@ export const weddingRepository = {
   async updateGallery(
     weddingId: string,
     changes: { isEnabled?: boolean; guestUploadsEnabled?: boolean },
+    options: { requireEnabled?: boolean } = {},
   ): Promise<WeddingRecord | null> {
     await connectToDatabase();
     const set: Record<string, boolean> = {};
@@ -102,7 +185,12 @@ export const weddingRepository = {
       set["gallery.guestUploadsEnabled"] = changes.guestUploadsEnabled;
     }
     return WeddingModel.findOneAndUpdate(
-      { _id: toObjectId(weddingId, "weddingId"), deletedAt: null },
+      {
+        _id: toObjectId(weddingId, "weddingId"),
+        deletedAt: null,
+        // Checked in the same write, so a concurrent "gallery off" can't slip past.
+        ...(options.requireEnabled && { "gallery.isEnabled": true }),
+      },
       { $set: set },
       { returnDocument: "after" },
     )

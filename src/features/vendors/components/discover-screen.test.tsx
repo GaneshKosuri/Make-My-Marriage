@@ -253,6 +253,43 @@ describe("<DiscoverScreen />", () => {
     expect(searches()).toHaveLength(1);
   });
 
+  it("restores an archived place from the pre-filled form (QA D1)", async () => {
+    const archivedId = "6aeb2fe70d805e865a620ab7";
+    routes["GET /api/vendor-discovery/search"] = () =>
+      data([{ ...pixel, myVendor: { id: archivedId, archived: true } }, lens]);
+    let posted: unknown;
+    routes["POST /api/vendors/from-place"] = (_query, body) => {
+      posted = body;
+      const saved: Partial<VendorDto> = {
+        id: archivedId,
+        name: "Pixel Photography",
+        googlePlaceId: "ChIJ-pixel",
+      };
+      return { status: 201, body: { data: saved } };
+    };
+    renderScreen();
+    await searchFor("Photographer");
+
+    const pixelCard = within(
+      screen.getByRole("heading", { name: "Pixel Photography" }).closest("li")!,
+    );
+    expect(pixelCard.getByText(DISCOVER.archivedInMyVendors)).toBeInTheDocument();
+    // The lens card (active in My Vendors) offers no restore.
+    expect(screen.getAllByRole("button", { name: /^Restore / })).toHaveLength(1);
+    fireEvent.click(
+      pixelCard.getByRole("button", { name: DISCOVER.restoreLabel("Pixel Photography") }),
+    );
+
+    const form = within(await screen.findByRole("dialog"));
+    expect(await form.findByText(DISCOVER.prefill.restoreNote)).toBeInTheDocument();
+    fireEvent.click(form.getByRole("button", { name: "Save vendor" }));
+
+    expect(await screen.findByText(DISCOVER.restored("Pixel Photography"))).toBeInTheDocument();
+    expect(posted).toMatchObject({ googlePlaceId: "ChIJ-pixel", name: "Pixel Photography" });
+    await waitFor(() => expect(pixelCard.getByText(DISCOVER.inMyVendors)).toBeInTheDocument());
+    expect(pixelCard.queryByRole("button", { name: /^Restore / })).toBeNull();
+  });
+
   it("says when the place was added by someone else meanwhile", async () => {
     routes["POST /api/vendors/from-place"] = () => failure(409, "CONFLICT");
     renderScreen();

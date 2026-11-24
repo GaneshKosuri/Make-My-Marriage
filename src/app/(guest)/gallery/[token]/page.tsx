@@ -15,7 +15,7 @@ import type { PublicGalleryDto } from "@/modules/photos/photo.types";
 import { isAppError } from "@/server/errors";
 import { getClientIp, policies } from "@/server/http";
 import { logger } from "@/server/logging/logger";
-import { getRateLimiter } from "@/server/security/rate-limit";
+import { getRateLimiter, rateLimitPair } from "@/server/security/rate-limit";
 
 // The token is a secret: never indexed, never leaked via Referer (the layout and next.config.ts too).
 export const metadata: Metadata = {
@@ -55,7 +55,10 @@ type GalleryState =
 async function findGallery(token: string): Promise<GalleryState> {
   try {
     await getRateLimiter().enforce([
-      { policy: policies.publicGalleryView, subject: getClientIp({ headers: await headers() }) },
+      {
+        policy: policies.publicGalleryPage,
+        subject: rateLimitPair(getClientIp({ headers: await headers() }), token),
+      },
     ]);
     const gallery = await publicGalleryService.getGallery({ requestId: randomUUID() }, token);
     return { status: "ok", gallery };

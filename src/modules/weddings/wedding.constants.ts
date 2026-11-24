@@ -36,3 +36,10 @@ export const YOUTUBE_URL_MAX_LENGTH = 300;
  */
 export const WEDDING_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const WEDDING_SLUG_MAX_LENGTH = 120;
+
+/** Cover photo (API_DESIGN §83): the same files and size as gallery photos. */
+export const COVER_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+export type CoverMimeType = (typeof COVER_MIME_TYPES)[number];
+export const COVER_MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MiB
+export const COVER_UPLOAD_URL_TTL_SECONDS = 10 * 60;
+export const COVER_READ_URL_TTL_SECONDS = 15 * 60;

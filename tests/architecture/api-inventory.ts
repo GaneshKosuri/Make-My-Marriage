@@ -550,16 +550,45 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
   },
 
   // ── Website, livestream, covers (API §67–72, §83) ──────────────────────────
-  { method: "GET", path: "/api/wedding/website", auth: "member", phase: P5, doc: "API §67" },
-  { method: "PATCH", path: "/api/wedding/website", auth: "member", phase: P5, doc: "API §68" },
-  { method: "GET", path: "/api/public/weddings/[slug]", auth: "public", phase: P5, doc: "API §69" },
-  { method: "GET", path: "/api/wedding/livestream", auth: "member", phase: P5, doc: "API §70" },
+  {
+    method: "GET",
+    path: "/api/wedding/website",
+    auth: "member",
+    phase: P5,
+    doc: "API §67",
+    implemented: true,
+  },
+  {
+    method: "PATCH",
+    path: "/api/wedding/website",
+    auth: "member",
+    phase: P5,
+    doc: "API §68",
+    implemented: true,
+  },
+  {
+    method: "GET",
+    path: "/api/public/weddings/[slug]",
+    auth: "public",
+    phase: P5,
+    doc: "API §69",
+    implemented: true,
+  },
+  {
+    method: "GET",
+    path: "/api/wedding/livestream",
+    auth: "member",
+    phase: P5,
+    doc: "API §70",
+    implemented: true,
+  },
   {
     method: "PATCH",
     path: "/api/wedding/livestream",
     auth: "member",
     phase: P5,
     doc: "API §71–72",
+    implemented: true,
   },
   {
     method: "POST",
@@ -567,6 +596,7 @@ export const API_INVENTORY: readonly EndpointSpec[] = [
     auth: "member",
     phase: P5,
     doc: "API §83",
+    implemented: true,
   },
   {
     method: "POST",

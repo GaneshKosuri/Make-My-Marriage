@@ -39,6 +39,8 @@ export default defineConfig([
     "brand/**",
     "prompts/**",
     "public/**",
+    // Claude Code worktrees are separate checkouts with their own tooling.
+    ".claude/**",
   ]),
 
   // Project-wide conventions.

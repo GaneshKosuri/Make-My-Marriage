@@ -17,10 +17,11 @@ import { MoneyField, OptionalTag, TextAreaField, TextField } from "@/components/
 import { SaveProblem } from "@/components/ui/save-problem";
 import { SelectField } from "@/components/ui/select-field";
 import { useEvents } from "@/features/events/api";
-import { useVendors } from "@/features/vendors/api";
+import { useVendor, useVendors } from "@/features/vendors/api";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { formatINR } from "@/lib/money";
+import { useReloadedCopy } from "@/lib/use-reloaded-copy";
 import { EXPENSE_CATEGORIES } from "@/modules/expenses/expense.constants";
 import type { ExpenseDto } from "@/modules/expenses/expense.types";
 import type { EventDto } from "@/modules/events/event.types";
@@ -64,11 +65,22 @@ export function ExpenseFormDialog(props: Readonly<ExpenseFormDialogProps>) {
   const { open, onClose, expense } = props;
   const events = useEvents();
   const vendors = useVendors({ limit: VENDOR_OPTIONS_LIMIT });
+  // The vendor page's "Add expense" names a vendor that may be past the first
+  // 100 by name: fetch it on its own so the preset survives (QA V3).
+  const { presetVendorId } = props;
+  const presetMissing = Boolean(
+    presetVendorId &&
+    vendors.data &&
+    !vendors.data.data.some((vendor) => vendor.id === presetVendorId),
+  );
+  const presetVendor = useVendor(presetVendorId ?? "", { enabled: open && presetMissing });
+  const vendorChoices =
+    vendors.data && presetMissing && presetVendor.data && !presetVendor.data.archivedAt
+      ? [...vendors.data.data, presetVendor.data]
+      : vendors.data?.data;
+  const presetReady = !presetMissing || presetVendor.isSuccess || presetVendor.isError;
   const reloadExpense = useReloadExpense();
-  // A copy fetched by "Reload expense" after a CONFLICT; `count` starts a fresh form.
-  const [reloaded, setReloaded] = useState<{ expense: ExpenseDto; count: number } | null>(null);
-  const current =
-    reloaded && expense && reloaded.expense.id === expense.id ? reloaded.expense : expense;
+  const { current, formKey, setReloaded } = useReloadedCopy(expense, open);
 
   let body;
   if (events.isError || vendors.isError) {
@@ -88,21 +100,21 @@ export function ExpenseFormDialog(props: Readonly<ExpenseFormDialogProps>) {
         </button>
       </div>
     );
-  } else if (events.data && vendors.data) {
+  } else if (events.data && vendorChoices && presetReady) {
     body = (
       // Keyed by id only: a newer copy arriving in the background must not wipe
       // what is being typed. Saving then answers CONFLICT, and "Reload expense"
       // starts a fresh form from the latest copy.
       <ExpenseForm
-        key={current ? `${current.id}:${reloaded?.count ?? 0}` : "new"}
+        key={formKey}
         {...props}
         expense={current}
         events={events.data}
-        vendors={vendors.data.data}
+        vendors={vendorChoices}
         onReload={async () => {
           if (!current) return;
           const fresh = await reloadExpense(current.id);
-          setReloaded((last) => ({ expense: fresh, count: (last?.count ?? 0) + 1 }));
+          setReloaded(fresh);
         }}
       />
     );
@@ -187,8 +199,16 @@ function ExpenseForm({
   const vendorOptions = [
     { value: "", label: FIELDS.vendor.none },
     ...vendors.map((vendor) => ({ value: vendor.id, label: vendor.name })),
+    // Kept even when it isn't among the first 100 vendors; "(archived)" only when it is (QA V3).
     ...(expense?.vendor && !vendors.some((vendor) => vendor.id === expense.vendor!.id)
-      ? [{ value: expense.vendor.id, label: EXPENSES.archived(expense.vendor.name) }]
+      ? [
+          {
+            value: expense.vendor.id,
+            label: expense.vendor.archivedAt
+              ? EXPENSES.archived(expense.vendor.name)
+              : expense.vendor.name,
+          },
+        ]
       : []),
   ];
 

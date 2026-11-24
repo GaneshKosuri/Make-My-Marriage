@@ -476,4 +476,38 @@ describe("route(): rate limiting", () => {
     expect(limited.headers.get("retry-after")).toMatch(/^\d+$/);
     expect(((await json(limited)) as { error: { code: string } }).error.code).toBe("RATE_LIMITED");
   });
+
+  it("counts an ip+token policy per address AND link (QA G4)", async () => {
+    const counts = new Map<string, number>();
+    setRateLimiterForTests(
+      createRateLimiter({
+        store: {
+          async increment(key) {
+            counts.set(key, (counts.get(key) ?? 0) + 1);
+            return counts.get(key) ?? 0;
+          },
+        },
+      }),
+    );
+    const GET = route({
+      auth: "public",
+      params: z.object({ token: z.string() }).strict(),
+      rateLimit: { name: "test.gallery", limit: 1, windowMs: 60_000, scope: "ip+token" },
+      handler: () => ok("ok"),
+    });
+    const visit = (ip: string, token: string) =>
+      GET(
+        request(`/api/public/galleries/${token}`, { headers: { "x-forwarded-for": ip } }),
+        context({ token }),
+      );
+
+    expect((await visit("203.0.113.7", "link-a")).status).toBe(200);
+    // Same network, another gallery link: its own counter.
+    expect((await visit("203.0.113.7", "link-b")).status).toBe(200);
+    // Another network, same link: its own counter.
+    expect((await visit("198.51.100.9", "link-a")).status).toBe(200);
+    // Same network and link again: over the limit.
+    expect((await visit("203.0.113.7", "link-a")).status).toBe(429);
+    expect(counts.size).toBe(3);
+  });
 });

@@ -20,6 +20,11 @@ export interface GalleryAccess {
   timeZone: string;
 }
 
+const uploadsNeedGallery = () =>
+  new AppError("VALIDATION_ERROR", undefined, {
+    details: { guestUploadsEnabled: "Turn the gallery on first" },
+  });
+
 /** The stable guest gallery link (and printed QR target), from NEXT_PUBLIC_APP_URL. */
 function galleryUrlFor(token: string): string {
   return new URL(`/gallery/${token}`, getEnv().NEXT_PUBLIC_APP_URL).toString();
@@ -61,8 +66,25 @@ export const gallerySettingsService = {
     ctx: MemberContext,
     input: UpdateGallerySettingsInput,
   ): Promise<GallerySettingsDto> {
-    const wedding = await weddingRepository.updateGallery(ctx.weddingId, input);
-    if (!wedding) throw new AppError("NOT_FOUND");
+    // Switching the gallery off also switches guest uploads off, so switching it
+    // back on never silently re-opens uploads (QA G3).
+    // Uploads can only be on while the gallery is (or is being switched) on.
+    if (input.guestUploadsEnabled === true && input.isEnabled === false) {
+      throw uploadsNeedGallery();
+    }
+    const changes = { ...input };
+    if (changes.isEnabled === false) changes.guestUploadsEnabled = false;
+    const requireEnabled = changes.guestUploadsEnabled === true && changes.isEnabled !== true;
+
+    const wedding = await weddingRepository.updateGallery(ctx.weddingId, changes, {
+      requireEnabled,
+    });
+    if (!wedding) {
+      if (requireEnabled && (await weddingRepository.findActiveById(ctx.weddingId))) {
+        throw uploadsNeedGallery();
+      }
+      throw new AppError("NOT_FOUND");
+    }
     logger.info("Gallery settings changed", {
       requestId: ctx.requestId,
       weddingId: ctx.weddingId,

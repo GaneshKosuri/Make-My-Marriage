@@ -92,6 +92,39 @@ describe("<GalleryShareScreen />", () => {
     expect(screen.getByRole("button", { name: SHARE.print })).toBeDisabled();
   });
 
+  it("keeps the SVG link alive until the download has started (QA CL)", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout"] });
+    const revoked: string[] = [];
+    const clickedWhileRevoked: boolean[] = [];
+    const original = { create: URL.createObjectURL, revoke: URL.revokeObjectURL };
+    URL.createObjectURL = () => "blob:qr";
+    URL.revokeObjectURL = (url: string) => void revoked.push(url);
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => void clickedWhileRevoked.push(revoked.length > 0));
+    try {
+      renderScreen();
+      vi.useRealTimers();
+      const download = await screen.findByRole(
+        "button",
+        { name: new RegExp(SHARE.downloadSvg) },
+        { timeout: 5000 },
+      );
+      await waitFor(() => expect(download).toBeEnabled());
+      vi.useFakeTimers({ toFake: ["setTimeout"] });
+      fireEvent.click(download);
+      expect(clickedWhileRevoked).toEqual([false]);
+      expect(revoked).toEqual([]);
+      vi.runAllTimers();
+      expect(revoked).toEqual(["blob:qr"]);
+    } finally {
+      vi.useRealTimers();
+      click.mockRestore();
+      URL.createObjectURL = original.create;
+      URL.revokeObjectURL = original.revoke;
+    }
+  });
+
   it("turns guest uploads off on their own", async () => {
     renderScreen();
     await screen.findByRole("textbox", { name: SHARE.link.label }, { timeout: 5000 });

@@ -45,9 +45,11 @@ const wedding: WeddingDto = {
     theme: "CLASSIC",
     isPublished: false,
     welcomeMessage: null,
+    showGallery: false,
+    url: `https://makemymarriage.example/w/akshay-princi-1402${NEXT_YEAR}`,
   },
   gallery: { isEnabled: false, guestUploadsEnabled: false },
-  livestream: { youtubeUrl: null, isEnabled: false },
+  livestream: { youtubeUrl: null, isEnabled: false, embedUrl: null },
 };
 
 type Reply = { status: number; body: unknown };

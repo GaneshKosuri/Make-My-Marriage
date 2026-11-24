@@ -161,6 +161,36 @@ describe("GET/PATCH /api/gallery/settings and GET /api/gallery/qr", () => {
     });
   });
 
+  it("switching the gallery off also switches uploads off, so on again keeps them off (QA G3)", async () => {
+    const { cookie } = await setup({ enabled: true, uploads: true });
+
+    const off = await call(patchSettings, { method: "PATCH", body: { isEnabled: false }, cookie });
+    expect(off.body.data).toMatchObject({ isEnabled: false, guestUploadsEnabled: false });
+    const on = await call(patchSettings, { method: "PATCH", body: { isEnabled: true }, cookie });
+    expect(on.body.data).toMatchObject({ isEnabled: true, guestUploadsEnabled: false });
+  });
+
+  it("refuses guest uploads while the gallery is off (QA G3)", async () => {
+    const { cookie } = await setup({ enabled: false, uploads: false });
+
+    for (const body of [
+      { guestUploadsEnabled: true },
+      { isEnabled: false, guestUploadsEnabled: true },
+    ]) {
+      const result = await call(patchSettings, { method: "PATCH", body, cookie });
+      expect(result.status).toBe(400);
+      expect(result.body.error?.details).toEqual({
+        guestUploadsEnabled: "Turn the gallery on first",
+      });
+    }
+    const both = await call(patchSettings, {
+      method: "PATCH",
+      body: { isEnabled: true, guestUploadsEnabled: true },
+      cookie,
+    });
+    expect(both.body.data).toMatchObject({ isEnabled: true, guestUploadsEnabled: true });
+  });
+
   it("refuses an empty change, unknown fields and a client weddingId", async () => {
     const { cookie, wedding } = await setup();
     for (const body of [
@@ -187,8 +217,8 @@ describe("GET/PATCH /api/gallery/settings and GET /api/gallery/qr", () => {
 });
 
 describe("GET /api/public/galleries/:token", () => {
-  it("shows the couple, the upload switch and the active events as albums", async () => {
-    const { token, haldi } = await setup();
+  it("shows the couple, the upload switch and the events, archived ones marked (QA CL)", async () => {
+    const { token, haldi, roka } = await setup();
 
     const result = await call(publicGallery, { params: { token } });
 
@@ -201,7 +231,10 @@ describe("GET /api/public/galleries/:token", () => {
         timeZone: "Asia/Kolkata",
       },
       guestUploadsEnabled: true,
-      events: [{ id: haldi, name: "Haldi" }],
+      events: [
+        { id: roka, name: "Roka", archived: true },
+        { id: haldi, name: "Haldi", archived: false },
+      ],
     });
   });
 
@@ -323,9 +356,10 @@ describe("guest uploads and the guest photo list", () => {
     expect(elsewhere.status).toBe(404);
   });
 
-  it("allows 60 upload requests per visitor per 15 minutes", async () => {
+  it("allows 300 upload requests per network and gallery link per 15 minutes (QA G4)", async () => {
     const { token } = await setup();
-    for (let i = 0; i < 60; i += 1) {
+    const other = await setup();
+    for (let i = 0; i < 300; i += 1) {
       const result = await call(publicUploadUrl, {
         method: "POST",
         params: { token },
@@ -339,5 +373,12 @@ describe("guest uploads and the guest photo list", () => {
       body: photo(),
     });
     expect(limited.status).toBe(429);
-  }, 60_000);
+    // The same network can still upload to another wedding's gallery.
+    const elsewhere = await call(publicUploadUrl, {
+      method: "POST",
+      params: { token: other.token },
+      body: photo(),
+    });
+    expect(elsewhere.status).toBe(200);
+  }, 240_000);
 });

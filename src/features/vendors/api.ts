@@ -4,6 +4,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { useCallback } from "react";
 
 import { dashboardKeys } from "@/features/dashboard/query-keys";
+import { expensesKeys } from "@/features/expenses/query-keys";
 import { apiAction, apiFetch, apiFetchPage } from "@/lib/api-client";
 import type { VendorCategory } from "@/modules/vendors/vendor.constants";
 import type {
@@ -38,14 +39,18 @@ export function useVendors(query: VendorsQuery) {
 }
 
 /** GET /api/vendors/:id (API §62); archived vendors too. */
-export function useVendor(vendorId: string) {
+export function useVendor(vendorId: string, { enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: vendorsKeys.detail(vendorId),
     queryFn: ({ signal }) => apiFetch<VendorDto>(vendorPath(vendorId), { signal }),
+    enabled: enabled && vendorId !== "",
   });
 }
 
-/** Lists, pages and the dashboard's vendor count change together. */
+/**
+ * Lists, pages, the dashboard's vendor count and expenses (which show each
+ * vendor's name and whether it is archived) change together (QA V2).
+ */
 function useInvalidateVendors() {
   const queryClient = useQueryClient();
   return useCallback(
@@ -53,6 +58,7 @@ function useInvalidateVendors() {
       Promise.all([
         queryClient.invalidateQueries({ queryKey: vendorsKeys.all }),
         queryClient.invalidateQueries({ queryKey: dashboardKeys.all }),
+        queryClient.invalidateQueries({ queryKey: expensesKeys.all }),
       ]),
     [queryClient],
   );
@@ -81,9 +87,23 @@ export function useUpdateVendor() {
 /** DELETE /api/vendors/:id (API §64): archives; expenses keep the link. */
 export function useArchiveVendor() {
   const invalidate = useInvalidateVendors();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (vendorId: string) => apiAction(vendorPath(vendorId), { method: "DELETE" }),
-    onSuccess: invalidate,
+    onSuccess: (_result, vendorId) => {
+      // Discover results already on screen show it as archived, without asking
+      // Google again (QA V2).
+      queryClient.setQueriesData<DiscoveredVendorDto[]>(
+        { queryKey: [...vendorDiscoveryKeys.all, "search"] },
+        (places) =>
+          places?.map((place) =>
+            place.myVendor?.id === vendorId
+              ? { ...place, myVendor: { ...place.myVendor, archived: true } }
+              : place,
+          ),
+      );
+      return invalidate();
+    },
   });
 }
 

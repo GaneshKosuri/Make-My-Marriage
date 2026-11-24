@@ -5,9 +5,12 @@
 import { z } from "zod";
 
 import { dateOnlyInTimeZone, isValidDateOnly, isValidTimeZone } from "@/lib/dates";
+import { youTubeVideoId, youTubeWatchUrl } from "@/lib/youtube";
 
 import {
   COUPLE_NAME_MAX_LENGTH,
+  COVER_MAX_SIZE_BYTES,
+  COVER_MIME_TYPES,
   DEFAULT_TIME_ZONE,
   FORMATTED_ADDRESS_MAX_LENGTH,
   GOOGLE_PLACE_ID_MAX_LENGTH,
@@ -17,6 +20,9 @@ import {
   WEDDING_SLUG_MAX_LENGTH,
   WEDDING_SLUG_PATTERN,
   WEDDING_TITLE_MAX_LENGTH,
+  WEBSITE_THEMES,
+  WELCOME_MESSAGE_MAX_LENGTH,
+  YOUTUBE_URL_MAX_LENGTH,
 } from "./wedding.constants";
 
 export const weddingSlug = z
@@ -123,14 +129,6 @@ export const updateWeddingSchema = z
   })
   .strict();
 
-/*
- * TODO — define with `.strict()`:
- *   Phase 5: Wedding Experience
- *     - updateWebsiteSettingsSchema API_DESIGN §68 { theme, welcomeMessage, isPublished }
- *     - updateLivestreamSchema      API_DESIGN §71–72 { youtubeUrl (YouTube formats only) | null, isEnabled }
- *     - coverUploadRequestSchema    API_DESIGN §83 { mimeType, sizeBytes }
- */
-
 /**
  * PATCH /api/gallery/settings (API_DESIGN §74): either switch, or both. The
  * guest page needs both on to take uploads; the gallery link never changes.
@@ -145,3 +143,77 @@ export const updateGallerySettingsSchema = z
     (input) => input.isEnabled !== undefined || input.guestUploadsEnabled !== undefined,
     "Send at least one setting to change",
   );
+
+/**
+ * PATCH /api/wedding/website (API_DESIGN §68): theme, welcome message, publish
+ * flag and the gallery button. The address (slug) is never editable. A blank
+ * welcome message clears it.
+ */
+export const updateWebsiteSettingsSchema = z
+  .object({
+    theme: z.enum(WEBSITE_THEMES, "Choose a theme").optional(),
+    welcomeMessage: z
+      .string()
+      .trim()
+      .max(WELCOME_MESSAGE_MAX_LENGTH, "Keep the welcome message under 1,000 characters")
+      .transform((value) => value || null)
+      .nullable()
+      .optional(),
+    isPublished: z.boolean().optional(),
+    showGallery: z.boolean().optional(),
+    /**
+     * API §83: the key an upload URL was issued for saves the uploaded cover;
+     * null removes the cover.
+     */
+    coverImageObjectKey: z.string().trim().min(1).max(300).nullable().optional(),
+  })
+  .strict()
+  .refine(
+    (input) => Object.values(input).some((value) => value !== undefined),
+    "Send at least one setting to change",
+  );
+
+export const YOUTUBE_LINK_MESSAGE =
+  "This isn't a YouTube video or live stream link. Channel links don't work: open the stream and copy its link.";
+
+/**
+ * PATCH /api/wedding/livestream (API_DESIGN §71–72). A pasted link is stored
+ * in one canonical form (`https://www.youtube.com/watch?v=<id>`); `null` (or a
+ * blank link) removes it. Only video and live stream links are accepted.
+ */
+export const updateLivestreamSchema = z
+  .object({
+    youtubeUrl: z
+      .string()
+      .trim()
+      .max(YOUTUBE_URL_MAX_LENGTH, YOUTUBE_LINK_MESSAGE)
+      .transform((value, ctx) => {
+        if (!value) return null;
+        const id = youTubeVideoId(value);
+        if (!id) {
+          ctx.addIssue({ code: "custom", message: YOUTUBE_LINK_MESSAGE });
+          return z.NEVER;
+        }
+        return youTubeWatchUrl(id);
+      })
+      .nullable()
+      .optional(),
+    isEnabled: z.boolean().optional(),
+  })
+  .strict()
+  .refine(
+    (input) => input.youtubeUrl !== undefined || input.isEnabled !== undefined,
+    "Send the link or the switch",
+  );
+
+/** POST /api/wedding/cover/upload-url (API_DESIGN §83). */
+export const coverUploadRequestSchema = z
+  .object({
+    mimeType: z.enum(COVER_MIME_TYPES, "Use a JPEG, PNG or WebP photo"),
+    sizeBytes: z
+      .number("Choose a photo")
+      .int("Choose a photo")
+      .min(1, "This photo is empty")
+      .max(COVER_MAX_SIZE_BYTES, "Photos can be up to 10 MB"),
+  })
+  .strict();

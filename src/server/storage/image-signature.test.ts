@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { hasImageSignature } from "./photo-upload";
+import { hasImageSignature } from "./image-signature";
 
 const bytes = (...values: (number | string)[]) =>
   Uint8Array.from(

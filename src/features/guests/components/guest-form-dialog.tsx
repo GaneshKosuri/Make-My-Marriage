@@ -18,6 +18,7 @@ import { SaveProblem } from "@/components/ui/save-problem";
 import { useEvents } from "@/features/events/api";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
+import { useReloadedCopy } from "@/lib/use-reloaded-copy";
 import type { EventDto } from "@/modules/events/event.types";
 import { GUEST_MAX_GUESTS_MAX, GUEST_MAX_GUESTS_MIN } from "@/modules/guests/guest.constants";
 import type { GuestDto } from "@/modules/guests/guest.types";
@@ -54,9 +55,7 @@ export function GuestFormDialog(props: Readonly<GuestFormDialogProps>) {
   const { open, onClose, guest } = props;
   const events = useEvents();
   const reloadGuest = useReloadGuest();
-  // A copy fetched by "Reload guest" after a CONFLICT; `count` starts a fresh form.
-  const [reloaded, setReloaded] = useState<{ guest: GuestDto; count: number } | null>(null);
-  const current = reloaded && guest && reloaded.guest.id === guest.id ? reloaded.guest : guest;
+  const { current, formKey, setReloaded } = useReloadedCopy(guest, open);
 
   let body;
   if (events.isError) {
@@ -75,14 +74,14 @@ export function GuestFormDialog(props: Readonly<GuestFormDialogProps>) {
       // what is being typed. Saving then answers CONFLICT, and "Reload guest"
       // starts a fresh form from the latest copy.
       <GuestForm
-        key={current ? `${current.id}:${reloaded?.count ?? 0}` : "new"}
+        key={formKey}
         {...props}
         guest={current}
         events={events.data}
         onReload={async () => {
           if (!current) return;
           const fresh = await reloadGuest(current.id);
-          setReloaded((last) => ({ guest: fresh, count: (last?.count ?? 0) + 1 }));
+          setReloaded(fresh);
         }}
       />
     );

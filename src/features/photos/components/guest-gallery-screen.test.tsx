@@ -10,6 +10,7 @@ import { GuestGalleryScreen } from "./guest-gallery-screen";
 
 const TOKEN = "abcDEF123_-token";
 const HALDI = "6aeb2fe70d805e865a620a02";
+const ROKA = "6aeb2fe70d805e865a620a03";
 
 const gallery = (extra: Partial<PublicGalleryDto> = {}): PublicGalleryDto => ({
   wedding: {
@@ -19,7 +20,10 @@ const gallery = (extra: Partial<PublicGalleryDto> = {}): PublicGalleryDto => ({
     timeZone: "Asia/Kolkata",
   },
   guestUploadsEnabled: true,
-  events: [{ id: HALDI, name: "Haldi" }],
+  events: [
+    { id: ROKA, name: "Roka", archived: true },
+    { id: HALDI, name: "Haldi", archived: false },
+  ],
   ...extra,
 });
 
@@ -128,6 +132,19 @@ describe("<GuestGalleryScreen />", () => {
     expect(viewer.queryByRole("button", { name: GALLERY.delete })).toBeNull();
   });
 
+  it("names a photo of an archived event, without an album chip for it (QA CL)", async () => {
+    routes[`GET ${BASE}/photos`] = () => page([photo(1, { eventId: ROKA })]);
+    renderScreen();
+
+    const albums = within(screen.getByRole("navigation", { name: GUEST_GALLERY.albumsLabel }));
+    expect(albums.queryByRole("button", { name: "Roka" })).toBeNull();
+    fireEvent.click(
+      await screen.findByRole("button", { name: GALLERY.open("Wedding photo") }, { timeout: 5000 }),
+    );
+    const viewer = within(screen.getByRole("dialog", { name: GALLERY.viewer.label }));
+    expect(viewer.getByText("Roka")).toBeInTheDocument();
+  });
+
   it("shows an empty album and the uploads-off note", async () => {
     renderScreen(gallery({ guestUploadsEnabled: false }));
 
@@ -179,6 +196,47 @@ describe("<GuestGalleryScreen />", () => {
 
     fireEvent.click(thanks.getByRole("button", { name: GUEST_GALLERY.success.seeGallery }));
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("explains a refused photo, lets it be removed, then says thank you for the rest (QA G1)", async () => {
+    routes[`POST ${BASE}/upload-url`] = (_query, body) => ({
+      status: 200,
+      body: {
+        data: {
+          uploadUrl: "https://storage.example/put",
+          objectKey: `staging/weddings/w/gallery/${(body as { filename: string }).filename}`,
+          expiresAt: new Date(Date.now() + 600_000).toISOString(),
+          headers: { "Content-Type": "image/jpeg" },
+          preview: null,
+        },
+      },
+    });
+    routes[`POST ${BASE}/photos`] = (_query, body) =>
+      (body as { filename: string }).filename === "ok.jpg"
+        ? { status: 201, body: { data: photo(9) } }
+        : {
+            status: 403,
+            body: { error: { code: "FORBIDDEN", message: "The family has turned off uploads." } },
+          };
+    renderScreen();
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(GUEST_GALLERY.add) }));
+    const sheet = within(screen.getByRole("dialog", { name: GUEST_GALLERY.sheet.title }));
+    fireEvent.change(sheet.getByLabelText(UPLOAD.dropPhone, { selector: "input" }), {
+      target: {
+        files: [
+          new File([new Uint8Array(10)], "ok.jpg", { type: "image/jpeg" }),
+          new File([new Uint8Array(10)], "late.jpg", { type: "image/jpeg" }),
+        ],
+      },
+    });
+    fireEvent.click(sheet.getByRole("button", { name: GUEST_GALLERY.sheet.start(2) }));
+
+    expect(await sheet.findByText("The family has turned off uploads.")).toBeInTheDocument();
+    expect(sheet.queryByRole("button", { name: UPLOAD.retryLabel("late.jpg") })).toBeNull();
+    fireEvent.click(sheet.getByRole("button", { name: UPLOAD.remove("late.jpg") }));
+
+    const thanks = within(await screen.findByRole("dialog", { name: GUEST_GALLERY.success.title }));
+    expect(thanks.getByText(GUEST_GALLERY.success.description(1))).toBeInTheDocument();
   });
 
   it("shows the closed page when the family switches the gallery off", async () => {

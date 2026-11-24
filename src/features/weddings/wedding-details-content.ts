@@ -17,7 +17,7 @@ export const WEDDING_DETAILS = {
     label: "Wedding website address",
     note: "It stays the same when you change names or the date, so links you've shared keep working.",
   },
-  coverNote: "A cover photo can be added once the wedding website is ready.",
+  coverNote: "Add a cover photo on the Wedding Website page.",
   loadError: { title: "We couldn't load your wedding details.", retry: "Try again" },
   saveError: {
     title: "Your changes weren't saved.",

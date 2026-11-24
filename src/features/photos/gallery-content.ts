@@ -94,6 +94,7 @@ export const UPLOAD = {
   close: "Close",
   done: (n: number) => (n === 1 ? "1 photo uploaded." : `${n} photos uploaded.`),
   rateLimited: "That's a lot of photos for now. Please try again in a little while.",
+  notAvailable: "The gallery is closed, or this album isn't available any more.",
 } as const;
 
 /** Copy for /app/photos/qr: the gallery switches, link and printable QR card (PRD §9.23). */

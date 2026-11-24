@@ -2,11 +2,16 @@
 
 import { useRef, useState } from "react";
 
-import { ApiError } from "@/lib/api-client";
 import { MAX_PHOTOS_PER_BATCH } from "@/modules/photos/photo.constants";
 import type { PhotoDto } from "@/modules/photos/photo.types";
 
-import { fileProblem, uploadPhoto, type UploadEndpoints } from "./upload";
+import {
+  fileProblem,
+  uploadFailure,
+  uploadPhoto,
+  type UploadEndpoints,
+  type UploadStage,
+} from "./upload";
 
 export type UploadStatus = "waiting" | "uploading" | "done" | "failed";
 
@@ -16,8 +21,12 @@ export interface UploadItem {
   status: UploadStatus;
   /** 0–1 while uploading. */
   progress: number;
-  /** Why it can't be (or wasn't) uploaded. */
+  /** Why it can't be (or wasn't) uploaded; null for a plain "Couldn't upload". */
   problem: string | null;
+  /** "Try again" can help; false for problems a retry won't fix (QA G1). */
+  retryable: boolean;
+  /** How far the last attempt got, so a retry can resume (QA G2). */
+  stage: UploadStage | null;
   /** A local link to the chosen file for its thumbnail (nothing is uploaded to show it). */
   thumbUrl: string | null;
 }
@@ -57,6 +66,8 @@ export function useUploadQueue(
         status: problem ? "failed" : "waiting",
         progress: 0,
         problem,
+        retryable: false,
+        stage: null,
         thumbUrl: localUrl(file),
       };
     });
@@ -74,7 +85,10 @@ export function useUploadQueue(
     setRateLimited(false);
   };
 
-  /** Uploads every waiting photo in order, into one album. */
+  /**
+   * Uploads every waiting photo in order, into one album. A photo that already
+   * reached storage on an earlier attempt only repeats its confirm.
+   */
   const start = async (eventId: string | null, only?: readonly UploadItem[]) => {
     const queue = (only ?? items).filter((item) => item.status === "waiting");
     if (queue.length === 0) return;
@@ -82,16 +96,27 @@ export function useUploadQueue(
     setRateLimited(false);
     for (const item of queue) {
       update(item.id, { status: "uploading", progress: 0, problem: null });
+      let stage = item.stage;
       try {
-        const photo = await uploadPhoto(endpoints, item.file, eventId, (progress) =>
-          update(item.id, { progress }),
-        );
-        update(item.id, { status: "done", progress: 1 });
+        const photo = await uploadPhoto(endpoints, item.file, eventId, {
+          resume: stage,
+          onProgress: (progress) => update(item.id, { progress }),
+          onStage: (next) => {
+            stage = next;
+            update(item.id, { stage: next });
+          },
+        });
+        update(item.id, { status: "done", progress: 1, stage: null });
         onUploaded?.(photo);
       } catch (error) {
-        const limited = error instanceof ApiError && error.code === "RATE_LIMITED";
-        update(item.id, { status: "failed", problem: null });
-        if (limited) {
+        const failure = uploadFailure(error);
+        update(item.id, {
+          status: "failed",
+          problem: failure.problem,
+          retryable: failure.retryable,
+          stage: failure.restart ? null : stage,
+        });
+        if (failure.rateLimited) {
           // The rest would be refused too: leave them waiting for later.
           setRateLimited(true);
           break;
@@ -101,10 +126,10 @@ export function useUploadQueue(
     setRunning(false);
   };
 
-  /** Tries one failed photo again (only ones that failed while uploading). */
+  /** Tries one failed photo again; it resumes where it stopped when it can. */
   const retry = async (id: number, eventId: string | null) => {
     const item = items.find((candidate) => candidate.id === id);
-    if (!item || item.problem) return;
+    if (!item || item.status !== "failed" || !item.retryable) return;
     const again = { ...item, status: "waiting" as const };
     update(id, { status: "waiting" });
     await start(eventId, [again]);

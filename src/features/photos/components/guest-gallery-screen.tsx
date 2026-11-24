@@ -34,6 +34,8 @@ export function GuestGalleryScreen({
   const [adding, setAdding] = useState(false);
   const photos = usePublicPhotos(token, album);
   const couple = coupleDisplayName(gallery.wedding);
+  // Archived events get no chip and take no uploads, but their photos keep the name.
+  const activeEvents = gallery.events.filter((event) => !event.archived);
   const names = useMemo(
     () => new Map(gallery.events.map((event) => [event.id, event.name])),
     [gallery.events],
@@ -148,7 +150,7 @@ export function GuestGalleryScreen({
             active={album === undefined}
             onClick={() => setAlbum(undefined)}
           />
-          {gallery.events.map((event) => (
+          {activeEvents.map((event) => (
             <AlbumChip
               key={event.id}
               label={event.name}
@@ -169,7 +171,7 @@ export function GuestGalleryScreen({
       {adding && (
         <GuestUploadSheet
           token={token}
-          events={gallery.events}
+          events={activeEvents}
           onClose={() => setAdding(false)}
           onSeeGallery={() => {
             setAdding(false);

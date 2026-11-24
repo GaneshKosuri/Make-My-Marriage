@@ -49,12 +49,10 @@ describe("<HomePage />", () => {
     }
   });
 
-  it("answers 'What features are coming next?' from the availability list", () => {
+  it("drops 'What features are coming next?' once every feature is live", () => {
     render(<HomePage />);
-    const upcoming = upcomingFeaturesSentence();
-    expect(upcoming).not.toBeNull();
-    expect(screen.getByText("What features are coming next?")).toBeInTheDocument();
-    expect(screen.getByText(upcoming!)).toBeInTheDocument();
+    expect(upcomingFeaturesSentence()).toBeNull();
+    expect(screen.queryByText("What features are coming next?")).toBeNull();
   });
 
   it("opens only the first FAQ answer", () => {

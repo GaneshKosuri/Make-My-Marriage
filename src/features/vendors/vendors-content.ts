@@ -97,6 +97,11 @@ export const VENDORS = {
         "Someone else saved changes or archived it. Reload to see the latest, then make your changes again.",
       action: "Reload vendor",
     },
+    archived: {
+      title: "This vendor has been archived",
+      description:
+        "Someone in the family archived it, so it can't be changed. Close this form to see the latest.",
+    },
     gone: {
       title: "This vendor no longer exists",
       description: "It may belong to another wedding. Close this form to see the latest.",
@@ -173,6 +178,9 @@ export const DISCOVER = {
   addLabel: (name: string) => `Add ${name} to My Vendors`,
   inMyVendors: "In My Vendors",
   archivedInMyVendors: "Archived in My Vendors",
+  restore: "Restore",
+  restoreLabel: (name: string) => `Restore ${name} to My Vendors`,
+  restored: (name: string) => `${name} restored to My Vendors.`,
   view: "View",
   viewLabel: (name: string) => `View ${name} in My Vendors`,
   added: (name: string) => `${name} added to My Vendors.`,
@@ -193,6 +201,8 @@ export const DISCOVER = {
   },
   prefill: {
     note: "Details from Google. Check them before saving; you can change anything.",
+    restoreNote:
+      "This place is archived in My Vendors. Saving restores it with these details; its expenses stay linked.",
     loadError: "We couldn't get this place's details from Google.",
     retry: "Try again",
     conflict: {

@@ -8,15 +8,17 @@
  * gallery and the guest gallery; only the two endpoints differ.
  */
 import { ApiError, apiFetch } from "@/lib/api-client";
+import { putToStorage } from "@/lib/direct-upload";
 import {
   ALLOWED_PHOTO_MIME_TYPES,
   MAX_PHOTO_PREVIEW_SIZE_BYTES,
   MAX_PHOTO_SIZE_BYTES,
+  PHOTO_CONFIRMATION_GRACE_HOURS,
   PHOTO_PREVIEW_MAX_EDGE,
   type PhotoMimeType,
   type PhotoPreviewMimeType,
 } from "@/modules/photos/photo.constants";
-import type { PhotoDto, PhotoUploadUrlDto, SignedUploadDto } from "@/modules/photos/photo.types";
+import type { PhotoDto, PhotoUploadUrlDto } from "@/modules/photos/photo.types";
 
 import { UPLOAD } from "./gallery-content";
 
@@ -73,64 +75,120 @@ export async function makePreview(file: File): Promise<Blob | null> {
   }
 }
 
-/** PUT straight to storage, reporting progress (fetch can't report upload progress). */
-export function putToStorage(
-  target: SignedUploadDto,
-  body: Blob,
-  onProgress?: (fraction: number) => void,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const request = new XMLHttpRequest();
-    request.open("PUT", target.uploadUrl);
-    for (const [name, value] of Object.entries(target.headers)) {
-      request.setRequestHeader(name, value);
-    }
-    request.upload.onprogress = (event) => {
-      if (event.lengthComputable) onProgress?.(event.loaded / event.total);
-    };
-    request.onload = () =>
-      request.status >= 200 && request.status < 300
-        ? resolve()
-        : reject(new ApiError(request.status, "UPLOAD_ERROR", "The upload didn't finish."));
-    request.onerror = () => reject(new ApiError(0, "UPLOAD_ERROR", "The upload didn't finish."));
-    request.send(body);
-  });
+/** How far one photo got: kept on the queue item so a retry can resume (QA G2). */
+export interface UploadStage {
+  /** The staging key the upload URL was issued for (the confirm body uses it). */
+  objectKey: string;
+  expiresAt: string;
+  /** The album it was reserved for: a confirm must repeat it exactly. */
+  eventId: string | null;
+  /** The file reached storage; only the confirm is left. */
+  uploaded: boolean;
+}
+
+const GRACE_MS = PHOTO_CONFIRMATION_GRACE_HOURS * 60 * 60 * 1000;
+
+/** The server still accepts a confirm for this upload (24 h after its URL expired). */
+export function canResume(stage: UploadStage | null, now = Date.now()): stage is UploadStage {
+  return Boolean(stage?.uploaded && now < Date.parse(stage.expiresAt) + GRACE_MS);
 }
 
 /**
- * One photo, start to finish. The preview is best effort: if it can't be made
- * or sent, the photo is still uploaded and confirmed.
+ * One photo, start to finish: upload URL, PUT (and the preview's), confirm.
+ * With a `resume` stage whose file already reached storage, only the confirm is
+ * repeated with the same key: the server's confirm is idempotent, so a lost
+ * response never becomes a second photo (QA G2). The preview is best effort.
  */
 export async function uploadPhoto(
   endpoints: UploadEndpoints,
   file: File,
   eventId: string | null,
-  onProgress?: (fraction: number) => void,
+  {
+    onProgress,
+    onStage,
+    resume,
+  }: {
+    onProgress?: (fraction: number) => void;
+    onStage?: (stage: UploadStage) => void;
+    resume?: UploadStage | null;
+  } = {},
 ): Promise<PhotoDto> {
-  const preview = await makePreview(file);
-  const details = {
+  const detailsFor = (album: string | null) => ({
     filename: file.name,
     mimeType: file.type as PhotoMimeType,
     sizeBytes: file.size,
-    eventId,
-  };
-  const issued = await apiFetch<PhotoUploadUrlDto>(endpoints.uploadUrl, {
-    method: "POST",
-    body: {
-      ...details,
-      ...(preview && {
-        preview: { mimeType: preview.type as PhotoPreviewMimeType, sizeBytes: preview.size },
-      }),
-    },
+    eventId: album,
   });
-  await putToStorage(issued, file, (fraction) => onProgress?.(fraction * 0.95));
-  if (issued.preview && preview) {
-    await putToStorage(issued.preview, preview).catch(() => undefined);
+
+  let stage: UploadStage;
+  if (canResume(resume ?? null)) {
+    stage = resume!;
+  } else {
+    const preview = await makePreview(file);
+    const issued = await apiFetch<PhotoUploadUrlDto>(endpoints.uploadUrl, {
+      method: "POST",
+      body: {
+        ...detailsFor(eventId),
+        ...(preview && {
+          preview: { mimeType: preview.type as PhotoPreviewMimeType, sizeBytes: preview.size },
+        }),
+      },
+    });
+    stage = { objectKey: issued.objectKey, expiresAt: issued.expiresAt, eventId, uploaded: false };
+    onStage?.(stage);
+    await putToStorage(issued, file, (fraction) => onProgress?.(fraction * 0.95));
+    if (issued.preview && preview) {
+      await putToStorage(issued.preview, preview).catch(() => undefined);
+    }
+    stage = { ...stage, uploaded: true };
+    onStage?.(stage);
   }
+
   const photo = await apiFetch<PhotoDto>(endpoints.confirm, {
     method: "POST",
-    body: { ...details, objectKey: issued.objectKey },
+    body: { ...detailsFor(stage.eventId), objectKey: stage.objectKey },
   });
   onProgress?.(1);
   return photo;
+}
+
+/** What a failed upload means for the person (QA G1). */
+export interface UploadFailure {
+  /** The reason to show; null for a plain "Couldn't upload". */
+  problem: string | null;
+  /** "Try again" can help (network, server trouble, a check that may pass on a fresh upload). */
+  retryable: boolean;
+  /** Too many uploads for now: the rest of the batch should wait. */
+  rateLimited: boolean;
+  /** A retry must start from scratch (the upload itself has to be redone). */
+  restart: boolean;
+}
+
+export function uploadFailure(error: unknown): UploadFailure {
+  if (!(error instanceof ApiError) || error.status === 0) {
+    return { problem: null, retryable: true, rateLimited: false, restart: false };
+  }
+  switch (error.code) {
+    case "RATE_LIMITED":
+      return { problem: UPLOAD.rateLimited, retryable: true, rateLimited: true, restart: false };
+    case "FORBIDDEN":
+      return { problem: error.message, retryable: false, rateLimited: false, restart: false };
+    case "NOT_FOUND":
+      return { problem: UPLOAD.notAvailable, retryable: false, rateLimited: false, restart: false };
+    case "VALIDATION_ERROR": {
+      const detail = error.details ? Object.values(error.details)[0] : undefined;
+      return {
+        problem: detail ?? error.message,
+        retryable: false,
+        rateLimited: false,
+        restart: false,
+      };
+    }
+    case "UPLOAD_ERROR":
+      // The server's check failed (missing upload, expired, wrong file): say why,
+      // and let "Try again" redo the upload from the start.
+      return { problem: error.message, retryable: true, rateLimited: false, restart: true };
+    default:
+      return { problem: null, retryable: true, rateLimited: false, restart: false };
+  }
 }

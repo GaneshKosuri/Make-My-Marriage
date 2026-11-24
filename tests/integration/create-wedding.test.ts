@@ -5,6 +5,7 @@ import { GET as me } from "@/app/api/auth/me/route";
 import { POST as createWedding } from "@/app/api/wedding/route";
 import { MembershipModel } from "@/modules/members/membership.model";
 import { WeddingModel } from "@/modules/weddings/wedding.model";
+import { generateUniqueWeddingSlug } from "@/modules/weddings/wedding.slug";
 
 import { createWedding as weddingFixture, signedInUser } from "../setup/factories";
 import { TEST_APP_URL } from "../setup/test-env";
@@ -59,7 +60,7 @@ describe("POST /api/wedding", () => {
       groomName: "Romeo",
       weddingDate: `${NEXT_YEAR}-02-14`,
       website: {
-        slug: expect.stringMatching(new RegExp(`^romeo-juliet-1402${NEXT_YEAR}(-\\d+)?$`)),
+        slug: expect.stringMatching(new RegExp(`^romeo-juliet-1402${NEXT_YEAR}-[a-z0-9]{4}$`)),
       },
     });
 
@@ -110,7 +111,7 @@ describe("POST /api/wedding", () => {
     });
   });
 
-  it("gives the next couple with the same names and date the next free address", async () => {
+  it("gives the same names and date a different, hard-to-guess address (QA D2)", async () => {
     const first = await call(createWedding, {
       cookie: (await signedInUser()).cookie,
       body: input({ weddingDate: `${NEXT_YEAR}-03-01` }),
@@ -119,8 +120,29 @@ describe("POST /api/wedding", () => {
       cookie: (await signedInUser()).cookie,
       body: input({ weddingDate: `${NEXT_YEAR}-03-01` }),
     });
-    expect(slugOf(first)).toBe(`romeo-juliet-0103${NEXT_YEAR}`);
-    expect(slugOf(second)).toBe(`romeo-juliet-0103${NEXT_YEAR}-2`);
+    const pattern = new RegExp(`^romeo-juliet-0103${NEXT_YEAR}-[a-z0-9]{4}$`);
+    expect(slugOf(first)).toMatch(pattern);
+    expect(slugOf(second)).toMatch(pattern);
+    expect(slugOf(second)).not.toBe(slugOf(first));
+  });
+
+  it("draws another suffix when the address is taken", async () => {
+    const draws = ["aaaa", "aaaa", "bbbb"];
+    const taken = await call(createWedding, {
+      cookie: (await signedInUser()).cookie,
+      body: input({ weddingDate: `${NEXT_YEAR}-04-01` }),
+    });
+    await WeddingModel.updateOne(
+      { _id: (taken.body.data as { id: string }).id },
+      { $set: { "website.slug": `romeo-juliet-0104${NEXT_YEAR}-aaaa` } },
+    );
+
+    const slug = await generateUniqueWeddingSlug(
+      { brideName: "Juliet", groomName: "Romeo", weddingDate: `${NEXT_YEAR}-04-01` },
+      () => draws.shift()!,
+    );
+
+    expect(slug).toBe(`romeo-juliet-0104${NEXT_YEAR}-bbbb`);
   });
 
   it("allows only one wedding per user (PRD Rule 1)", async () => {

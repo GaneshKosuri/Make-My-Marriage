@@ -8,6 +8,7 @@ import { createR2StorageAdapter } from "./adapters/r2.adapter";
 import type { StorageService } from "./types";
 
 export { createFakeStorageAdapter, type FakeStorageAdapter } from "./adapters/fake.adapter";
+export { hasImageSignature } from "./image-signature";
 export * from "./object-keys";
 export type { PresignedRequest, StorageService, StoredObjectInfo } from "./types";
 

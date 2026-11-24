@@ -2,9 +2,14 @@ import "server-only";
 
 import type { MemberContext } from "@/server/auth";
 import { AppError, notImplemented } from "@/server/errors";
+import { mapsSearchUrl } from "@/lib/schedule";
 import { logger } from "@/server/logging/logger";
 
-import type { CoverUploadRequestInput, CoverUploadUrlDto } from "@/modules/weddings/wedding.types";
+import type {
+  CoverUploadRequestInput,
+  CoverUploadUrlDto,
+  PublicWebsiteEventDto,
+} from "@/modules/weddings/wedding.types";
 
 import { toEventDto, toEventSummaryDto, toPublicEventDto } from "./event.mapper";
 import type { EventRecord } from "./event.model";
@@ -190,10 +195,36 @@ export const eventsService = {
       .map(toPublicEventDto);
   },
 
-  /** Guest gallery albums (API_DESIGN §80): active events, id and name, in start order. */
-  async listAlbumNames(weddingId: string): Promise<{ id: string; name: string }[]> {
+  /**
+   * The wedding website's events (PRD §9.18): every active event in start
+   * order, with a Maps link built from the venue and address.
+   */
+  async listWebsiteEvents(weddingId: string): Promise<PublicWebsiteEventDto[]> {
     const events = await eventRepository.list(weddingId, { includeArchived: false });
-    return events.map((event) => ({ id: event._id.toString(), name: event.name }));
+    return events.map((event) => ({
+      name: event.name,
+      startsAt: event.startsAt.toISOString(),
+      endsAt: event.endsAt?.toISOString() ?? null,
+      venueName: event.venueName ?? null,
+      address: event.address ?? null,
+      dressCode: event.dressCode ?? null,
+      mapUrl: mapsSearchUrl({ venueName: event.venueName ?? null, address: event.address ?? null }),
+    }));
+  },
+
+  /**
+   * Guest gallery albums (API_DESIGN §80): every event in start order, archived
+   * ones marked, so photos of an archived event keep its name (QA CL).
+   */
+  async listAlbumNames(
+    weddingId: string,
+  ): Promise<{ id: string; name: string; archived: boolean }[]> {
+    const events = await eventRepository.list(weddingId, { includeArchived: true });
+    return events.map((event) => ({
+      id: event._id.toString(),
+      name: event.name,
+      archived: event.archivedAt !== null,
+    }));
   },
 
   /** Dashboard: events that are not archived (DATABASE_DESIGN §88). */
