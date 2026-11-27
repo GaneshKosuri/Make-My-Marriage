@@ -1,7 +1,8 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useAppMutation } from "@/lib/use-app-mutation";
 import { apiAction, apiFetch } from "@/lib/api-client";
 import type { MemberRole } from "@/modules/members/member.constants";
 import type {
@@ -49,7 +50,7 @@ function useInvalidateMembers() {
 /** POST /api/members/invitations (API §22): emails the join link. */
 export function useInviteMember() {
   const invalidate = useInvalidateMembers();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (input: InviteMemberInput) =>
       apiFetch<MemberInvitationDto>("/api/members/invitations", { method: "POST", body: input }),
     onSuccess: invalidate,
@@ -59,7 +60,7 @@ export function useInviteMember() {
 /** DELETE /api/members/invitations/:id (API §24). */
 export function useRevokeInvitation() {
   const invalidate = useInvalidateMembers();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (invitationId: string) =>
       apiAction(`/api/members/invitations/${encodeURIComponent(invitationId)}`, {
         method: "DELETE",
@@ -74,7 +75,7 @@ export function useRevokeInvitation() {
  */
 export function useResendInvitation() {
   const invalidate = useInvalidateMembers();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (invitation: MemberInvitationDto) =>
       apiFetch<MemberInvitationDto>(
         `/api/members/invitations/${encodeURIComponent(invitation.id)}/resend`,
@@ -87,7 +88,7 @@ export function useResendInvitation() {
 /** PATCH /api/members/:id (API §27). */
 export function useChangeMemberRole() {
   const invalidate = useInvalidateMembers();
-  return useMutation({
+  return useAppMutation({
     mutationFn: ({ membershipId, role }: { membershipId: string; role: MemberRole }) =>
       apiFetch<MemberDto>(`/api/members/${encodeURIComponent(membershipId)}`, {
         method: "PATCH",
@@ -100,7 +101,7 @@ export function useChangeMemberRole() {
 /** DELETE /api/members/:id (API §28). */
 export function useRemoveMember() {
   const invalidate = useInvalidateMembers();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (membershipId: string) =>
       apiAction(`/api/members/${encodeURIComponent(membershipId)}`, { method: "DELETE" }),
     onSuccess: invalidate,
@@ -113,7 +114,7 @@ export function useRemoveMember() {
  * and useCreateWedding drops what is cached about the old wedding.
  */
 export function useLeaveWedding() {
-  return useMutation({
+  return useAppMutation({
     mutationFn: (membershipId: string) =>
       apiAction(`/api/members/${encodeURIComponent(membershipId)}`, { method: "DELETE" }),
   });
@@ -122,7 +123,9 @@ export function useLeaveWedding() {
 /** The signed-in invitee joins the wedding (API §26). */
 export function useAcceptMemberInvitation(token: string) {
   const queryClient = useQueryClient();
-  return useMutation({
+  return useAppMutation({
+    // The form explains failures itself.
+    errorToast: false,
     mutationFn: () =>
       apiFetch<AcceptMemberInvitationResultDto>(
         `/api/member-invitations/${encodeURIComponent(token)}/accept`,

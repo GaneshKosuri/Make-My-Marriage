@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Compass, Plus, RefreshCw, Search, Store, X } from "lucide-react";
+import { Compass, Plus, RefreshCw, Search, Store, X } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useState } from "react";
@@ -9,6 +9,7 @@ import { focusRing, primaryButton, secondaryButton } from "@/components/ui/butto
 import { ListSkeleton } from "@/components/ui/list-skeleton";
 import { SelectField } from "@/components/ui/select-field";
 import { cn } from "@/lib/cn";
+import { notify } from "@/lib/notify";
 import { VENDOR_CATEGORIES } from "@/modules/vendors/vendor.constants";
 import type { VendorDto } from "@/modules/vendors/vendor.types";
 
@@ -17,6 +18,7 @@ import { readVendorsUrl, vendorsUrlFor, type VendorFilters } from "../url-state"
 import { categoryLabel, VENDORS, VENDORS_ROUTES } from "../vendors-content";
 import { VendorFormDialog } from "./vendor-form-dialog";
 import { VendorRow } from "./vendor-row";
+import { PageSkeleton, SkeletonBar } from "@/components/ui/page-skeleton";
 
 const PAGE_SIZE = 20;
 /** Wait this long after the last keystroke before searching. */
@@ -48,7 +50,6 @@ export function VendorsScreen({ timeZone }: Readonly<{ timeZone: string }>) {
   const [filters, setFilters] = useState<VendorFilters>(url.filters);
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<Editing>(url.startAdding ? { kind: "new" } : null);
-  const [notice, setNotice] = useState<string | null>(null);
   const vendors = useVendors(toQuery(filters, page));
 
   // Links into the screen while it stays mounted (the dashboard, the "+" sheet's
@@ -62,7 +63,6 @@ export function VendorsScreen({ timeZone }: Readonly<{ timeZone: string }>) {
     ) {
       setFilters(url.filters);
       setPage(1);
-      setNotice(null);
     }
     if (url.startAdding) setEditing({ kind: "new" });
   }
@@ -82,7 +82,6 @@ export function VendorsScreen({ timeZone }: Readonly<{ timeZone: string }>) {
   const show = (next: VendorFilters) => {
     setFilters(next);
     setPage(1);
-    setNotice(null);
     window.history.replaceState(null, "", vendorsUrlFor(VENDORS_ROUTES.list, next));
   };
 
@@ -93,7 +92,6 @@ export function VendorsScreen({ timeZone }: Readonly<{ timeZone: string }>) {
       : undefined;
   const filtered = Boolean(filters.search || filters.category);
   const add = () => {
-    setNotice(null);
     setEditing({ kind: "new" });
   };
 
@@ -106,7 +104,6 @@ export function VendorsScreen({ timeZone }: Readonly<{ timeZone: string }>) {
         filtered={filtered}
         onPage={setPage}
         onEdit={(vendor) => {
-          setNotice(null);
           setEditing({ kind: "edit", vendor });
         }}
         onAdd={add}
@@ -154,16 +151,6 @@ export function VendorsScreen({ timeZone }: Readonly<{ timeZone: string }>) {
 
       <FilterBar filters={filters} onChange={show} />
 
-      {notice && (
-        <p
-          role="status"
-          className="flex items-center gap-2 rounded-2xl border border-sand bg-white p-4 text-body-md text-graphite"
-        >
-          <CheckCircle2 aria-hidden className="size-5 shrink-0 text-gold-deep" />
-          {notice}
-        </p>
-      )}
-
       {body}
 
       <VendorFormDialog
@@ -172,7 +159,7 @@ export function VendorsScreen({ timeZone }: Readonly<{ timeZone: string }>) {
         vendor={editingVendor}
         timeZone={timeZone}
         onSaved={(vendor) => {
-          setNotice(
+          notify.success(
             editing?.kind === "edit"
               ? VENDORS.form.updated(vendor.name)
               : VENDORS.form.added(vendor.name),
@@ -400,5 +387,20 @@ function VendorList({
         )}
       </div>
     </section>
+  );
+}
+
+/** The whole page while it loads: the page's Suspense fallback (no blank gap). */
+export function VendorsSkeleton() {
+  return (
+    <PageSkeleton
+      eyebrow={VENDORS.eyebrow}
+      title={VENDORS.title}
+      description={VENDORS.description}
+      action
+    >
+      <SkeletonBar className="h-20 rounded-3xl" />
+      <ListSkeleton rows={4} />
+    </PageSkeleton>
   );
 }

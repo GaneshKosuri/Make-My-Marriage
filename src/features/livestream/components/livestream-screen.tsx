@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, RefreshCw, Trash2, Video } from "lucide-react";
+import { RefreshCw, Trash2, Video } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import {
@@ -16,6 +16,7 @@ import { YouTubePlayer } from "@/components/ui/youtube-player";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { youTubeVideoId } from "@/lib/youtube";
+import { notify } from "@/lib/notify";
 import type { LivestreamSettingsDto } from "@/modules/weddings/wedding.types";
 
 import { useLivestream, useUpdateLivestream } from "../api";
@@ -75,7 +76,6 @@ function LivestreamSettings({ settings }: Readonly<{ settings: LivestreamSetting
   const update = useUpdateLivestream();
   const [link, setLink] = useState(settings.youtubeUrl ?? "");
   const [linkError, setLinkError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -88,14 +88,13 @@ function LivestreamSettings({ settings }: Readonly<{ settings: LivestreamSetting
   };
 
   const change = (body: Parameters<typeof update.mutate>[0], done: string) => {
-    setNotice(null);
     setFailed(false);
     update.mutate(body, {
       onSuccess: (saved) => {
         // Only a link save or a removal changes the field: the "Show on the
         // website" switch must not wipe a link being pasted (QA W3).
         if (body.youtubeUrl !== undefined) setLink(saved.youtubeUrl ?? "");
-        setNotice(done);
+        notify.success(done);
       },
       onError,
     });
@@ -203,15 +202,6 @@ function LivestreamSettings({ settings }: Readonly<{ settings: LivestreamSetting
           )}
         </section>
 
-        {notice && (
-          <p
-            role="status"
-            className="flex items-center gap-2 rounded-2xl border border-sand bg-white p-4 text-body-md text-graphite"
-          >
-            <CheckCircle2 aria-hidden className="size-5 shrink-0 text-gold-deep" />
-            {notice}
-          </p>
-        )}
         {failed && (
           <p role="alert" className="text-body-md text-destructive">
             {LIVESTREAM.saveError}

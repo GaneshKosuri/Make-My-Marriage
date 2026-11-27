@@ -8,10 +8,12 @@ import { useEffect, useState } from "react";
 import { focusRing, primaryButton, secondaryButton, textLink } from "@/components/ui/button-styles";
 import { cn } from "@/lib/cn";
 import { buildWhatsAppShareUrl } from "@/lib/whatsapp";
+import { notify } from "@/lib/notify";
 import type { GallerySettingsDto } from "@/modules/weddings/wedding.types";
 
 import { useGallerySettings, useUpdateGallerySettings } from "../api";
 import { GALLERY_ROUTES, SHARE } from "../gallery-content";
+import { PageSkeleton, SkeletonCard } from "@/components/ui/page-skeleton";
 
 /** Graphite modules on white: what scanners read best (brand ink, not pure black). */
 const QR_OPTIONS = {
@@ -154,14 +156,26 @@ function ShareBody({
             hint={SHARE.access.gallery.hint}
             checked={on}
             disabled={update.isPending}
-            onChange={(isEnabled) => update.mutate({ isEnabled })}
+            onChange={(isEnabled) =>
+              update.mutate(
+                { isEnabled },
+                { onSuccess: () => notify.success(SHARE.access.galleryChanged(isEnabled)) },
+              )
+            }
           />
           <SettingSwitch
             label={SHARE.access.uploads.label}
             hint={on ? SHARE.access.uploads.hint : SHARE.access.uploadsNeedGallery}
             checked={on && settings.guestUploadsEnabled}
             disabled={update.isPending || !on}
-            onChange={(guestUploadsEnabled) => update.mutate({ guestUploadsEnabled })}
+            onChange={(guestUploadsEnabled) =>
+              update.mutate(
+                { guestUploadsEnabled },
+                {
+                  onSuccess: () => notify.success(SHARE.access.uploadsChanged(guestUploadsEnabled)),
+                },
+              )
+            }
           />
         </div>
         {update.isError && (
@@ -328,5 +342,28 @@ function SettingSwitch({
         />
       </span>
     </button>
+  );
+}
+
+/** The whole page while it loads: the page's Suspense fallback (no blank gap). */
+export function GalleryShareSkeleton() {
+  return (
+    <PageSkeleton
+      wide
+      above={
+        <Link href={GALLERY_ROUTES.gallery} className={cn(textLink, "self-start")}>
+          <ArrowLeft aria-hidden className="size-4" />
+          {SHARE.back}
+        </Link>
+      }
+      eyebrow={SHARE.eyebrow}
+      title={SHARE.title}
+      description={SHARE.description}
+    >
+      <div className="grid gap-6 lg:grid-cols-2">
+        <SkeletonCard className="h-72" />
+        <SkeletonCard className="h-96" />
+      </div>
+    </PageSkeleton>
   );
 }

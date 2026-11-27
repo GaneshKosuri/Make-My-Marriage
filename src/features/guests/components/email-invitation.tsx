@@ -1,12 +1,12 @@
 "use client";
 
-import { BellRing, CheckCircle2, Mail, Pencil } from "lucide-react";
-import { useState } from "react";
+import { BellRing, Mail, Pencil } from "lucide-react";
 
 import { primaryButton, secondaryButton } from "@/components/ui/button-styles";
 import { DashboardCard } from "@/components/ui/dashboard-card";
 import { ApiError } from "@/lib/api-client";
 import { formatDateTime } from "@/lib/schedule";
+import { notify } from "@/lib/notify";
 import type { GuestDto } from "@/modules/guests/guest.types";
 
 import { useEmailGuest } from "../api";
@@ -25,11 +25,9 @@ export function EmailInvitation({
   onAddEmail,
 }: Readonly<{ guest: GuestDto; timeZone: string; onAddEmail: () => void }>) {
   const email = useEmailGuest();
-  const [done, setDone] = useState<string | null>(null);
   const when = (iso: string) => formatDateTime(iso, timeZone);
   const send = (kind: "invitation" | "reminder") => {
-    setDone(null);
-    email.mutate({ guestId: guest.id, kind }, { onSuccess: () => setDone(COPY.done[kind]) });
+    email.mutate({ guestId: guest.id, kind }, { onSuccess: () => notify.success(COPY.done[kind]) });
   };
   // The server's message is written for people ("Today's email sending limit is reached…").
   const problem =
@@ -92,12 +90,6 @@ export function EmailInvitation({
               </button>
             )}
           </div>
-          {done && (
-            <p role="status" className="flex items-center gap-2 text-body-md text-graphite">
-              <CheckCircle2 aria-hidden className="size-5 shrink-0 text-gold-deep" />
-              {done}
-            </p>
-          )}
           {problem && (
             <p role="alert" className="text-body-md text-destructive">
               {problem}

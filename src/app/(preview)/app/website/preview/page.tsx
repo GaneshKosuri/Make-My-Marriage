@@ -10,6 +10,7 @@ import { REQUEST_PATH_HEADER, signInPathFor } from "@/lib/safe-next";
 import { websiteService } from "@/modules/weddings";
 import { getCurrentContext } from "@/server/auth";
 import { isWebsiteTheme, ThemedWebsite } from "@/themes";
+import { PublicWebsiteSkeleton } from "@/components/ui/page-skeleton";
 
 export const metadata: Metadata = {
   title: "Website preview",
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
  */
 export default function WebsitePreviewPage({ searchParams }: PageProps<"/app/website/preview">) {
   return (
-    <Suspense fallback={<div className="min-h-dvh bg-ivory" aria-busy="true" />}>
+    <Suspense fallback={<PublicWebsiteSkeleton />}>
       <Preview searchParams={searchParams} />
     </Suspense>
   );

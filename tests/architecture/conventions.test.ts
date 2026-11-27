@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import { basename, join, relative, sep } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
@@ -110,4 +110,23 @@ describe("route handlers stay thin", () => {
       expect(source).not.toMatch(/export (async )?function (GET|POST|PUT|PATCH|DELETE)\b/);
     },
   );
+});
+
+describe("pages show a skeleton while they load, never a blank area", () => {
+  const pageFiles = walk(join(SRC, "app")).filter((f) => f.endsWith("page.tsx"));
+
+  it.each(pageFiles.map((f) => [rel(f), f]))("%s has no empty Suspense fallback", (_name, file) => {
+    const source = read(file);
+    expect(source).not.toMatch(/fallback=\{null\}/);
+    // An empty placeholder div is a blank area too.
+    expect(source).not.toMatch(/fallback=\{<div[^>]*\/>\}/);
+  });
+});
+
+describe("feature mutations show an error toast when they fail", () => {
+  const apiFiles = walk(join(SRC, "features")).filter((f) => basename(f) === "api.ts");
+
+  it.each(apiFiles.map((f) => [rel(f), f]))("%s uses useAppMutation", (_name, file) => {
+    expect(read(file)).not.toMatch(/\buseMutation\(/);
+  });
 });

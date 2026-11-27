@@ -13,6 +13,7 @@ import type {
 
 import { DISCOVER } from "../vendors-content";
 import { DiscoverScreen } from "./discover-screen";
+import { AppToaster } from "@/components/ui/toaster";
 
 let search = "";
 const push = vi.fn();
@@ -92,7 +93,11 @@ function renderScreen(defaultNear: string | null = "Dehradun, Uttarakhand") {
   const element: ReactElement = (
     <DiscoverScreen defaultNear={defaultNear} timeZone="Asia/Kolkata" />
   );
-  return render(<QueryClientProvider client={client}>{element}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={client}>
+      {element} <AppToaster />
+    </QueryClientProvider>,
+  );
 }
 
 const searchForm = () => within(screen.getByRole("search", { name: DISCOVER.title }));

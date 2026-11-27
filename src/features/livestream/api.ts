@@ -1,7 +1,8 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useAppMutation } from "@/lib/use-app-mutation";
 import { apiFetch } from "@/lib/api-client";
 import type { LivestreamSettingsDto } from "@/modules/weddings/wedding.types";
 
@@ -26,7 +27,7 @@ export function useLivestream() {
 /** PATCH /api/wedding/livestream. The answer replaces the cached settings. */
 export function useUpdateLivestream() {
   const queryClient = useQueryClient();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (body: LivestreamChange) =>
       apiFetch<LivestreamSettingsDto>("/api/wedding/livestream", { method: "PATCH", body }),
     onSuccess: (settings) => queryClient.setQueryData(livestreamKeys.settings(), settings),

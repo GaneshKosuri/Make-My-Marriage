@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { DiscoverScreen } from "@/features/vendors/components/discover-screen";
+import { DiscoverScreen, DiscoverSkeleton } from "@/features/vendors/components/discover-screen";
 import { getCurrentContext } from "@/server/auth";
 
 export const metadata: Metadata = { title: "Discover Vendors" };
@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Discover Vendors" };
  */
 export default function DiscoverVendorsPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<DiscoverSkeleton />}>
       <Discover />
     </Suspense>
   );

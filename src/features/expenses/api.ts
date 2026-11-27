@@ -1,9 +1,10 @@
 "use client";
 
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 
 import { dashboardKeys } from "@/features/dashboard/query-keys";
+import { useAppMutation } from "@/lib/use-app-mutation";
 import { apiAction, apiFetch, apiFetchPage } from "@/lib/api-client";
 import type { ExpenseCategory } from "@/modules/expenses/expense.constants";
 import type { ExpenseDto, ExpenseSummaryDto } from "@/modules/expenses/expense.types";
@@ -59,7 +60,7 @@ function useInvalidateExpenses() {
 /** POST /api/expenses (API §54). */
 export function useCreateExpense() {
   const invalidate = useInvalidateExpenses();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (body: CreateExpenseBody) =>
       apiFetch<ExpenseDto>("/api/expenses", { method: "POST", body }),
     onSuccess: invalidate,
@@ -69,7 +70,7 @@ export function useCreateExpense() {
 /** PATCH /api/expenses/:id (API §57): changed fields plus the version they were read at. */
 export function useUpdateExpense() {
   const invalidate = useInvalidateExpenses();
-  return useMutation({
+  return useAppMutation({
     mutationFn: ({ expenseId, body }: { expenseId: string; body: UpdateExpenseBody }) =>
       apiFetch<ExpenseDto>(expensePath(expenseId), { method: "PATCH", body }),
     onSuccess: invalidate,
@@ -79,7 +80,7 @@ export function useUpdateExpense() {
 /** DELETE /api/expenses/:id (API §58): permanent. */
 export function useDeleteExpense() {
   const invalidate = useInvalidateExpenses();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (expenseId: string) => apiAction(expensePath(expenseId), { method: "DELETE" }),
     onSuccess: invalidate,
   });

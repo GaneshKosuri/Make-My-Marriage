@@ -11,6 +11,7 @@ import { useRsvpSummary } from "../api";
 import { GUESTS } from "../guests-content";
 import { BulkEmailButton, BulkEmailProgress } from "./bulk-email";
 import { EmailInvitation } from "./email-invitation";
+import { AppToaster } from "@/components/ui/toaster";
 
 const ID = "6aeb2fe70d805e865a620aa1";
 const BATCH = "b".repeat(22);
@@ -70,7 +71,11 @@ function renderWithClient(element: ReactElement) {
   client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  return render(<QueryClientProvider client={client}>{element}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={client}>
+      {element} <AppToaster />
+    </QueryClientProvider>,
+  );
 }
 
 /** A mounted guest query, to count the refetches a progress check causes. */

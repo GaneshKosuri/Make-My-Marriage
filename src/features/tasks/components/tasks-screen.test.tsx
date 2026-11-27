@@ -17,6 +17,7 @@ import {
   selectTrigger,
 } from "@/components/ui/select-field.test-helpers";
 import userEvent from "@testing-library/user-event";
+import { AppToaster } from "@/components/ui/toaster";
 
 /** The address's query string, as `useSearchParams` reports it. */
 let search = "";
@@ -117,6 +118,7 @@ function renderScreen(props: Partial<TasksScreenProps> = {}) {
   const screenFor = () => (
     <QueryClientProvider client={client}>
       <TasksScreen timeZone="Asia/Kolkata" today="2026-11-04" {...props} />
+      <AppToaster />
     </QueryClientProvider>
   );
   const result = render(screenFor());

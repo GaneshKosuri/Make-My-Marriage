@@ -9,6 +9,7 @@ import { fieldValue, typeDate, typeTime } from "@/components/ui/date-time-fields
 
 import { EVENTS } from "../events-content";
 import { EventsScreen } from "./events-screen";
+import { AppToaster } from "@/components/ui/toaster";
 
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -79,6 +80,7 @@ function renderScreen(startAdding = false) {
         now="2026-11-04T06:30:00.000Z"
         startAdding={startAdding}
       />
+      <AppToaster />
     </QueryClientProvider>,
   );
 }

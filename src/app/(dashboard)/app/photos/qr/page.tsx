@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { GalleryShareScreen } from "@/features/photos/components/gallery-share-screen";
+import {
+  GalleryShareScreen,
+  GalleryShareSkeleton,
+} from "@/features/photos/components/gallery-share-screen";
 import { coupleDisplayName, weddingPlace } from "@/lib/couple";
 import { formatDateOnly } from "@/lib/dates";
 import { getCurrentContext } from "@/server/auth";
@@ -11,7 +14,7 @@ export const metadata: Metadata = { title: "Share the gallery" };
 /** /app/photos/qr (PRD §9.23): gallery switches, the stable link and the printable QR card. */
 export default function PhotosQrPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<GalleryShareSkeleton />}>
       <Share />
     </Suspense>
   );

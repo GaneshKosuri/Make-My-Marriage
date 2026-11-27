@@ -1,7 +1,8 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useAppMutation } from "@/lib/use-app-mutation";
 import { apiFetch } from "@/lib/api-client";
 import type {
   CreatedWeddingDto,
@@ -17,7 +18,7 @@ import { weddingsKeys } from "./query-keys";
 /** POST /api/wedding (API_DESIGN §17). The signed-in user becomes the first Admin. */
 export function useCreateWedding() {
   const queryClient = useQueryClient();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (input: CreateWeddingInput) =>
       apiFetch<CreatedWeddingDto>("/api/wedding", { method: "POST", body: input }),
     onSuccess: () => {
@@ -39,7 +40,7 @@ export function useWedding() {
 /** PATCH /api/wedding (API_DESIGN §19): send only the fields that changed. */
 export function useUpdateWedding() {
   const queryClient = useQueryClient();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (input: UpdateWeddingInput) =>
       apiFetch<WeddingDto>("/api/wedding", { method: "PATCH", body: input }),
     onSuccess: (wedding) => {

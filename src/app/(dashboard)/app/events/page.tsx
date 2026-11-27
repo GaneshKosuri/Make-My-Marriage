@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { EventsScreen } from "@/features/events/components/events-screen";
+import { EventsScreen, EventsSkeleton } from "@/features/events/components/events-screen";
 import { NEW_EVENT_PARAM } from "@/features/events/events-content";
 import { dateOnlyInTimeZone } from "@/lib/dates";
 import { getCurrentContext } from "@/server/auth";
@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Events" };
 /** /app/events (PRD §9.5): the wedding's events; `?new=1` opens the add form. */
 export default function EventsPage({ searchParams }: PageProps<"/app/events">) {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<EventsSkeleton />}>
       <Events searchParams={searchParams} />
     </Suspense>
   );

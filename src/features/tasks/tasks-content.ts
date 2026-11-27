@@ -83,6 +83,8 @@ export const TASKS = {
   },
   loadError: { title: "We couldn't load your tasks.", retry: "Try again" },
   statusError: "We couldn't update that task. Try again.",
+  statusChanged: (title: string, completed: boolean) =>
+    completed ? `${title} marked as done.` : `${title} moved back to To Do.`,
   statusConflict: "Someone else changed that task, so the list was reloaded. Try again.",
   form: {
     addTitle: "Add task",

@@ -7,6 +7,7 @@ import { useState } from "react";
 import { textLink } from "@/components/ui/button-styles";
 import { ArrowLink, DashboardCard } from "@/components/ui/dashboard-card";
 import type { DateOnly } from "@/lib/dates";
+import { notify } from "@/lib/notify";
 import type { TaskDto } from "@/modules/tasks/task.types";
 
 import { useTasks } from "../api";
@@ -29,7 +30,6 @@ export function EventTasks({
 }: Readonly<{ eventId: string; archived: boolean; timeZone: string; today: DateOnly }>) {
   const tasks = useTasks({ eventId, limit: EVENT_TASKS_LIMIT });
   const [editing, setEditing] = useState<TaskDto | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const copy = TASKS.forEvent;
   const list = tasks.data?.data ?? [];
   const total = tasks.data?.pagination.total ?? 0;
@@ -50,11 +50,6 @@ export function EventTasks({
         )
       }
     >
-      {notice && (
-        <p role="status" className="mb-3 text-body-md text-graphite">
-          {notice}
-        </p>
-      )}
       {tasks.isPending ? (
         <div
           aria-busy="true"
@@ -77,10 +72,9 @@ export function EventTasks({
                   timeZone={timeZone}
                   today={today}
                   onEdit={(next) => {
-                    setNotice(null);
                     setEditing(next);
                   }}
-                  onNotice={setNotice}
+                  onNotice={toastNotice}
                   showEvent={false}
                 />
               </li>
@@ -100,14 +94,19 @@ export function EventTasks({
         timeZone={timeZone}
         today={today}
         onSaved={(task) => {
-          setNotice(TASKS.form.updated(task.title));
+          notify.success(TASKS.form.updated(task.title));
           setEditing(null);
         }}
         onDeleted={(task) => {
-          setNotice(TASKS.form.deleted(task.title));
+          notify.success(TASKS.form.deleted(task.title));
           setEditing(null);
         }}
       />
     </DashboardCard>
   );
+}
+
+/** Child rows report what happened; a message becomes a success toast. */
+function toastNotice(message: string | null) {
+  if (message) notify.success(message);
 }

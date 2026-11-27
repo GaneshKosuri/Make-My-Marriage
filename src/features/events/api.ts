@@ -1,7 +1,8 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useAppMutation } from "@/lib/use-app-mutation";
 import { apiAction, apiFetch } from "@/lib/api-client";
 import type { EventDto } from "@/modules/events/event.types";
 
@@ -60,7 +61,7 @@ export function useReloadEvent() {
 /** POST /api/events (API §30). */
 export function useCreateEvent() {
   const invalidate = useInvalidateEvents();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (body: CreateEventBody) =>
       apiFetch<EventDto>("/api/events", { method: "POST", body }),
     onSuccess: invalidate,
@@ -70,7 +71,7 @@ export function useCreateEvent() {
 /** PATCH /api/events/:id (API §32): changed fields plus the version they were read at. */
 export function useUpdateEvent() {
   const invalidate = useInvalidateEvents();
-  return useMutation({
+  return useAppMutation({
     mutationFn: ({ eventId, body }: { eventId: string; body: UpdateEventBody }) =>
       apiFetch<EventDto>(`/api/events/${encodeURIComponent(eventId)}`, {
         method: "PATCH",
@@ -83,7 +84,7 @@ export function useUpdateEvent() {
 /** DELETE /api/events/:id (API §33): archives the event. */
 export function useArchiveEvent() {
   const invalidate = useInvalidateEvents();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (eventId: string) =>
       apiAction(`/api/events/${encodeURIComponent(eventId)}`, { method: "DELETE" }),
     onSuccess: invalidate,

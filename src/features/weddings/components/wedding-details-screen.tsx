@@ -1,9 +1,8 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle2, Globe, Heart, MapPin, RefreshCw, UserRound } from "lucide-react";
+import { Globe, Heart, MapPin, RefreshCw, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import type { z } from "zod";
 
@@ -17,6 +16,7 @@ import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { coupleDisplayName } from "@/lib/couple";
 import { dateOnlyInTimeZone } from "@/lib/dates";
+import { notify } from "@/lib/notify";
 import {
   latestWeddingDate,
   updateWeddingSchema,
@@ -116,7 +116,6 @@ export function WeddingDetailsScreen() {
 function DetailsForm({ wedding }: Readonly<{ wedding: WeddingDto }>) {
   const router = useRouter();
   const update = useUpdateWedding();
-  const [saved, setSaved] = useState(false);
   const form = useForm({
     resolver: zodResolver(updateWeddingSchema),
     defaultValues: toFormValues(wedding),
@@ -149,11 +148,10 @@ function DetailsForm({ wedding }: Readonly<{ wedding: WeddingDto }>) {
     }
     if (dirtyFields.location) changes.location = values.location;
 
-    setSaved(false);
     update.mutate(changes, {
       onSuccess: (updated) => {
         form.reset(toFormValues(updated));
-        setSaved(true);
+        notify.success(WEDDING_DETAILS.saved);
         // The header shows the couple, date and place from the server session.
         router.refresh();
       },
@@ -176,15 +174,6 @@ function DetailsForm({ wedding }: Readonly<{ wedding: WeddingDto }>) {
 
   return (
     <form noValidate onSubmit={onSubmit} className="flex flex-col gap-4 md:gap-6">
-      {saved && !isDirty && (
-        <p
-          role="status"
-          className="flex items-center gap-2 rounded-2xl border border-sand bg-white p-4 text-body-md text-graphite"
-        >
-          <CheckCircle2 aria-hidden className="size-5 shrink-0 text-gold-deep" />
-          {WEDDING_DETAILS.saved}
-        </p>
-      )}
       {showSaveError && (
         <FormAlert title={WEDDING_DETAILS.saveError.title}>
           {WEDDING_DETAILS.saveError.description}

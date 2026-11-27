@@ -16,6 +16,7 @@ import { isAppError } from "@/server/errors";
 import { getClientIp, policies } from "@/server/http";
 import { logger } from "@/server/logging/logger";
 import { getRateLimiter, rateLimitPair } from "@/server/security/rate-limit";
+import { GuestPageSkeleton } from "@/components/ui/page-skeleton";
 
 // The token is a secret: never indexed, never leaked via Referer (the layout and next.config.ts too).
 export const metadata: Metadata = {
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
  */
 export default function GalleryPage({ params }: PageProps<"/gallery/[token]">) {
   return (
-    <Suspense fallback={<div className="min-h-[60dvh]" aria-busy="true" />}>
+    <Suspense fallback={<GuestPageSkeleton photos />}>
       <Gallery params={params} />
     </Suspense>
   );

@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { CreateWeddingScreen } from "@/features/weddings/components/create-wedding-screen";
 
 import { readSessionSafely } from "../../read-session-safely";
+import { OnboardingSkeleton } from "@/components/ui/page-skeleton";
 
 export const metadata: Metadata = {
   title: "Create your wedding",
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
  */
 export default function CreateWeddingPage() {
   return (
-    <Suspense fallback={<div className="min-h-dvh bg-ivory" aria-busy="true" />}>
+    <Suspense fallback={<OnboardingSkeleton />}>
       <GuardedCreateWedding />
     </Suspense>
   );

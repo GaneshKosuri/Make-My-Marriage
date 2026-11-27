@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarPlus, CheckCircle2, Plus, RefreshCw } from "lucide-react";
+import { CalendarPlus, Plus, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
@@ -10,6 +10,7 @@ import { ListSkeleton } from "@/components/ui/list-skeleton";
 import { timeZoneLabel } from "@/features/weddings/create-wedding-content";
 import { cn } from "@/lib/cn";
 import type { DateOnly } from "@/lib/dates";
+import { notify } from "@/lib/notify";
 import { EVENT_TYPE_LABELS, type EventType } from "@/modules/events/event.constants";
 import type { EventDto } from "@/modules/events/event.types";
 
@@ -17,6 +18,7 @@ import { useEvents } from "../api";
 import { EVENTS, EVENTS_ROUTES } from "../events-content";
 import { EventFormDialog } from "./event-form-dialog";
 import { EventRow } from "./event-row";
+import { PageSkeleton } from "@/components/ui/page-skeleton";
 
 /** Occasions offered as one-tap starts when there are no events yet. */
 const SUGGESTED: readonly EventType[] = ["MEHENDI", "HALDI", "SANGEET", "WEDDING", "RECEPTION"];
@@ -50,7 +52,6 @@ export function EventsScreen({
   const router = useRouter();
   const [showArchived, setShowArchived] = useState(false);
   const [adding, setAdding] = useState<Adding>(startAdding ? {} : null);
-  const [notice, setNotice] = useState<string | null>(null);
   const events = useEvents(showArchived);
 
   // "+ Add event" links land here with ?new=1, also from this page (the "+"
@@ -66,7 +67,6 @@ export function EventsScreen({
   }, [startAdding, router]);
 
   const add = (type?: EventType) => {
-    setNotice(null);
     setAdding({ type });
   };
 
@@ -117,16 +117,6 @@ export function EventsScreen({
         </button>
       </header>
 
-      {notice && (
-        <p
-          role="status"
-          className="flex items-center gap-2 rounded-2xl border border-sand bg-white p-4 text-body-md text-graphite"
-        >
-          <CheckCircle2 aria-hidden className="size-5 shrink-0 text-gold-deep" />
-          {notice}
-        </p>
-      )}
-
       {body}
 
       {events.data && (events.data.length > 0 || showArchived) && (
@@ -154,7 +144,7 @@ export function EventsScreen({
         today={today}
         onSaved={(event) => {
           setAdding(null);
-          setNotice(EVENTS.form.added(event.name));
+          notify.success(EVENTS.form.added(event.name));
         }}
       />
     </div>
@@ -280,4 +270,18 @@ function useCurrentTime(serverNow: string): string {
     };
   }, []);
   return now;
+}
+
+/** The whole page while it loads: the page's Suspense fallback (no blank gap). */
+export function EventsSkeleton() {
+  return (
+    <PageSkeleton
+      eyebrow={EVENTS.eyebrow}
+      title={EVENTS.title}
+      description={EVENTS.description}
+      action
+    >
+      <ListSkeleton heading leading="tile" />
+    </PageSkeleton>
+  );
 }

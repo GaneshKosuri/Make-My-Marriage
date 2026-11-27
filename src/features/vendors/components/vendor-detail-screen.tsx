@@ -5,7 +5,6 @@ import {
   Plus,
   ArrowLeft,
   CalendarDays,
-  CheckCircle2,
   ExternalLink,
   Globe,
   Mail,
@@ -40,11 +39,13 @@ import { cn } from "@/lib/cn";
 import { formatInstant } from "@/lib/dates";
 import { formatINR } from "@/lib/money";
 import { eventDateTile, formatShortDate, mapsSearchUrl } from "@/lib/schedule";
+import { notify } from "@/lib/notify";
 import type { VendorDto } from "@/modules/vendors/vendor.types";
 
 import { useArchiveVendor, useVendor } from "../api";
 import { categoryLabel, VENDORS, VENDORS_ROUTES } from "../vendors-content";
 import { VendorFormDialog } from "./vendor-form-dialog";
+import { PageSkeleton } from "@/components/ui/page-skeleton";
 
 const DETAIL = VENDORS.detail;
 const LONG_DATE: Intl.DateTimeFormatOptions = { day: "numeric", month: "long", year: "numeric" };
@@ -122,7 +123,6 @@ function VendorDetail({ vendor, timeZone }: Readonly<{ vendor: VendorDto; timeZo
   const archive = useArchiveVendor();
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
   const archived = vendor.archivedAt !== null;
   const contactLine = [vendor.contactPerson, vendor.phone].filter(Boolean).join(" · ");
   const maps = mapsSearchUrl({
@@ -169,7 +169,6 @@ function VendorDetail({ vendor, timeZone }: Readonly<{ vendor: VendorDto; timeZo
             <button
               type="button"
               onClick={() => {
-                setNotice(null);
                 archive.reset();
                 setConfirming(true);
               }}
@@ -181,7 +180,6 @@ function VendorDetail({ vendor, timeZone }: Readonly<{ vendor: VendorDto; timeZo
             <button
               type="button"
               onClick={() => {
-                setNotice(null);
                 setEditing(true);
               }}
               className={onBurgundy.primary}
@@ -196,16 +194,6 @@ function VendorDetail({ vendor, timeZone }: Readonly<{ vendor: VendorDto; timeZo
       {archived && (
         <p className="rounded-2xl border border-sand bg-ivory p-4 text-body-md text-plum">
           {DETAIL.archivedBanner(formatInstant(vendor.archivedAt!, timeZone, LONG_DATE))}
-        </p>
-      )}
-
-      {notice && (
-        <p
-          role="status"
-          className="flex items-center gap-2 rounded-2xl border border-sand bg-white p-4 text-body-md text-graphite"
-        >
-          <CheckCircle2 aria-hidden className="size-5 shrink-0 text-gold-deep" />
-          {notice}
         </p>
       )}
 
@@ -267,7 +255,7 @@ function VendorDetail({ vendor, timeZone }: Readonly<{ vendor: VendorDto; timeZo
           timeZone={timeZone}
           onSaved={(saved) => {
             setEditing(false);
-            setNotice(VENDORS.form.updated(saved.name));
+            notify.success(VENDORS.form.updated(saved.name));
           }}
         />
       )}
@@ -292,7 +280,12 @@ function VendorDetail({ vendor, timeZone }: Readonly<{ vendor: VendorDto; timeZo
             disabled={archive.isPending}
             aria-busy={archive.isPending || undefined}
             onClick={() =>
-              archive.mutate(vendor.id, { onSuccess: () => router.push(VENDORS_ROUTES.list) })
+              archive.mutate(vendor.id, {
+                onSuccess: () => {
+                  notify.success(DETAIL.archivedNotice(vendor.name));
+                  router.push(VENDORS_ROUTES.list);
+                },
+              })
             }
             className={dangerButton}
           >
@@ -464,5 +457,21 @@ function DetailSkeleton() {
         <div className="h-40 rounded-3xl border border-sand bg-white" />
       </div>
     </div>
+  );
+}
+
+/** The whole page while it loads: the page's Suspense fallback (no blank gap). */
+export function VendorDetailSkeleton() {
+  return (
+    <PageSkeleton
+      above={
+        <Link href={VENDORS_ROUTES.list} className={cn(textLink, "self-start")}>
+          <ArrowLeft aria-hidden className="size-4" />
+          {DETAIL.back}
+        </Link>
+      }
+    >
+      <DetailSkeleton />
+    </PageSkeleton>
   );
 }

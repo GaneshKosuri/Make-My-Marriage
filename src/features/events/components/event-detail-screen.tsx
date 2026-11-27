@@ -4,7 +4,6 @@ import {
   ArchiveX,
   ArrowLeft,
   CalendarDays,
-  CheckCircle2,
   Clock,
   ExternalLink,
   MapPin,
@@ -31,12 +30,14 @@ import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { formatInstant, type DateOnly } from "@/lib/dates";
 import { eventSchedule, mapsSearchUrl } from "@/lib/schedule";
+import { notify } from "@/lib/notify";
 import { EVENT_TYPE_LABELS } from "@/modules/events/event.constants";
 import type { EventDto } from "@/modules/events/event.types";
 
 import { useArchiveEvent, useEvent } from "../api";
 import { EVENTS, EVENTS_ROUTES } from "../events-content";
 import { EventFormDialog } from "./event-form-dialog";
+import { PageSkeleton } from "@/components/ui/page-skeleton";
 
 const DETAIL = EVENTS.detail;
 const LONG_DATE: Intl.DateTimeFormatOptions = { day: "numeric", month: "long", year: "numeric" };
@@ -117,7 +118,6 @@ function EventDetail({
   const archive = useArchiveEvent();
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
   const archived = event.archivedAt !== null;
   const schedule = eventSchedule(event, timeZone);
   const mapsUrl = mapsSearchUrl(event);
@@ -139,7 +139,6 @@ function EventDetail({
             <button
               type="button"
               onClick={() => {
-                setNotice(null);
                 archive.reset();
                 setConfirming(true);
               }}
@@ -151,7 +150,6 @@ function EventDetail({
             <button
               type="button"
               onClick={() => {
-                setNotice(null);
                 setEditing(true);
               }}
               className={primaryButton}
@@ -166,15 +164,6 @@ function EventDetail({
       {archived && (
         <p role="status" className="rounded-2xl bg-sand p-4 text-body-md text-plum">
           {DETAIL.archivedBanner(formatInstant(event.archivedAt!, timeZone, LONG_DATE))}
-        </p>
-      )}
-      {notice && (
-        <p
-          role="status"
-          className="flex items-center gap-2 rounded-2xl border border-sand bg-white p-4 text-body-md text-graphite"
-        >
-          <CheckCircle2 aria-hidden className="size-5 shrink-0 text-gold-deep" />
-          {notice}
         </p>
       )}
 
@@ -238,7 +227,7 @@ function EventDetail({
           today={today}
           onSaved={(saved) => {
             setEditing(false);
-            setNotice(EVENTS.form.updated(saved.name));
+            notify.success(EVENTS.form.updated(saved.name));
           }}
         />
       )}
@@ -266,7 +255,10 @@ function EventDetail({
             aria-busy={archive.isPending || undefined}
             onClick={() =>
               archive.mutate(event.id, {
-                onSuccess: () => router.push(EVENTS_ROUTES.list),
+                onSuccess: () => {
+                  notify.success(DETAIL.archivedNotice(event.name));
+                  router.push(EVENTS_ROUTES.list);
+                },
               })
             }
             className={dangerButton}
@@ -328,5 +320,21 @@ function DetailSkeleton() {
         </div>
       </div>
     </div>
+  );
+}
+
+/** The whole page while it loads: the page's Suspense fallback (no blank gap). */
+export function EventDetailSkeleton() {
+  return (
+    <PageSkeleton
+      above={
+        <Link href={EVENTS_ROUTES.list} className={cn(textLink, "self-start")}>
+          <ArrowLeft aria-hidden className="size-4" />
+          {DETAIL.back}
+        </Link>
+      }
+    >
+      <DetailSkeleton />
+    </PageSkeleton>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Plus, RefreshCw, Search, SlidersHorizontal, Users, X } from "lucide-react";
+import { Plus, RefreshCw, Search, SlidersHorizontal, Users, X } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useState } from "react";
@@ -10,6 +10,7 @@ import { ListSkeleton } from "@/components/ui/list-skeleton";
 import { SelectField } from "@/components/ui/select-field";
 import { useEvents } from "@/features/events/api";
 import { cn } from "@/lib/cn";
+import { notify } from "@/lib/notify";
 import { RSVP_STATUSES } from "@/modules/guests/guest.constants";
 import type { GuestDto } from "@/modules/guests/guest.types";
 
@@ -19,6 +20,7 @@ import { guestsUrlFor, readGuestsUrl, type GuestFilters } from "../url-state";
 import { BulkEmailButton, BulkEmailProgress } from "./bulk-email";
 import { GuestFormDialog } from "./guest-form-dialog";
 import { GuestRow } from "./guest-row";
+import { PageSkeleton, SkeletonBar } from "@/components/ui/page-skeleton";
 
 const PAGE_SIZE = 20;
 /** Wait this long after the last keystroke before searching. */
@@ -56,7 +58,6 @@ export function GuestsScreen({ timeZone }: Readonly<GuestsScreenProps>) {
   const [filters, setFilters] = useState<GuestFilters>(url.filters);
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<Editing>(url.startAdding ? { kind: "new" } : null);
-  const [notice, setNotice] = useState<string | null>(null);
   const guests = useGuests(toQuery(filters, page));
   const summary = useRsvpSummary();
   // The bulk invitation email in progress, if any.
@@ -72,7 +73,6 @@ export function GuestsScreen({ timeZone }: Readonly<GuestsScreenProps>) {
     ) {
       setFilters(url.filters);
       setPage(1);
-      setNotice(null);
     }
     if (url.startAdding) setEditing({ kind: "new" });
   }
@@ -92,7 +92,6 @@ export function GuestsScreen({ timeZone }: Readonly<GuestsScreenProps>) {
   const show = (next: GuestFilters) => {
     setFilters(next);
     setPage(1);
-    setNotice(null);
     window.history.replaceState(null, "", guestsUrlFor(GUESTS_ROUTES.list, next));
   };
 
@@ -103,7 +102,6 @@ export function GuestsScreen({ timeZone }: Readonly<GuestsScreenProps>) {
       : undefined;
   const filtered = Object.values(filters).some(Boolean);
   const add = () => {
-    setNotice(null);
     setEditing({ kind: "new" });
   };
 
@@ -116,7 +114,6 @@ export function GuestsScreen({ timeZone }: Readonly<GuestsScreenProps>) {
         filtered={filtered}
         onPage={setPage}
         onEdit={(guest) => {
-          setNotice(null);
           setEditing({ kind: "edit", guest });
         }}
         onAdd={add}
@@ -155,7 +152,6 @@ export function GuestsScreen({ timeZone }: Readonly<GuestsScreenProps>) {
             kind="invitations"
             count={summary.data?.invitationsToEmail ?? 0}
             onStarted={(batchId) => {
-              setNotice(null);
               setBatch(batchId);
             }}
           />
@@ -174,16 +170,6 @@ export function GuestsScreen({ timeZone }: Readonly<GuestsScreenProps>) {
 
       <FilterBar filters={filters} onChange={show} />
 
-      {notice && (
-        <p
-          role="status"
-          className="flex items-center gap-2 rounded-2xl border border-sand bg-white p-4 text-body-md text-graphite"
-        >
-          <CheckCircle2 aria-hidden className="size-5 shrink-0 text-gold-deep" />
-          {notice}
-        </p>
-      )}
-
       {body}
 
       <GuestFormDialog
@@ -192,7 +178,7 @@ export function GuestsScreen({ timeZone }: Readonly<GuestsScreenProps>) {
         guest={editingGuest}
         timeZone={timeZone}
         onSaved={(guest) => {
-          setNotice(
+          notify.success(
             editing?.kind === "edit"
               ? GUESTS.form.updated(guest.name)
               : GUESTS.form.added(guest.name),
@@ -200,7 +186,7 @@ export function GuestsScreen({ timeZone }: Readonly<GuestsScreenProps>) {
           setEditing(null);
         }}
         onDeleted={(guest) => {
-          setNotice(GUESTS.form.deleted(guest.name));
+          notify.success(GUESTS.form.deleted(guest.name));
           setEditing(null);
         }}
       />
@@ -212,6 +198,7 @@ export function GuestsScreen({ timeZone }: Readonly<GuestsScreenProps>) {
 function SummaryStrip() {
   const summary = useRsvpSummary();
   const copy = GUESTS.summary;
+  if (summary.isPending) return <SkeletonBar className="h-20 rounded-3xl" />;
   if (!summary.data || summary.data.totalGuests === 0) return null;
   const stats = [
     { label: copy.invitations, value: summary.data.totalGuests },
@@ -459,5 +446,20 @@ function GuestList({
         )}
       </div>
     </section>
+  );
+}
+
+/** The whole page while it loads: the page's Suspense fallback (no blank gap). */
+export function GuestsSkeleton() {
+  return (
+    <PageSkeleton
+      eyebrow={GUESTS.eyebrow}
+      title={GUESTS.title}
+      description={GUESTS.description}
+      action
+    >
+      <SkeletonBar className="h-20 rounded-3xl" />
+      <ListSkeleton rows={4} />
+    </PageSkeleton>
   );
 }

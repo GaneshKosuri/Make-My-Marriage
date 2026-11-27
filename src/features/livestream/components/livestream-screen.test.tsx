@@ -7,6 +7,7 @@ import type { LivestreamSettingsDto } from "@/modules/weddings/wedding.types";
 
 import { LIVESTREAM } from "../livestream-content";
 import { LivestreamScreen } from "./livestream-screen";
+import { AppToaster } from "@/components/ui/toaster";
 
 const ID = "dQw4w9WgXcQ";
 const WATCH = `https://www.youtube.com/watch?v=${ID}`;
@@ -39,6 +40,7 @@ function renderScreen() {
   return render(
     <QueryClientProvider client={client}>
       <LivestreamScreen />
+      <AppToaster />
     </QueryClientProvider>,
   );
 }

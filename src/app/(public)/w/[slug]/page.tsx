@@ -15,6 +15,7 @@ import { getClientIp, policies } from "@/server/http";
 import { logger } from "@/server/logging/logger";
 import { getRateLimiter } from "@/server/security/rate-limit";
 import { ThemedWebsite } from "@/themes";
+import { PublicWebsiteSkeleton } from "@/components/ui/page-skeleton";
 
 // Families share the link themselves; search engines never list it (decided 2026-11-24).
 export const metadata: Metadata = {
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
  */
 export default function WeddingWebsitePage({ params }: PageProps<"/w/[slug]">) {
   return (
-    <Suspense fallback={<div className="min-h-dvh bg-ivory" aria-busy="true" />}>
+    <Suspense fallback={<PublicWebsiteSkeleton />}>
       <WeddingWebsite params={params} />
     </Suspense>
   );

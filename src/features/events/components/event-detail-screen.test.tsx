@@ -9,6 +9,7 @@ import { TASKS } from "@/features/tasks/tasks-content";
 
 import { EVENTS } from "../events-content";
 import { EventDetailScreen } from "./event-detail-screen";
+import { AppToaster } from "@/components/ui/toaster";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -69,6 +70,7 @@ function renderScreen() {
         weddingDate="2027-02-14"
         today="2026-11-04"
       />
+      <AppToaster />
     </QueryClientProvider>,
   );
 }
