@@ -1,8 +1,9 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import type { FieldValues, Path, UseFormSetError } from "react-hook-form";
 
+import { useAppMutation } from "@/lib/use-app-mutation";
 import { apiAction, apiFetch, ApiError } from "@/lib/api-client";
 import type {
   AuthResultDto,
@@ -18,7 +19,9 @@ import { authKeys } from "./query-keys";
 
 export function useLogin() {
   const queryClient = useQueryClient();
-  return useMutation({
+  return useAppMutation({
+    // The form explains failures itself.
+    errorToast: false,
     mutationFn: (input: LoginInput) =>
       apiFetch<AuthResultDto>("/api/auth/login", { method: "POST", body: input }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: authKeys.all }),
@@ -27,7 +30,9 @@ export function useLogin() {
 
 export function useSignup() {
   const queryClient = useQueryClient();
-  return useMutation({
+  return useAppMutation({
+    // The form explains failures itself.
+    errorToast: false,
     mutationFn: (input: SignupInput) =>
       apiFetch<AuthResultDto>("/api/auth/signup", { method: "POST", body: input }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: authKeys.all }),
@@ -37,21 +42,25 @@ export function useSignup() {
 /** Ends this session (API_DESIGN §13); the caller navigates to sign-in. */
 export function useLogout() {
   const queryClient = useQueryClient();
-  return useMutation({
+  return useAppMutation({
     mutationFn: () => apiAction("/api/auth/logout"),
     onSuccess: () => queryClient.clear(),
   });
 }
 
 export function useForgotPassword() {
-  return useMutation({
+  return useAppMutation({
+    // The form explains failures itself.
+    errorToast: false,
     mutationFn: (input: ForgotPasswordInput) =>
       apiAction("/api/auth/forgot-password", { body: input }),
   });
 }
 
 export function useResetPassword() {
-  return useMutation({
+  return useAppMutation({
+    // The form explains failures itself.
+    errorToast: false,
     mutationFn: (input: ResetPasswordInput) =>
       apiAction("/api/auth/reset-password", { body: input }),
   });

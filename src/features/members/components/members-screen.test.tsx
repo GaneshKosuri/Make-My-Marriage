@@ -7,6 +7,7 @@ import type { MemberDto, MemberInvitationDto } from "@/modules/members/member.ty
 
 import { MEMBERS } from "../members-content";
 import { MembersScreen } from "./members-screen";
+import { AppToaster } from "@/components/ui/toaster";
 
 const replace = vi.fn();
 const refresh = vi.fn();
@@ -71,6 +72,7 @@ function renderScreen(
         currentMembershipId={currentMembershipId}
         timeZone="Asia/Kolkata"
       />
+      <AppToaster />
     </QueryClientProvider>,
   );
 }
@@ -202,9 +204,9 @@ describe("<MembersScreen /> invitations", () => {
     fireEvent.click(dialog.getByLabelText(/^Admin/));
     fireEvent.click(dialog.getByRole("button", { name: MEMBERS.inviteDialog.submit }));
 
-    expect(await screen.findByRole("status")).toHaveTextContent(
-      MEMBERS.inviteDialog.sent("vikram@example.com"),
-    );
+    expect(
+      await screen.findByText(MEMBERS.inviteDialog.sent("vikram@example.com")),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(mutations()).toEqual([
       {
@@ -258,9 +260,7 @@ describe("<MembersScreen /> invitations", () => {
     expect(mutations()).toEqual([]);
     fireEvent.click(dialog.getByRole("button", { name: MEMBERS.revoke }));
 
-    expect(await screen.findByRole("status")).toHaveTextContent(
-      MEMBERS.revoked("neha@example.com"),
-    );
+    expect(await screen.findByText(MEMBERS.revoked("neha@example.com"))).toBeInTheDocument();
     expect(mutations()).toEqual([
       { method: "DELETE", url: "/api/members/invitations/i1", body: undefined },
     ]);
@@ -276,21 +276,20 @@ describe("<MembersScreen /> invitations", () => {
     expect(mutations()).toEqual([]);
   });
 
-  it("replaces the last message with the next action's", async () => {
+  it("confirms each action in its own notification", async () => {
     routes["POST /api/members/invitations/i1/resend"] = () => data(invitation);
     routes["PATCH /api/members/m3"] = () => data({ ...rahul, role: "ADMIN" });
     renderScreen();
     fireEvent.click(
       await invitationsCard().findByRole("button", { name: `${MEMBERS.resend}: neha@example.com` }),
     );
-    expect(await screen.findByRole("status")).toHaveTextContent(MEMBERS.resent("neha@example.com"));
+    expect(await screen.findByText(MEMBERS.resent("neha@example.com"))).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: `${MEMBERS.makeAdmin}: Rahul Sharma` }));
-    expect(screen.queryByText(MEMBERS.resent("neha@example.com"))).toBeNull();
-    expect(await screen.findByRole("status")).toHaveTextContent(
-      MEMBERS.roleChanged("Rahul Sharma", "Admin"),
-    );
-    expect(screen.getByRole("status")).toHaveTextContent("Rahul Sharma is now an Admin.");
+    expect(
+      await screen.findByText(MEMBERS.roleChanged("Rahul Sharma", "Admin")),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Rahul Sharma is now an Admin.")).toBeInTheDocument();
   });
 
   it("resends a fresh link in one request", async () => {
@@ -299,7 +298,7 @@ describe("<MembersScreen /> invitations", () => {
     fireEvent.click(
       await invitationsCard().findByRole("button", { name: `${MEMBERS.resend}: neha@example.com` }),
     );
-    expect(await screen.findByRole("status")).toHaveTextContent(MEMBERS.resent("neha@example.com"));
+    expect(await screen.findByText(MEMBERS.resent("neha@example.com"))).toBeInTheDocument();
     expect(mutations()).toEqual([
       { method: "POST", url: "/api/members/invitations/i1/resend", body: undefined },
     ]);

@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  CheckCircle2,
-  Pencil,
-  Plus,
-  ReceiptIndianRupee,
-  RefreshCw,
-  SlidersHorizontal,
-} from "lucide-react";
+import { Pencil, Plus, ReceiptIndianRupee, RefreshCw, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useState } from "react";
@@ -22,6 +15,7 @@ import { VENDORS_ROUTES } from "@/features/vendors/vendors-content";
 import { cn } from "@/lib/cn";
 import { formatShortDate } from "@/lib/schedule";
 import { formatINR } from "@/lib/money";
+import { notify } from "@/lib/notify";
 import { EXPENSE_CATEGORIES } from "@/modules/expenses/expense.constants";
 import type { ExpenseDto } from "@/modules/expenses/expense.types";
 
@@ -29,6 +23,7 @@ import { useExpenses, useExpenseSummary, type ExpensesQuery } from "../api";
 import { EXPENSES, EXPENSES_ROUTES, expenseCategoryLabel } from "../expenses-content";
 import { expensesUrlFor, readExpensesUrl, type ExpenseFilters } from "../url-state";
 import { ExpenseFormDialog } from "./expense-form-dialog";
+import { PageSkeleton, SkeletonBar } from "@/components/ui/page-skeleton";
 
 const PAGE_SIZE = 20;
 /** Every vendor, archived included, for the vendor filter. */
@@ -57,7 +52,6 @@ export function ExpensesScreen({ today }: Readonly<{ today: string }>) {
   const [editing, setEditing] = useState<Editing>(
     url.startAdding ? { kind: "new", vendorId: url.filters.vendorId } : null,
   );
-  const [notice, setNotice] = useState<string | null>(null);
   const expenses = useExpenses({ page, limit: PAGE_SIZE, ...filters } satisfies ExpensesQuery);
 
   // Links into the screen while it stays mounted (the dashboard, the "+" sheet's
@@ -71,7 +65,6 @@ export function ExpensesScreen({ today }: Readonly<{ today: string }>) {
     ) {
       setFilters(url.filters);
       setPage(1);
-      setNotice(null);
     }
     if (url.startAdding) setEditing({ kind: "new", vendorId: url.filters.vendorId });
   }
@@ -91,7 +84,6 @@ export function ExpensesScreen({ today }: Readonly<{ today: string }>) {
   const show = (next: ExpenseFilters) => {
     setFilters(next);
     setPage(1);
-    setNotice(null);
     window.history.replaceState(null, "", expensesUrlFor(EXPENSES_ROUTES.list, next));
   };
 
@@ -103,7 +95,6 @@ export function ExpensesScreen({ today }: Readonly<{ today: string }>) {
       : undefined;
   const filtered = Object.values(filters).some(Boolean);
   const add = () => {
-    setNotice(null);
     setEditing({ kind: "new" });
   };
 
@@ -116,7 +107,6 @@ export function ExpensesScreen({ today }: Readonly<{ today: string }>) {
         filtered={filtered}
         onPage={setPage}
         onEdit={(expense) => {
-          setNotice(null);
           setEditing({ kind: "edit", expense });
         }}
         onAdd={add}
@@ -160,16 +150,6 @@ export function ExpensesScreen({ today }: Readonly<{ today: string }>) {
 
       <FilterBar filters={filters} onChange={show} />
 
-      {notice && (
-        <p
-          role="status"
-          className="flex items-center gap-2 rounded-2xl border border-sand bg-white p-4 text-body-md text-graphite"
-        >
-          <CheckCircle2 aria-hidden className="size-5 shrink-0 text-gold-deep" />
-          {notice}
-        </p>
-      )}
-
       {body}
 
       <ExpenseFormDialog
@@ -179,7 +159,7 @@ export function ExpensesScreen({ today }: Readonly<{ today: string }>) {
         presetVendorId={editing?.kind === "new" ? editing.vendorId : undefined}
         today={today}
         onSaved={(expense) => {
-          setNotice(
+          notify.success(
             editing?.kind === "edit"
               ? EXPENSES.form.updated(expense.title)
               : EXPENSES.form.added(expense.title),
@@ -187,7 +167,7 @@ export function ExpensesScreen({ today }: Readonly<{ today: string }>) {
           setEditing(null);
         }}
         onDeleted={(expense) => {
-          setNotice(EXPENSES.form.deleted(expense.title));
+          notify.success(EXPENSES.form.deleted(expense.title));
           setEditing(null);
         }}
       />
@@ -203,6 +183,8 @@ function SummaryCard() {
   const summary = useExpenseSummary();
   const all = useExpenses({ page: 1, limit: 1 });
   const copy = EXPENSES.summary;
+  // Same height as the card, so the list doesn't jump when it arrives.
+  if (summary.isPending) return <SkeletonBar className="h-48 rounded-3xl" />;
   if (!summary.data || summary.data.totalExpensePaise === 0) return null;
   const largest = summary.data.byCategory[0]?.amountPaise ?? 1;
   const count = all.data?.pagination.total;
@@ -485,5 +467,20 @@ export function ExpenseRow({
         </button>
       )}
     </div>
+  );
+}
+
+/** The whole page while it loads: the page's Suspense fallback (no blank gap). */
+export function ExpensesSkeleton() {
+  return (
+    <PageSkeleton
+      eyebrow={EXPENSES.eyebrow}
+      title={EXPENSES.title}
+      description={EXPENSES.description}
+      action
+    >
+      <SkeletonBar className="h-48 rounded-3xl" />
+      <ListSkeleton rows={4} />
+    </PageSkeleton>
   );
 }

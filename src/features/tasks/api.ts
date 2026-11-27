@@ -1,7 +1,8 @@
 "use client";
 
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useAppMutation } from "@/lib/use-app-mutation";
 import { apiAction, apiFetch, apiFetchPage } from "@/lib/api-client";
 import type { TaskPriority, TaskStatus } from "@/modules/tasks/task.constants";
 import type { TaskDto } from "@/modules/tasks/task.types";
@@ -47,7 +48,7 @@ function useInvalidateTasks() {
 /** POST /api/tasks (API §35). */
 export function useCreateTask() {
   const invalidate = useInvalidateTasks();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (body: CreateTaskBody) => apiFetch<TaskDto>("/api/tasks", { method: "POST", body }),
     onSuccess: invalidate,
   });
@@ -56,7 +57,7 @@ export function useCreateTask() {
 /** PATCH /api/tasks/:id (API §37): changed fields plus the version they were read at. */
 export function useUpdateTask() {
   const invalidate = useInvalidateTasks();
-  return useMutation({
+  return useAppMutation({
     mutationFn: ({ taskId, body }: { taskId: string; body: UpdateTaskBody }) =>
       apiFetch<TaskDto>(`/api/tasks/${encodeURIComponent(taskId)}`, { method: "PATCH", body }),
     onSuccess: invalidate,
@@ -66,7 +67,7 @@ export function useUpdateTask() {
 /** DELETE /api/tasks/:id (API §38): permanent. */
 export function useDeleteTask() {
   const invalidate = useInvalidateTasks();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (taskId: string) =>
       apiAction(`/api/tasks/${encodeURIComponent(taskId)}`, { method: "DELETE" }),
     onSuccess: invalidate,

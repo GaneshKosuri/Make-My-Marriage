@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 
+import { AppToaster } from "@/components/ui/toaster";
 import { ApiError } from "@/lib/api-client";
 
 const MAX_QUERY_RETRIES = 2;
@@ -14,7 +15,10 @@ function shouldRetry(failureCount: number, error: unknown): boolean {
   return failureCount < MAX_QUERY_RETRIES;
 }
 
-/** Client-side providers. TanStack Query talks to the REST API via `@/lib/api-client`. */
+/**
+ * Client-side providers. TanStack Query talks to the REST API via `@/lib/api-client`;
+ * <AppToaster /> shows success and error notifications on every page.
+ */
 export function Providers({ children }: Readonly<{ children: ReactNode }>) {
   const [queryClient] = useState(
     () =>
@@ -26,5 +30,10 @@ export function Providers({ children }: Readonly<{ children: ReactNode }>) {
       }),
   );
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+      <AppToaster />
+    </QueryClientProvider>
+  );
 }

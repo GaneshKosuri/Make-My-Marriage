@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { VendorsScreen } from "@/features/vendors/components/vendors-screen";
+import { VendorsScreen, VendorsSkeleton } from "@/features/vendors/components/vendors-screen";
 import { getCurrentContext } from "@/server/auth";
 
 export const metadata: Metadata = { title: "My Vendors" };
@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "My Vendors" };
  */
 export default function VendorsPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<VendorsSkeleton />}>
       <Vendors />
     </Suspense>
   );

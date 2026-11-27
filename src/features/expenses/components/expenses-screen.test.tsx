@@ -11,6 +11,7 @@ import type { VendorDto } from "@/modules/vendors/vendor.types";
 
 import { EXPENSES } from "../expenses-content";
 import { ExpensesScreen } from "./expenses-screen";
+import { AppToaster } from "@/components/ui/toaster";
 
 /** The address's query string, as `useSearchParams` reports it. */
 let search = "";
@@ -125,7 +126,11 @@ function renderWithClient(element: ReactElement) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  return render(<QueryClientProvider client={client}>{element}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={client}>
+      {element} <AppToaster />
+    </QueryClientProvider>,
+  );
 }
 
 const dialog = () => within(screen.getByRole("dialog"));

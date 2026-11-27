@@ -1,7 +1,8 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useAppMutation } from "@/lib/use-app-mutation";
 import { apiFetch } from "@/lib/api-client";
 import { putToStorage } from "@/lib/direct-upload";
 import type { CoverMimeType, WebsiteTheme } from "@/modules/weddings/wedding.constants";
@@ -33,7 +34,7 @@ export function useWebsiteSettings() {
 /** PATCH /api/wedding/website. The answer replaces the cached settings. */
 export function useUpdateWebsite() {
   const queryClient = useQueryClient();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (body: WebsiteChange) =>
       apiFetch<WebsiteSettingsDto>(PATH, { method: "PATCH", body }),
     onSuccess: (settings) => queryClient.setQueryData(websiteKeys.settings(), settings),
@@ -46,7 +47,7 @@ export function useUpdateWebsite() {
  */
 export function useUploadCover() {
   const queryClient = useQueryClient();
-  return useMutation({
+  return useAppMutation({
     mutationFn: async (file: File) => {
       const issued = await apiFetch<CoverUploadUrlDto>("/api/wedding/cover/upload-url", {
         method: "POST",

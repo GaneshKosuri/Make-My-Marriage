@@ -89,6 +89,7 @@ export const EVENTS = {
       title: "We couldn't find this event",
       description: "It may belong to another wedding, or the link is wrong.",
     },
+    archivedNotice: (name: string) => `${name} archived.`,
     confirmArchive: {
       title: (name: string) => `Archive ${name}?`,
       description:

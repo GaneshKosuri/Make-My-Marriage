@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { GalleryScreen } from "@/features/photos/components/gallery-screen";
+import { GalleryScreen, GallerySkeleton } from "@/features/photos/components/gallery-screen";
 import { getCurrentContext } from "@/server/auth";
 
 export const metadata: Metadata = { title: "Gallery" };
@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Gallery" };
  */
 export default function PhotosPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<GallerySkeleton />}>
       <Gallery />
     </Suspense>
   );

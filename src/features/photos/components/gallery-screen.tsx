@@ -1,15 +1,6 @@
 "use client";
 
-import {
-  Camera,
-  CheckCircle2,
-  Download,
-  Plus,
-  QrCode,
-  RefreshCw,
-  Share2,
-  Trash2,
-} from "lucide-react";
+import { Camera, Download, Plus, QrCode, RefreshCw, Share2, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -23,6 +14,7 @@ import {
 import { Dialog } from "@/components/ui/dialog";
 import { useEvents } from "@/features/events/api";
 import { cn } from "@/lib/cn";
+import { notify } from "@/lib/notify";
 import type { EventDto } from "@/modules/events/event.types";
 import type { PhotoDto } from "@/modules/photos/photo.types";
 
@@ -37,6 +29,7 @@ import { GALLERY, GALLERY_ROUTES, MEMORIES_ALBUM, UPLOAD } from "../gallery-cont
 import { PhotoGrid, TileAction } from "./photo-grid";
 import { PhotoViewer, viewerButton, viewerDangerButton } from "./photo-viewer";
 import { UploadDialog } from "./upload-dialog";
+import { PageSkeleton, SkeletonBar } from "@/components/ui/page-skeleton";
 
 const ALBUM_PARAM = "album";
 /** "?new=1" (the "+" sheet's "Upload photos") opens the upload dialog. */
@@ -99,7 +92,6 @@ export function GalleryScreen({ timeZone }: Readonly<{ timeZone: string }>) {
     );
   }, [startUpload]);
   const [deleting, setDeleting] = useState<PhotoDto | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   const loaded = photos.data?.pages.flatMap((page) => page.data) ?? [];
   const albumTotal = photos.data?.pages[0]?.pagination.total ?? 0;
@@ -115,7 +107,6 @@ export function GalleryScreen({ timeZone }: Readonly<{ timeZone: string }>) {
   const show = (next: string | undefined) => {
     setAlbum(next);
     setViewing(null);
-    setNotice(null);
     const url = next ? `${GALLERY_ROUTES.gallery}?${ALBUM_PARAM}=${next}` : GALLERY_ROUTES.gallery;
     window.history.replaceState(null, "", url);
   };
@@ -227,17 +218,7 @@ export function GalleryScreen({ timeZone }: Readonly<{ timeZone: string }>) {
       </div>
     );
   } else {
-    body = (
-      <div
-        aria-busy="true"
-        aria-label="Loading"
-        className="grid grid-cols-3 gap-1 sm:gap-2 md:grid-cols-4"
-      >
-        {Array.from({ length: 8 }, (_, i) => (
-          <div key={i} className="aspect-square animate-pulse rounded-xl bg-sand sm:rounded-2xl" />
-        ))}
-      </div>
-    );
+    body = <PhotoGridSkeleton />;
   }
 
   return (
@@ -306,15 +287,6 @@ export function GalleryScreen({ timeZone }: Readonly<{ timeZone: string }>) {
         </ul>
       </nav>
 
-      {notice && (
-        <p
-          role="status"
-          className="flex items-center gap-2 rounded-2xl border border-sand bg-white p-4 text-body-md text-graphite"
-        >
-          <CheckCircle2 aria-hidden className="size-5 shrink-0 text-gold-deep" />
-          {notice}
-        </p>
-      )}
       {download.isError && (
         <p role="alert" className="text-body-md text-destructive">
           {GALLERY.downloadError}
@@ -332,7 +304,7 @@ export function GalleryScreen({ timeZone }: Readonly<{ timeZone: string }>) {
           onClose={(uploaded) => {
             setUploading(false);
             if (uploaded > 0) {
-              setNotice(UPLOAD.done(uploaded));
+              notify.success(UPLOAD.done(uploaded));
               void invalidate();
             }
           }}
@@ -376,7 +348,7 @@ export function GalleryScreen({ timeZone }: Readonly<{ timeZone: string }>) {
                 onSuccess: () => {
                   setDeleting(null);
                   setViewing(null);
-                  setNotice(GALLERY.deleted);
+                  notify.success(GALLERY.deleted);
                 },
               });
             }}
@@ -436,5 +408,36 @@ function EmptyState({
         </Link>
       </div>
     </div>
+  );
+}
+
+/** Photo tiles while the gallery loads. */
+function PhotoGridSkeleton() {
+  return (
+    <div
+      aria-busy="true"
+      aria-label="Loading"
+      className="grid grid-cols-3 gap-1 sm:gap-2 md:grid-cols-4"
+    >
+      {Array.from({ length: 8 }, (_, i) => (
+        <div key={i} className="aspect-square animate-pulse rounded-xl bg-sand sm:rounded-2xl" />
+      ))}
+    </div>
+  );
+}
+
+/** The whole page while it loads: the page's Suspense fallback (no blank gap). */
+export function GallerySkeleton() {
+  return (
+    <PageSkeleton
+      wide
+      eyebrow={GALLERY.eyebrow}
+      title={GALLERY.title}
+      description={GALLERY.description}
+      action
+    >
+      <SkeletonBar className="h-20 rounded-3xl" />
+      <PhotoGridSkeleton />
+    </PageSkeleton>
   );
 }

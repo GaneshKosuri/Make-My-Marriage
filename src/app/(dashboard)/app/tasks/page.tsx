@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { TasksScreen } from "@/features/tasks/components/tasks-screen";
+import { TasksScreen, TasksSkeleton } from "@/features/tasks/components/tasks-screen";
 import { dateOnlyInTimeZone } from "@/lib/dates";
 import { getCurrentContext } from "@/server/auth";
 
@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Tasks" };
  */
 export default function TasksPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<TasksSkeleton />}>
       <Tasks />
     </Suspense>
   );

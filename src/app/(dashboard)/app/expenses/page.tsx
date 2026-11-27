@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { ExpensesScreen } from "@/features/expenses/components/expenses-screen";
+import { ExpensesScreen, ExpensesSkeleton } from "@/features/expenses/components/expenses-screen";
 import { dateOnlyInTimeZone } from "@/lib/dates";
 import { getCurrentContext } from "@/server/auth";
 
@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "Expenses" };
  */
 export default function ExpensesPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<ExpensesSkeleton />}>
       <Expenses />
     </Suspense>
   );

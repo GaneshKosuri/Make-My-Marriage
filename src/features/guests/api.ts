@@ -1,9 +1,10 @@
 "use client";
 
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef } from "react";
 
 import { dashboardKeys } from "@/features/dashboard/query-keys";
+import { useAppMutation } from "@/lib/use-app-mutation";
 import { apiAction, apiFetch, apiFetchPage } from "@/lib/api-client";
 import type { RsvpStatus } from "@/modules/guests/guest.constants";
 import type { EmailBatchStatusDto } from "@/modules/email-jobs/email-job.types";
@@ -87,7 +88,7 @@ function useInvalidateGuests() {
 /** POST /api/guests (API §40). */
 export function useCreateGuest() {
   const invalidate = useInvalidateGuests();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (body: CreateGuestBody) =>
       apiFetch<GuestDto>("/api/guests", { method: "POST", body }),
     onSuccess: invalidate,
@@ -97,7 +98,7 @@ export function useCreateGuest() {
 /** PATCH /api/guests/:id (API §42): changed fields plus the version they were read at. */
 export function useUpdateGuest() {
   const invalidate = useInvalidateGuests();
-  return useMutation({
+  return useAppMutation({
     mutationFn: ({ guestId, body }: { guestId: string; body: UpdateGuestBody }) =>
       apiFetch<GuestDto>(`/api/guests/${encodeURIComponent(guestId)}`, { method: "PATCH", body }),
     onSuccess: invalidate,
@@ -108,7 +109,7 @@ export function useUpdateGuest() {
 export function useDeleteGuest() {
   const queryClient = useQueryClient();
   const invalidate = useInvalidateGuests();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (guestId: string) =>
       apiAction(`/api/guests/${encodeURIComponent(guestId)}`, { method: "DELETE" }),
     onSuccess: (_result, guestId) => {
@@ -140,7 +141,7 @@ export function useReloadGuest() {
 /** POST /api/guests/:id/send-invitation or /send-reminder (API §46, §48): sent now. */
 export function useEmailGuest() {
   const invalidate = useInvalidateGuests();
-  return useMutation({
+  return useAppMutation({
     mutationFn: ({ guestId, kind }: { guestId: string; kind: "invitation" | "reminder" }) =>
       apiAction(
         `/api/guests/${encodeURIComponent(guestId)}/${kind === "invitation" ? "send-invitation" : "send-reminder"}`,
@@ -153,7 +154,7 @@ export function useEmailGuest() {
 /** POST /api/guests/actions/send-invitations or /send-reminders (API §47, §49): queued. */
 export function useEmailGuestsInBulk() {
   const invalidate = useInvalidateGuests();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (
       request:
         | { kind: "invitations"; body: SendInvitationsInput }
@@ -219,7 +220,7 @@ export function useEmailBatch(batchId: string | null, { waiting = false } = {}) 
 /** POST /api/email-batches/:id/retry-failed (API §86). */
 export function useRetryFailedEmails() {
   const queryClient = useQueryClient();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (batchId: string) =>
       apiFetch<EmailBatchStatusDto>(
         `/api/email-batches/${encodeURIComponent(batchId)}/retry-failed`,

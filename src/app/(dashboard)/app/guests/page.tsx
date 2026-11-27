@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { GuestsScreen } from "@/features/guests/components/guests-screen";
+import { GuestsScreen, GuestsSkeleton } from "@/features/guests/components/guests-screen";
 import { getCurrentContext } from "@/server/auth";
 
 export const metadata: Metadata = { title: "Guest List" };
@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "Guest List" };
  */
 export default function GuestsPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<GuestsSkeleton />}>
       <Guests />
     </Suspense>
   );

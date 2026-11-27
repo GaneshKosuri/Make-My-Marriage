@@ -4,13 +4,13 @@ import {
   type InfiniteData,
   type QueryClient,
   useInfiniteQuery,
-  useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
 import { useCallback } from "react";
 
 import { dashboardKeys } from "@/features/dashboard/query-keys";
+import { useAppMutation } from "@/lib/use-app-mutation";
 import { apiFetch, apiFetchCursorPage } from "@/lib/api-client";
 import type { CursorPagination } from "@/lib/pagination";
 import type { PhotoDownloadDto, PhotoDto } from "@/modules/photos/photo.types";
@@ -91,7 +91,7 @@ export function useInvalidatePhotos() {
 /** DELETE /api/photos/:id (API §78). */
 export function useDeletePhoto() {
   const queryClient = useQueryClient();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (photoId: string) =>
       apiFetch<{ success: true }>(photoPath(photoId), { method: "DELETE" }),
     // Take the photo out of what is loaded instead of re-signing (and
@@ -136,7 +136,7 @@ function removePhotoFromLists(queryClient: QueryClient, photoId: string) {
  * the file straight from storage (it downloads as the original file name).
  */
 export function useDownloadPhoto() {
-  return useMutation({
+  return useAppMutation({
     mutationFn: async (photoId: string) => {
       const { url } = await apiFetch<PhotoDownloadDto>(`${photoPath(photoId)}/download`);
       window.location.assign(url);
@@ -157,7 +157,7 @@ export function useGallerySettings() {
 /** PATCH /api/gallery/settings. The answer replaces the cached settings. */
 export function useUpdateGallerySettings() {
   const queryClient = useQueryClient();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (body: UpdateGallerySettingsInput) =>
       apiFetch<GallerySettingsDto>("/api/gallery/settings", { method: "PATCH", body }),
     onSuccess: (settings) => queryClient.setQueryData(photosKeys.gallerySettings(), settings),

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { WebsiteScreen } from "@/features/website/components/website-screen";
+import { WebsiteScreen, WebsiteSkeleton } from "@/features/website/components/website-screen";
 import { coupleDisplayName } from "@/lib/couple";
 import { getCurrentContext } from "@/server/auth";
 
@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Wedding Website" };
 /** /app/website (PRD §9.18–9.19): publish, share and shape the wedding website. */
 export default function WebsiteSettingsPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<WebsiteSkeleton />}>
       <Website />
     </Suspense>
   );

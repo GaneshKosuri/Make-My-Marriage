@@ -15,6 +15,7 @@ import { useGuests, useRsvpSummary } from "../api";
 import { GUESTS, GUESTS_ROUTES, RSVP_LABELS } from "../guests-content";
 import { BulkEmailButton, BulkEmailProgress } from "./bulk-email";
 import { GuestRow } from "./guest-row";
+import { PageSkeleton, SkeletonBar } from "@/components/ui/page-skeleton";
 
 const COPY = GUESTS.rsvp;
 const PAGE_SIZE = 20;
@@ -255,5 +256,15 @@ function StatusList({
         )}
       </div>
     </section>
+  );
+}
+
+/** The whole page while it loads: the page's Suspense fallback (no blank gap). */
+export function RsvpSkeleton() {
+  return (
+    <PageSkeleton eyebrow={COPY.eyebrow} title={COPY.title} description={COPY.description}>
+      <SkeletonBar className="h-28 rounded-3xl" />
+      <ListSkeleton rows={3} />
+    </PageSkeleton>
   );
 }

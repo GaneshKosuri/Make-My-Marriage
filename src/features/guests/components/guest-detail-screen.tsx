@@ -3,7 +3,6 @@
 import {
   ArrowLeft,
   CalendarDays,
-  CheckCircle2,
   Mail,
   Pencil,
   Phone,
@@ -28,6 +27,7 @@ import { EVENTS_ROUTES } from "@/features/events/events-content";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { eventDateTile, eventTimeRange, formatDateTime } from "@/lib/schedule";
+import { notify } from "@/lib/notify";
 import type { GuestDto } from "@/modules/guests/guest.types";
 
 import { useDeleteGuest, useGuest } from "../api";
@@ -36,6 +36,7 @@ import { GuestFormDialog } from "./guest-form-dialog";
 import { RsvpPill } from "./guest-row";
 import { EmailInvitation } from "./email-invitation";
 import { InvitationShare } from "./invitation-share";
+import { PageSkeleton } from "@/components/ui/page-skeleton";
 
 const DETAIL = GUESTS.detail;
 
@@ -110,7 +111,6 @@ function GuestDetail({
   const remove = useDeleteGuest();
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
 
   return (
     <>
@@ -125,7 +125,6 @@ function GuestDetail({
           <button
             type="button"
             onClick={() => {
-              setNotice(null);
               remove.reset();
               setConfirming(true);
             }}
@@ -137,7 +136,6 @@ function GuestDetail({
           <button
             type="button"
             onClick={() => {
-              setNotice(null);
               setEditing(true);
             }}
             className={primaryButton}
@@ -147,16 +145,6 @@ function GuestDetail({
           </button>
         </div>
       </header>
-
-      {notice && (
-        <p
-          role="status"
-          className="flex items-center gap-2 rounded-2xl border border-sand bg-white p-4 text-body-md text-graphite"
-        >
-          <CheckCircle2 aria-hidden className="size-5 shrink-0 text-gold-deep" />
-          {notice}
-        </p>
-      )}
 
       <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-2">
         <DashboardCard title={DETAIL.rsvp}>
@@ -202,7 +190,6 @@ function GuestDetail({
           guest={guest}
           timeZone={timeZone}
           onAddEmail={() => {
-            setNotice(null);
             setEditing(true);
           }}
         />
@@ -253,7 +240,7 @@ function GuestDetail({
         timeZone={timeZone}
         onSaved={(saved) => {
           setEditing(false);
-          setNotice(GUESTS.form.updated(saved.name));
+          notify.success(GUESTS.form.updated(saved.name));
         }}
       />
 
@@ -307,5 +294,21 @@ function DetailSkeleton() {
         <div className="h-40 rounded-3xl border border-sand bg-white" />
       </div>
     </div>
+  );
+}
+
+/** The whole page while it loads: the page's Suspense fallback (no blank gap). */
+export function GuestDetailSkeleton() {
+  return (
+    <PageSkeleton
+      above={
+        <Link href={GUESTS_ROUTES.list} className={cn(textLink, "self-start")}>
+          <ArrowLeft aria-hidden className="size-4" />
+          {DETAIL.back}
+        </Link>
+      }
+    >
+      <DetailSkeleton />
+    </PageSkeleton>
   );
 }

@@ -9,6 +9,7 @@ import type { PhotoDto } from "@/modules/photos/photo.types";
 
 import { GALLERY, UPLOAD } from "../gallery-content";
 import { GalleryScreen } from "./gallery-screen";
+import { AppToaster } from "@/components/ui/toaster";
 
 let search = "";
 vi.mock("next/navigation", () => ({
@@ -106,6 +107,7 @@ function renderScreen() {
   const tree = () => (
     <QueryClientProvider client={client}>
       <GalleryScreen timeZone="Asia/Kolkata" />
+      <AppToaster />
     </QueryClientProvider>
   );
   const result = render(tree());

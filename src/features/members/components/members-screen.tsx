@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, RefreshCw, ShieldCheck, UserPlus } from "lucide-react";
+import { RefreshCw, ShieldCheck, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
@@ -18,6 +18,7 @@ import { ListSkeleton } from "@/components/ui/list-skeleton";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { formatInstant } from "@/lib/dates";
+import { notify } from "@/lib/notify";
 import { MEMBER_ROLE_LABELS, type MemberRole } from "@/modules/members/member.constants";
 import type { MemberDto, MemberInvitationDto } from "@/modules/members/member.types";
 
@@ -33,6 +34,7 @@ import {
 import { MEMBERS } from "../members-content";
 import { Dialog } from "@/components/ui/dialog";
 import { InviteMemberDialog } from "./invite-member-dialog";
+import { PageSkeleton } from "@/components/ui/page-skeleton";
 
 const SHORT_DATE: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric" };
 
@@ -65,7 +67,6 @@ export function MembersScreen({
 }: Readonly<MembersScreenProps>) {
   const isAdmin = role === "ADMIN";
   const [inviting, setInviting] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
 
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-4 md:gap-6">
@@ -81,7 +82,6 @@ export function MembersScreen({
           <button
             type="button"
             onClick={() => {
-              setNotice(null);
               setInviting(true);
             }}
             className={primaryButton}
@@ -102,30 +102,20 @@ export function MembersScreen({
         </span>
       </p>
 
-      {notice && (
-        <p
-          role="status"
-          className="flex items-center gap-2 rounded-2xl border border-sand bg-white p-4 text-body-md text-graphite"
-        >
-          <CheckCircle2 aria-hidden className="size-5 shrink-0 text-gold-deep" />
-          {notice}
-        </p>
-      )}
-
       <MembersList
         isAdmin={isAdmin}
         currentMembershipId={currentMembershipId}
         timeZone={timeZone}
-        onNotice={setNotice}
+        onNotice={toastNotice}
       />
 
-      {isAdmin && <PendingInvitations timeZone={timeZone} onNotice={setNotice} />}
+      {isAdmin && <PendingInvitations timeZone={timeZone} onNotice={toastNotice} />}
 
       {isAdmin && (
         <InviteMemberDialog
           open={inviting}
           onClose={() => setInviting(false)}
-          onInvited={(email) => setNotice(MEMBERS.inviteDialog.sent(email))}
+          onInvited={(email) => notify.success(MEMBERS.inviteDialog.sent(email))}
         />
       )}
     </div>
@@ -499,4 +489,23 @@ function RolePill({ role }: Readonly<{ role: MemberRole }>) {
       {MEMBER_ROLE_LABELS[role]}
     </span>
   );
+}
+
+/** The whole page while it loads: the page's Suspense fallback (no blank gap). */
+export function MembersSkeleton() {
+  return (
+    <PageSkeleton
+      eyebrow={MEMBERS.eyebrow}
+      title={MEMBERS.title}
+      description={MEMBERS.description}
+      action
+    >
+      <ListSkeleton rows={4} heading />
+    </PageSkeleton>
+  );
+}
+
+/** Child rows report what happened; a message becomes a success toast. */
+function toastNotice(message: string | null) {
+  if (message) notify.success(message);
 }

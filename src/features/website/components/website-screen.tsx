@@ -3,7 +3,6 @@
 import {
   CalendarDays,
   Check,
-  CheckCircle2,
   Copy,
   Eye,
   ImagePlus,
@@ -21,6 +20,7 @@ import { TextAreaField } from "@/components/ui/form-controls";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { buildWhatsAppShareUrl } from "@/lib/whatsapp";
+import { notify } from "@/lib/notify";
 import {
   COVER_MAX_SIZE_BYTES,
   COVER_MIME_TYPES,
@@ -33,6 +33,7 @@ import type { WebsiteSettingsDto } from "@/modules/weddings/wedding.types";
 import { useUpdateWebsite, useUploadCover, useWebsiteSettings, type WebsiteChange } from "../api";
 import { THEME_CHOICES, WEBSITE, WEBSITE_ROUTES } from "../website-content";
 import { ThemeThumbnail } from "./theme-thumbnail";
+import { PageSkeleton } from "@/components/ui/page-skeleton";
 
 /**
  * /app/website (PRD §9.18–9.19; API_DESIGN §67–68, §83): publish the website,
@@ -75,10 +76,16 @@ export function WebsiteScreen({ coupleName }: Readonly<{ coupleName: string }>) 
     );
   } else {
     body = (
-      <div aria-busy="true" aria-label="Loading" className="flex animate-pulse flex-col gap-6">
-        <div className="h-44 rounded-3xl bg-sand" />
-        <div className="h-64 rounded-3xl bg-sand" />
-      </div>
+      <>
+        <header>
+          <p className="text-eyebrow text-gold-deep uppercase">{WEBSITE.eyebrow}</p>
+          <h1 className="mt-1 font-serif text-headline-md text-graphite md:text-headline-lg">
+            {WEBSITE.title}
+          </h1>
+          <p className="mt-1 text-body-md text-plum">{WEBSITE.description}</p>
+        </header>
+        <WebsiteBodySkeleton />
+      </>
     );
   }
   return <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-4 md:gap-6">{body}</div>;
@@ -119,7 +126,6 @@ function WebsiteSettings({
     setSaved(server);
     if (!editing) setForm(server);
   }
-  const [notice, setNotice] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [coverProblem, setCoverProblem] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<"publish" | "unpublish" | null>(null);
@@ -141,11 +147,10 @@ function WebsiteSettings({
     after?: (next: WebsiteSettingsDto) => void,
     fail: (error: Error) => void = () => setProblem(WEBSITE.saveBar.error),
   ) => {
-    setNotice(null);
     setProblem(null);
     update.mutate(body, {
       onSuccess: (next) => {
-        setNotice(done);
+        notify.success(done);
         after?.(next);
       },
       onError: fail,
@@ -161,7 +166,6 @@ function WebsiteSettings({
 
   const chooseCover = (file: File | undefined) => {
     if (!file) return;
-    setNotice(null);
     setCoverProblem(null);
     if (
       !(COVER_MIME_TYPES as readonly string[]).includes(file.type) ||
@@ -172,7 +176,7 @@ function WebsiteSettings({
       return;
     }
     cover.mutate(file, {
-      onSuccess: () => setNotice(WEBSITE.cover.saved),
+      onSuccess: () => notify.success(WEBSITE.cover.saved),
       onError: (error) => setCoverProblem(coverFailure(error)),
     });
   };
@@ -283,16 +287,6 @@ function WebsiteSettings({
               : ""}
         </p>
       </section>
-
-      {notice && (
-        <p
-          role="status"
-          className="flex items-center gap-2 rounded-2xl border border-sand bg-white p-4 text-body-md text-graphite"
-        >
-          <CheckCircle2 aria-hidden className="size-5 shrink-0 text-gold-deep" />
-          {notice}
-        </p>
-      )}
 
       <section
         aria-labelledby="website-theme"
@@ -558,5 +552,30 @@ function WebsiteSettings({
         </div>
       </Dialog>
     </>
+  );
+}
+
+/** The website settings cards while they load. */
+function WebsiteBodySkeleton() {
+  return (
+    <div aria-busy="true" aria-label="Loading" className="flex animate-pulse flex-col gap-6">
+      <div className="h-44 rounded-3xl bg-sand" />
+      <div className="h-64 rounded-3xl bg-sand" />
+    </div>
+  );
+}
+
+/** The whole page while it loads: the page's Suspense fallback (no blank gap). */
+export function WebsiteSkeleton() {
+  return (
+    <PageSkeleton
+      wide
+      eyebrow={WEBSITE.eyebrow}
+      title={WEBSITE.title}
+      description={WEBSITE.description}
+      action
+    >
+      <WebsiteBodySkeleton />
+    </PageSkeleton>
   );
 }

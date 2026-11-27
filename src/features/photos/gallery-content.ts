@@ -110,6 +110,9 @@ export const SHARE = {
     uploads: { label: "Guests can upload", hint: "Guests can add photos without signing in." },
     uploadsNeedGallery: "Turn the gallery on first.",
     saveError: "We couldn't save that change. Try again.",
+    galleryChanged: (on: boolean) => (on ? "The gallery is on." : "The gallery is off."),
+    uploadsChanged: (on: boolean) =>
+      on ? "Guests can now upload photos." : "Guest uploads are off.",
   },
   link: {
     label: "Gallery link",

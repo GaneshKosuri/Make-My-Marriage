@@ -8,6 +8,7 @@ import type { WebsiteSettingsDto } from "@/modules/weddings/wedding.types";
 import { websiteKeys } from "../query-keys";
 import { THEME_CHOICES, WEBSITE } from "../website-content";
 import { WebsiteScreen } from "./website-screen";
+import { AppToaster } from "@/components/ui/toaster";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), refresh: vi.fn(), push: vi.fn() }),
@@ -85,6 +86,7 @@ function renderScreen() {
   return render(
     <QueryClientProvider client={client}>
       <WebsiteScreen coupleName="Akshay & Princi" />
+      <AppToaster />
     </QueryClientProvider>,
   );
 }

@@ -1,10 +1,11 @@
 "use client";
 
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 
 import { dashboardKeys } from "@/features/dashboard/query-keys";
 import { expensesKeys } from "@/features/expenses/query-keys";
+import { useAppMutation } from "@/lib/use-app-mutation";
 import { apiAction, apiFetch, apiFetchPage } from "@/lib/api-client";
 import type { VendorCategory } from "@/modules/vendors/vendor.constants";
 import type {
@@ -67,7 +68,7 @@ function useInvalidateVendors() {
 /** POST /api/vendors (API §60). */
 export function useCreateVendor() {
   const invalidate = useInvalidateVendors();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (body: CreateVendorBody) =>
       apiFetch<VendorDto>("/api/vendors", { method: "POST", body }),
     onSuccess: invalidate,
@@ -77,7 +78,7 @@ export function useCreateVendor() {
 /** PATCH /api/vendors/:id (API §63): changed fields plus the version they were read at. */
 export function useUpdateVendor() {
   const invalidate = useInvalidateVendors();
-  return useMutation({
+  return useAppMutation({
     mutationFn: ({ vendorId, body }: { vendorId: string; body: UpdateVendorBody }) =>
       apiFetch<VendorDto>(vendorPath(vendorId), { method: "PATCH", body }),
     onSuccess: invalidate,
@@ -88,7 +89,7 @@ export function useUpdateVendor() {
 export function useArchiveVendor() {
   const invalidate = useInvalidateVendors();
   const queryClient = useQueryClient();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (vendorId: string) => apiAction(vendorPath(vendorId), { method: "DELETE" }),
     onSuccess: (_result, vendorId) => {
       // Discover results already on screen show it as archived, without asking
@@ -179,7 +180,7 @@ export function useDiscoveredPlace(placeId: string | null) {
 export function useAddVendorFromPlace() {
   const invalidate = useInvalidateVendors();
   const queryClient = useQueryClient();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (body: AddVendorFromPlaceBody) =>
       apiFetch<VendorDto>("/api/vendors/from-place", { method: "POST", body }),
     onSuccess: (vendor) => {

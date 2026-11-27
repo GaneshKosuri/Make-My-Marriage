@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, CheckCircle2, ListChecks, Plus, RefreshCw } from "lucide-react";
+import { Check, ListChecks, Plus, RefreshCw } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -13,6 +13,7 @@ import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import type { DateOnly } from "@/lib/dates";
 import { isOverdue } from "@/lib/schedule";
+import { markErrorHandled, notify } from "@/lib/notify";
 import {
   TASK_FILTER_NONE,
   TASK_PRIORITIES,
@@ -36,6 +37,7 @@ import {
 import { readTasksUrl } from "../url-state";
 import { TaskFormDialog } from "./task-form-dialog";
 import { OverdueChip, PriorityChip, TaskMeta } from "./task-meta";
+import { PageSkeleton, SkeletonBar } from "@/components/ui/page-skeleton";
 
 const PAGE_SIZE = 20;
 
@@ -97,7 +99,6 @@ export function TasksScreen({ timeZone, today }: Readonly<TasksScreenProps>) {
   const [editing, setEditing] = useState<Editing>(
     url.startAdding ? { kind: "new", eventId: url.filters.eventId } : null,
   );
-  const [notice, setNotice] = useState<string | null>(null);
   const tasks = useTasks(toQuery(view, filters, page));
 
   // The screen stays mounted between visits, so links into it (the dashboard's
@@ -111,7 +112,6 @@ export function TasksScreen({ timeZone, today }: Readonly<TasksScreenProps>) {
       setView(url.view);
       setFilters(url.filters);
       setPage(1);
-      setNotice(null);
     }
     if (url.startAdding) setEditing({ kind: "new", eventId: url.filters.eventId });
   }
@@ -133,7 +133,6 @@ export function TasksScreen({ timeZone, today }: Readonly<TasksScreenProps>) {
     setView(nextView);
     setFilters(nextFilters);
     setPage(1);
-    setNotice(null);
     window.history.replaceState(null, "", urlFor(nextView, nextFilters));
   };
 
@@ -157,7 +156,6 @@ export function TasksScreen({ timeZone, today }: Readonly<TasksScreenProps>) {
         <button
           type="button"
           onClick={() => {
-            setNotice(null);
             setEditing({ kind: "new" });
           }}
           className={primaryButton}
@@ -191,16 +189,6 @@ export function TasksScreen({ timeZone, today }: Readonly<TasksScreenProps>) {
 
       <FilterBar view={view} filters={filters} onChange={(next) => show(view, next)} />
 
-      {notice && (
-        <p
-          role="status"
-          className="flex items-center gap-2 rounded-2xl border border-sand bg-white p-4 text-body-md text-graphite"
-        >
-          <CheckCircle2 aria-hidden className="size-5 shrink-0 text-gold-deep" />
-          {notice}
-        </p>
-      )}
-
       {tasks.data ? (
         <TaskList
           tasks={tasks.data.data}
@@ -211,12 +199,11 @@ export function TasksScreen({ timeZone, today }: Readonly<TasksScreenProps>) {
           today={today}
           onPage={setPage}
           onEdit={(task) => {
-            setNotice(null);
             setEditing({ kind: "edit", task });
           }}
           onAdd={() => setEditing({ kind: "new" })}
           onClearFilters={() => show(view, {})}
-          onNotice={setNotice}
+          onNotice={toastNotice}
         />
       ) : tasks.isError ? (
         <div
@@ -241,7 +228,7 @@ export function TasksScreen({ timeZone, today }: Readonly<TasksScreenProps>) {
         timeZone={timeZone}
         today={today}
         onSaved={(task) => {
-          setNotice(
+          notify.success(
             editing?.kind === "edit"
               ? TASKS.form.updated(task.title)
               : TASKS.form.added(task.title),
@@ -249,7 +236,7 @@ export function TasksScreen({ timeZone, today }: Readonly<TasksScreenProps>) {
           setEditing(null);
         }}
         onDeleted={(task) => {
-          setNotice(TASKS.form.deleted(task.title));
+          notify.success(TASKS.form.deleted(task.title));
           setEditing(null);
         }}
       />
@@ -471,10 +458,16 @@ export function TaskItem({
     update.mutate(
       { taskId: task.id, body: { status: toggledStatus(task.status), version: task.version } },
       {
+        onSuccess: (saved) =>
+          notify.success(TASKS.statusChanged(saved.title, saved.status === "COMPLETED")),
         onError: (error) => {
-          const conflict = error instanceof ApiError && error.code === "CONFLICT";
-          onNotice(conflict ? TASKS.statusConflict : TASKS.statusError);
-          if (conflict) void refresh();
+          // A conflict says why and reloads the list; other errors get the
+          // hook's toast.
+          if (error instanceof ApiError && error.code === "CONFLICT") {
+            markErrorHandled(error);
+            notify.error(TASKS.statusConflict);
+            void refresh();
+          }
         },
       },
     );
@@ -527,4 +520,24 @@ export function TaskItem({
       </div>
     </div>
   );
+}
+
+/** The whole page while it loads: the page's Suspense fallback (no blank gap). */
+export function TasksSkeleton() {
+  return (
+    <PageSkeleton
+      eyebrow={TASKS.eyebrow}
+      title={TASKS.title}
+      description={TASKS.description}
+      action
+    >
+      <SkeletonBar className="h-20 rounded-3xl" />
+      <ListSkeleton rows={4} leading="check" />
+    </PageSkeleton>
+  );
+}
+
+/** Child rows report what happened; a message becomes a success toast. */
+function toastNotice(message: string | null) {
+  if (message) notify.success(message);
 }

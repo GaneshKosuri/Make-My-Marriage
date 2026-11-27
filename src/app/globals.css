@@ -246,6 +246,20 @@
 }
 
 /* "Print card" on /app/photos/qr: only the QR card, centred, with its colours. */
+/*
+ * Notifications stay in the top right on phones too. Sonner stretches them
+ * across the screen below 600px; keep them a card's width, anchored right.
+ */
+@media (max-width: 600px) {
+  [data-sonner-toaster][data-x-position="right"] {
+    left: auto;
+    width: min(356px, calc(100vw - 24px));
+  }
+  [data-sonner-toaster][data-x-position="right"] [data-sonner-toast] {
+    width: 100%;
+  }
+}
+
 @media print {
   body:has([data-print-card]) * {
     visibility: hidden;

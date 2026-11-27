@@ -1,8 +1,9 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 
+import { useAppMutation } from "@/lib/use-app-mutation";
 import { apiFetch } from "@/lib/api-client";
 import type {
   PublicInvitationDto,
@@ -58,7 +59,7 @@ export function usePublicInvitation(token: string, initialData: PublicInvitation
 /** POST /api/public/invitations/:token/rsvp (API §51). */
 export function useSubmitRsvp(token: string) {
   const queryClient = useQueryClient();
-  return useMutation({
+  return useAppMutation({
     mutationFn: (body: SubmitRsvpInput) =>
       apiFetch<RsvpResultDto>(`${path(token)}/rsvp`, { method: "POST", body }),
     onSuccess: (saved) => {

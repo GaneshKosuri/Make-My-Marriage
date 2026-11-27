@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { GuestDetailScreen } from "@/features/guests/components/guest-detail-screen";
+import {
+  GuestDetailScreen,
+  GuestDetailSkeleton,
+} from "@/features/guests/components/guest-detail-screen";
 import { coupleDisplayName } from "@/lib/couple";
 import { getCurrentContext } from "@/server/auth";
 
@@ -10,7 +13,7 @@ export const metadata: Metadata = { title: "Guest" };
 /** /app/guests/[guestId] (PRD §9.7–9.11): one guest, with edit and delete. */
 export default function GuestDetailPage({ params }: PageProps<"/app/guests/[guestId]">) {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<GuestDetailSkeleton />}>
       <GuestDetail params={params} />
     </Suspense>
   );

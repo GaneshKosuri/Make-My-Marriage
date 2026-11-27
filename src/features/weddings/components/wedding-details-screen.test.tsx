@@ -13,6 +13,7 @@ import { CREATE_WEDDING } from "../create-wedding-content";
 import { WEDDING_DETAILS } from "../wedding-details-content";
 import { WeddingDetailsScreen } from "./wedding-details-screen";
 import { selectedOption } from "@/components/ui/select-field.test-helpers";
+import { AppToaster } from "@/components/ui/toaster";
 
 // Wedding dates must be within 5 years: next year's dates are always valid.
 const NEXT_YEAR = new Date().getUTCFullYear() + 1;
@@ -79,6 +80,7 @@ function renderScreen() {
   return render(
     <QueryClientProvider client={client}>
       <WeddingDetailsScreen />
+      <AppToaster />
     </QueryClientProvider>,
   );
 }
@@ -126,7 +128,7 @@ describe("<WeddingDetailsScreen />", () => {
     type(FIELDS.description.label, "Two families, one celebration.");
     save();
 
-    expect(await screen.findByRole("status")).toHaveTextContent(WEDDING_DETAILS.saved);
+    expect(await screen.findByText(WEDDING_DETAILS.saved)).toBeInTheDocument();
     expect(patches).toEqual([{ description: "Two families, one celebration." }]);
     expect(refresh).toHaveBeenCalled();
     expect(screen.getByRole("button", { name: WEDDING_DETAILS.save })).toBeDisabled();

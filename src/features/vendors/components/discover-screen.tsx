@@ -13,7 +13,7 @@ import {
   Star,
 } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useId, useState, type FormEvent } from "react";
 
 import { primaryButton, secondaryButton, textLink } from "@/components/ui/button-styles";
@@ -22,6 +22,7 @@ import { ListSkeleton } from "@/components/ui/list-skeleton";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { mapsSearchUrl } from "@/lib/schedule";
+import { notify } from "@/lib/notify";
 import {
   VENDOR_CATEGORIES,
   VENDOR_DISCOVERY_NEAR_MAX_LENGTH,
@@ -34,6 +35,7 @@ import { useVendorDiscovery } from "../api";
 import { discoverUrlFor, readDiscoverUrl, type DiscoverSearch } from "../url-state";
 import { categoryLabel, DISCOVER, VENDORS_ROUTES } from "../vendors-content";
 import { VendorFormDialog } from "./vendor-form-dialog";
+import { PageSkeleton, SkeletonCard } from "@/components/ui/page-skeleton";
 
 const FORM = DISCOVER.form;
 
@@ -60,16 +62,11 @@ export function DiscoverScreen({
     category: VendorCategory;
     restore: boolean;
   } | null>(null);
-  const [notice, setNotice] = useState<{
-    name: string;
-    vendorId: string;
-    restored: boolean;
-  } | null>(null);
+  const router = useRouter();
   const results = useVendorDiscovery(submitted);
 
   const search = (next: DiscoverSearch) => {
     setSubmitted(next);
-    setNotice(null);
     window.history.replaceState(null, "", discoverUrlFor(VENDORS_ROUTES.discover, next));
     // The same search again after a failure asks Google once more; a
     // successful one is shown from the cache.
@@ -102,27 +99,11 @@ export function DiscoverScreen({
         onSearch={search}
       />
 
-      {notice && (
-        <p
-          role="status"
-          className="flex flex-wrap items-center gap-2 rounded-2xl border border-sand bg-white p-4 text-body-md text-graphite"
-        >
-          <CheckCircle2 aria-hidden className="size-5 shrink-0 text-gold-deep" />
-          <span className="min-w-0 flex-1 wrap-break-word">
-            {notice.restored ? DISCOVER.restored(notice.name) : DISCOVER.added(notice.name)}
-          </span>
-          <Link href={VENDORS_ROUTES.vendor(notice.vendorId)} className={textLink}>
-            {DISCOVER.view}
-          </Link>
-        </p>
-      )}
-
       <Results
         submitted={submitted}
         results={results}
         serverNearError={serverNearError}
         onAdd={(place) => {
-          setNotice(null);
           if (submitted) {
             setAdding({
               placeId: place.googlePlaceId,
@@ -139,7 +120,13 @@ export function DiscoverScreen({
         place={adding ?? undefined}
         timeZone={timeZone}
         onSaved={(vendor) => {
-          setNotice({ name: vendor.name, vendorId: vendor.id, restored: adding?.restore ?? false });
+          const restored = adding?.restore ?? false;
+          notify.success(restored ? DISCOVER.restored(vendor.name) : DISCOVER.added(vendor.name), {
+            action: {
+              label: DISCOVER.view,
+              onClick: () => router.push(VENDORS_ROUTES.vendor(vendor.id)),
+            },
+          });
           setAdding(null);
         }}
       />
@@ -441,5 +428,25 @@ function EmptyState({ title, description }: Readonly<{ title: string; descriptio
       <p className="font-serif text-title-lg text-graphite">{title}</p>
       <p className="max-w-md text-body-md text-plum">{description}</p>
     </div>
+  );
+}
+
+/** The whole page while it loads: the page's Suspense fallback (no blank gap). */
+export function DiscoverSkeleton() {
+  return (
+    <PageSkeleton
+      above={
+        <Link href={VENDORS_ROUTES.list} className={cn(textLink, "self-start")}>
+          <ArrowLeft aria-hidden className="size-4" />
+          {DISCOVER.back}
+        </Link>
+      }
+      eyebrow={DISCOVER.eyebrow}
+      title={DISCOVER.title}
+      description={DISCOVER.description}
+    >
+      <SkeletonCard className="h-56" />
+      <SkeletonCard className="h-40" />
+    </PageSkeleton>
   );
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { MembersScreen } from "@/features/members/components/members-screen";
+import { MembersScreen, MembersSkeleton } from "@/features/members/components/members-screen";
 import { getCurrentContext } from "@/server/auth";
 
 export const metadata: Metadata = { title: "Wedding Members" };
@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "Wedding Members" };
  */
 export default function MembersPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<MembersSkeleton />}>
       <Members />
     </Suspense>
   );

@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { VendorDetailScreen } from "@/features/vendors/components/vendor-detail-screen";
+import {
+  VendorDetailScreen,
+  VendorDetailSkeleton,
+} from "@/features/vendors/components/vendor-detail-screen";
 import { getCurrentContext } from "@/server/auth";
 
 export const metadata: Metadata = { title: "Vendor" };
@@ -9,7 +12,7 @@ export const metadata: Metadata = { title: "Vendor" };
 /** /app/vendors/[vendorId] (PRD §9.16): one vendor, with edit and archive. */
 export default function VendorDetailPage({ params }: PageProps<"/app/vendors/[vendorId]">) {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<VendorDetailSkeleton />}>
       <VendorDetail params={params} />
     </Suspense>
   );

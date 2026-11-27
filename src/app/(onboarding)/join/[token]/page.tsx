@@ -13,6 +13,7 @@ import { logger } from "@/server/logging/logger";
 import { getRateLimiter } from "@/server/security/rate-limit";
 
 import { readSessionSafely } from "../../../read-session-safely";
+import { OnboardingSkeleton } from "@/components/ui/page-skeleton";
 
 // The token is a secret: never indexed, never leaked via Referer (next.config.ts headers too).
 export const metadata: Metadata = {
@@ -28,7 +29,7 @@ export const metadata: Metadata = {
  */
 export default function JoinWeddingPage({ params }: PageProps<"/join/[token]">) {
   return (
-    <Suspense fallback={<div className="min-h-dvh bg-ivory" aria-busy="true" />}>
+    <Suspense fallback={<OnboardingSkeleton />}>
       <Join params={params} />
     </Suspense>
   );
